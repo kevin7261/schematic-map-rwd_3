@@ -1,6 +1,6 @@
 <script>
   /**
-   * 🏠 HomeView.vue - Schematic Map 2 主頁面
+   * 🏠 HomeView.vue - Schematic Map 3 主頁面
    *
    * 功能說明：
    * 1. 🗺️ 提供地圖視覺化和資料分析的主要介面
@@ -722,7 +722,7 @@
       </div>
 
       <!-- 🏠 首頁內容區域 (Home Page Content Area) -->
-      <!-- Schematic Map 2 的主要功能界面，使用響應式三面板佈局 -->
+      <!-- Schematic Map 3 的主要功能界面，使用響應式三面板佈局 -->
       <div v-if="$route.path === '/'" class="h-100 d-flex flex-column overflow-hidden">
         <!-- 🖥️ 桌面版佈局 (Desktop Layout - xl and above) -->
         <div class="d-none d-xl-flex flex-row overflow-hidden h-100">

@@ -4,7 +4,7 @@
    *
    * 功能說明：
    * 1. 🎛️ 提供圖層管理和控制的主要介面
-   * 2. 📊 顯示 Schematic Map 2 的標題和品牌資訊
+   * 2. 📊 顯示 Schematic Map 3 的標題和品牌資訊
    * 3. 📋 整合圖層列表分頁，提供完整的圖層操作功能
    * 4. 🎨 提供統一的左側面板樣式和佈局
    * 5. 📱 支援響應式設計，適應不同螢幕尺寸
@@ -53,7 +53,7 @@
   <div class="my-bgcolor-gray-100 h-100 d-flex flex-column overflow-hidden">
     <!-- 📰 頁面標題區域 -->
     <div class="p-3">
-      <h1 class="my-font-size-lg my-letter-spacing-lg text-center m-3">Schematic Map 2</h1>
+      <h1 class="my-font-size-lg my-letter-spacing-lg text-center m-3">Schematic Map 3</h1>
     </div>
 
     <!-- 📋 圖層列表分頁內容 -->

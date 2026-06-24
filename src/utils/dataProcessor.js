@@ -28,7 +28,7 @@ import { exportRouteSegmentsFromGeoJson } from './geojsonExportRouteSegments.js'
 /**
  * 📊 數據處理核心模組 (Data Processing Core Module)
  *
- * 這是一個專為 Schematic Map 2 設計的數據處理核心模組，負責處理各種格式的地理空間數據，
+ * 這是一個專為 Schematic Map 3 設計的數據處理核心模組，負責處理各種格式的地理空間數據，
  * 並將其轉換為適合前端視覺化組件使用的標準化格式。該模組是整個系統的數據處理中心，
  * 確保數據的完整性、一致性和可用性。
  *

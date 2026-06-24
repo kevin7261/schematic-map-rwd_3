@@ -1,4 +1,4 @@
-# 🗺️ Schematic Map 2 — 八方向示意圖佈局與比較平台
+# 🗺️ Schematic Map 3 — 八方向示意圖佈局與比較平台
 
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.2-4FC08D?style=flat-square&logo=vue.js)](https://vuejs.org/)
 [![D3.js](https://img.shields.io/badge/D3.js-7.8-F9A03C?style=flat-square&logo=d3.js)](https://d3js.org/)
@@ -8,7 +8,7 @@
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=flat-square&logo=bootstrap)](https://getbootstrap.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-> **Schematic Map 2** 是一個運行於瀏覽器的**捷運／地鐵路網示意圖（schematic map）自動生成與演算法比較平台**。
+> **Schematic Map 3** 是一個運行於瀏覽器的**捷運／地鐵路網示意圖（schematic map）自動生成與演算法比較平台**。
 > 它把真實世界的 OpenStreetMap 路網資料，經過一條多階段的資料管線，轉換成**精確八方向（octilinear，8 方向）**的抽象路網圖；並在**同一套精確的 MILP（混合整數線性規劃）硬約束引擎**上，重現並比較三篇經典論文的佈局方法。整個求解過程在 Web Worker 中即時執行，並提供桌面／平板／手機的響應式介面。
 >
 > 本專案為碩士論文之實作系統。所有程式碼皆附詳細中文 JSDoc 註解。

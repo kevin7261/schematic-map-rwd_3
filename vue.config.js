@@ -36,7 +36,7 @@ module.exports = defineConfig({
    */
   chainWebpack: (config) => {
     config.plugin('html').tap((args) => {
-      args[0].title = 'Schematic Map 2';
+      args[0].title = 'Schematic Map 3';
       return args;
     });
   },

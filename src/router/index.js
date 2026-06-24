@@ -1,6 +1,6 @@
 /**
  * 🗺️ 路由管理模組 (Router Management Module)
- * Schematic Map 2 的路由管理系統
+ * Schematic Map 3 的路由管理系統
  *
  * 功能說明 (Features):
  * 1. 🛣️ 路由配置管理：定義應用程式的所有路由規則
@@ -66,8 +66,8 @@ const routes = [
     name: 'Home', // 路由名稱，用於程式化導航
     component: HomeView, // 對應的 Vue 組件
     meta: {
-      title: 'Schematic Map 2', // 瀏覽器分頁標題
-      description: 'Schematic Map 2 響應式示意圖展示平台', // 頁面描述
+      title: 'Schematic Map 3', // 瀏覽器分頁標題
+      description: 'Schematic Map 3 響應式示意圖展示平台', // 頁面描述
       requiresAuth: false, // 是否需要身份驗證
     },
   },
@@ -152,7 +152,7 @@ const router = createRouter({
  * @param {Function} next - 路由控制函數
  */
 router.beforeEach((to, from, next) => {
-  document.title = to.meta?.title || 'Schematic Map 2';
+  document.title = to.meta?.title || 'Schematic Map 3';
 
   // 記錄路由切換日誌（開發環境）
   // 繼續路由導航
