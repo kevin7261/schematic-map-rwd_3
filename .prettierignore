@@ -1,0 +1,63 @@
+# 🚫 Prettier 忽略文件 (Prettier Ignore File)
+# 指定不需要自動格式化的文件和目錄
+
+# 📦 依賴和建置文件 (Dependencies and Build Files)
+node_modules/
+dist/
+build/
+
+# 🔒 套件鎖定文件 (Package Lock Files)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 📄 靜態資源 (Static Assets)
+*.min.js
+*.min.css
+
+# 🖼️ 圖片和媒體文件 (Images and Media Files)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.webp
+*.mp4
+*.mp3
+
+# 📚 文檔和日誌 (Documentation and Logs)
+*.log
+CHANGELOG.md
+LICENSE
+
+# 🔧 配置文件 (Configuration Files)
+.env
+.env.*
+.DS_Store
+
+# 🌐 公共資源 (Public Assets)
+public/
+
+# 📊 報告文件 (Report Files)
+coverage/
+*.coverage
+
+# 🔄 版本控制 (Version Control)
+.git/
+.gitignore
+
+# 📱 行動裝置特定文件 (Mobile Specific Files)
+*.apk
+*.ipa
+
+# 💻 編輯器和 IDE 文件 (Editor and IDE Files)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 🎯 特定排除的 JS 文件 (Specific Excluded JS Files)
+# 如果有特定的第三方或生成的 JS 文件不想格式化
+# vendor/
+# legacy/ 

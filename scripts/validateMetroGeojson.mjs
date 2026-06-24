@@ -1,0 +1,114 @@
+/**
+ * ✅ 驗證單一 metro GeoJSON（扁平 way/node 格式）是否結構正確、且 route／station 為真值。
+ *
+ * 提供純函式 validateGeojson(fc) 供抓取流程逐檔驗證；CLI 則遞迴掃描 public/data/metro/**.geojson。
+ *
+ * 檢查：欄位齊全、route_name/route_id 非空、station_id 非假值/非空、route_name 非顏色名、
+ *       多線合併關聯、互相重疊重複線、node 是否落在線上。
+ *
+ * 執行：node scripts/validateMetroGeojson.mjs          （驗 data/metro 下全部）
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const REQ_WAY = ['route_company', 'route_id', 'element_type', 'color', 'route_name', 'osm_id', 'railway'];
+const REQ_NODE = ['osm_id', 'station_name', 'element_type', 'station_id'];
+const k = (lon, lat) => `${(+lon).toFixed(6)},${(+lat).toFixed(6)}`;
+const blank = (v) => !String(v == null ? '' : v).trim();
+
+/** @returns {{errors:string[], warns:string[], lines:number, nodes:number}} */
+export function validateGeojson(fc) {
+  const errors = [];
+  const warns = [];
+  const feats = Array.isArray(fc?.features) ? fc.features : [];
+  if (fc?.type !== 'FeatureCollection') errors.push('非 FeatureCollection');
+  const ways = feats.filter((f) => f?.properties?.element_type === 'way' && f.geometry?.type === 'LineString');
+  const nodes = feats.filter((f) => f?.properties?.element_type === 'node' && f.geometry?.type === 'Point');
+  if (!ways.length) {
+    errors.push('沒有 way（路線）');
+    return { errors, warns, lines: 0, nodes: nodes.length };
+  }
+
+  for (const w of ways) {
+    const miss = REQ_WAY.filter((x) => !(x in w.properties));
+    if (miss.length) {
+      errors.push(`way 缺欄位 ${miss}`);
+      break;
+    }
+  }
+  for (const nd of nodes) {
+    const miss = REQ_NODE.filter((x) => !(x in nd.properties));
+    if (miss.length) {
+      errors.push(`node 缺欄位 ${miss}`);
+      break;
+    }
+  }
+
+  const emptyRN = ways.filter((w) => blank(w.properties.route_name)).length;
+  const emptyRI = ways.filter((w) => blank(w.properties.route_id)).length;
+  // 全部線都沒名才當錯誤；少數線缺名（OSM 該關聯本就無 name/ref）只警告，不因此整城被排除
+  if (emptyRN === ways.length) errors.push('所有線 route_name 皆空');
+  else if (emptyRN) warns.push(`${emptyRN} 線 route_name 空`);
+  if (emptyRI) errors.push(`${emptyRI} 線 route_id 空`);
+  const fakeSID = nodes.filter((n) => /^s\d+$/.test(String(n.properties.station_id || ''))).length;
+  if (fakeSID) errors.push(`${fakeSID} 站 station_id 為假值`);
+  const emptySID = nodes.filter((n) => blank(n.properties.station_id)).length;
+  if (emptySID) errors.push(`${emptySID} 站 station_id 空`);
+  const colorName = ways.filter((w) => /^(紅|綠|藍|橘|紫|青|洋紅|棕|深青|暗紅|海軍藍|橄欖|粉紅|灰)色$/.test(String(w.properties.route_name || ''))).length;
+  if (colorName) errors.push(`${colorName} 線 route_name 為顏色名`);
+  const emptyNm = nodes.filter((n) => blank(n.properties.station_name)).length;
+  if (nodes.length && emptyNm / nodes.length > 0.2) warns.push(`${Math.round((emptyNm / nodes.length) * 100)}% 站缺名`);
+
+  const multi = ways.filter((w) => /[;,/]/.test(w.properties.route_id));
+  if (multi.length) errors.push(`多線合併關聯 ${multi.length}`);
+
+  const keysets = ways.map((w) => new Set(w.geometry.coordinates.map((c) => k(c[0], c[1]))));
+  let dup = 0;
+  for (let i = 0; i < ways.length; i++)
+    for (let j = i + 1; j < ways.length; j++) {
+      let hit = 0;
+      for (const x of keysets[i]) if (keysets[j].has(x)) hit++;
+      if (keysets[i].size && keysets[j].size && hit / keysets[i].size >= 0.8 && hit / keysets[j].size >= 0.8) dup++;
+    }
+  if (dup) errors.push(`重複線 ${dup} 對`);
+
+  const vset = new Set([].concat(...ways.map((w) => w.geometry.coordinates.map((c) => k(c[0], c[1])))));
+  const orphan = nodes.filter((n) => !vset.has(k(n.geometry.coordinates[0], n.geometry.coordinates[1]))).length;
+  if (orphan) errors.push(`孤立 node ${orphan}`);
+
+  return { errors, warns, lines: ways.length, nodes: nodes.length };
+}
+
+function walk(dir, acc = []) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) walk(p, acc);
+    else if (e.name.endsWith('.geojson')) acc.push(p);
+  }
+  return acc;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const ROOT = path.join(__dirname, '..', 'public', 'data', 'metro');
+  const files = walk(ROOT).sort();
+  let bad = 0;
+  let lines = 0;
+  for (const f of files) {
+    let r;
+    try {
+      r = validateGeojson(JSON.parse(fs.readFileSync(f, 'utf8')));
+    } catch (e) {
+      r = { errors: ['解析失敗：' + e.message], warns: [], lines: 0, nodes: 0 };
+    }
+    lines += r.lines;
+    if (r.errors.length) {
+      bad++;
+      console.log('✗ ' + path.relative(ROOT, f) + '  ' + r.errors.join('；'));
+    }
+  }
+  console.log(`\n${bad ? '✗ ' + bad + ' 檔有結構錯誤' : '✓ 全部通過'}（共 ${files.length} 檔、${lines} 條線）`);
+  process.exit(bad ? 1 : 0);
+}

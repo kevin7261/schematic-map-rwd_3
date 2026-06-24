@@ -1,0 +1,110 @@
+{
+  "name": "schematic-map-rwd_3",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": "https://kevin7261.github.io/schematic-map-rwd_3",
+  "description": "Schematic Map 2",
+  "author": "Kevin Cheng <kevin7261@gmail.com>",
+  "keywords": [
+    "vue3",
+    "d3js",
+    "bootstrap",
+    "pinia",
+    "spatial-analysis",
+    "dengue-fever",
+    "visualization",
+    "geospatial",
+    "responsive-design",
+    "schematic-map"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kevin7261/schematic-map-rwd_3.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kevin7261/schematic-map-rwd_3/issues"
+  },
+  "license": "MIT",
+  "scripts": {
+    "serve": "vue-cli-service serve --port 8080",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint",
+    "lint:fix": "vue-cli-service lint --fix",
+    "prettier": "prettier --write .",
+    "prettier:check": "prettier --check .",
+    "format": "npm run prettier && npm run lint:fix",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist --no-history"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.7.2",
+    "bootstrap": "^5.3.0",
+    "core-js": "^3.8.3",
+    "d3": "^7.8.0",
+    "elkjs": "^0.11.1",
+    "highs": "^1.14.2",
+    "leaflet": "^1.9.4",
+    "pinia": "^2.1.0",
+    "vue": "^3.2.13",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@vue/cli-plugin-babel": "^5.0.8",
+    "@vue/cli-plugin-eslint": "^5.0.8",
+    "@vue/cli-service": "^5.0.8",
+    "@xmldom/xmldom": "^0.9.9",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.1",
+    "eslint-plugin-vue": "^9.27.0",
+    "gh-pages": "^5.0.0",
+    "html-webpack-plugin": "^4.5.2",
+    "prettier": "^3.5.3"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true,
+      "es2022": true
+    },
+    "extends": [
+      "plugin:vue/vue3-essential",
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "parser": "@babel/eslint-parser",
+      "requireConfigFile": false,
+      "ecmaVersion": 2022,
+      "sourceType": "module"
+    },
+    "rules": {
+      "prettier/prettier": "off",
+      "no-console": "warn",
+      "no-debugger": "warn",
+      "vue/multi-word-component-names": "off",
+      "vue/script-setup-uses-vars": "error"
+    },
+    "overrides": [
+      {
+        "files": [
+          "*.vue"
+        ],
+        "parser": "vue-eslint-parser",
+        "parserOptions": {
+          "parser": "@babel/eslint-parser",
+          "requireConfigFile": false,
+          "ecmaVersion": 2022,
+          "sourceType": "module"
+        }
+      }
+    ]
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}

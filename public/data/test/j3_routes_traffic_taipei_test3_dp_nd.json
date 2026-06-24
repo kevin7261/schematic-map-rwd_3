@@ -1,0 +1,1850 @@
+{
+  "layerId": "taipei_j3_dp_nd",
+  "exportedAt": "2026-05-02T16:18:49.933Z",
+  "mapDrawnRoutes": [
+    {
+      "routeName": "手繪_1",
+      "color": "#e57373",
+      "segment": {
+        "start": {
+          "station_id": "HD_E",
+          "station_name": "懸空端",
+          "route_name_list": [
+            "手繪_1"
+          ],
+          "x_grid": 0,
+          "y_grid": 8,
+          "type": "terminal",
+          "connect_number": 1,
+          "node_type": "connect",
+          "tags": {
+            "x_grid": 0,
+            "y_grid": 8
+          },
+          "route_list": [
+            "手繪_1",
+            "手繪_4",
+            "手繪_5",
+            "手繪_8",
+            "手繪_9",
+            "手繪_11",
+            "手繪_12",
+            "手繪_15",
+            "手繪_16",
+            "手繪_21",
+            "手繪_22",
+            "手繪_26"
+          ]
+        },
+        "stations": [],
+        "end": {
+          "station_id": "HD_J",
+          "station_name": "相接端",
+          "route_name_list": [
+            "手繪_1",
+            "手繪_2",
+            "手繪_22",
+            "手繪_23"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection",
+          "connect_number": 4,
+          "node_type": "connect",
+          "tags": {
+            "x_grid": 2,
+            "y_grid": 8
+          },
+          "route_list": [
+            "手繪_1",
+            "手繪_2",
+            "手繪_3",
+            "手繪_4",
+            "手繪_5",
+            "手繪_6",
+            "手繪_7",
+            "手繪_8",
+            "手繪_9",
+            "手繪_10",
+            "手繪_11",
+            "手繪_12",
+            "手繪_13",
+            "手繪_14",
+            "手繪_15",
+            "手繪_16",
+            "手繪_17",
+            "手繪_18",
+            "手繪_19",
+            "手繪_20",
+            "手繪_21",
+            "手繪_22",
+            "手繪_23",
+            "手繪_24",
+            "手繪_25",
+            "手繪_26"
+          ]
+        }
+      },
+      "routeCoordinates": [
+        [
+          0,
+          8
+        ],
+        [],
+        [
+          2,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_2",
+      "color": "#f06292",
+      "segment": {
+        "start": {
+          "station_id": "HD_J",
+          "station_name": "相接端",
+          "route_name_list": [
+            "手繪_1",
+            "手繪_2",
+            "手繪_22",
+            "手繪_23"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection",
+          "connect_number": 4,
+          "node_type": "connect",
+          "tags": {
+            "x_grid": 2,
+            "y_grid": 8
+          },
+          "route_list": [
+            "手繪_1",
+            "手繪_2",
+            "手繪_3",
+            "手繪_4",
+            "手繪_5",
+            "手繪_6",
+            "手繪_7",
+            "手繪_8",
+            "手繪_9",
+            "手繪_10",
+            "手繪_11",
+            "手繪_12",
+            "手繪_13",
+            "手繪_14",
+            "手繪_15",
+            "手繪_16",
+            "手繪_17",
+            "手繪_18",
+            "手繪_19",
+            "手繪_20",
+            "手繪_21",
+            "手繪_22",
+            "手繪_23",
+            "手繪_24",
+            "手繪_25",
+            "手繪_26"
+          ]
+        },
+        "stations": [
+          {
+            "node_type": "line"
+          },
+          {
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "node_type": "line",
+            "connect_number": null,
+            "x_grid": 2.5,
+            "y_grid": 7.833333333333333,
+            "tags": {
+              "_forceDrawBlackDot": true
+            },
+            "display": true
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 2.5,
+            "y_grid": 7.166666666666667,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line"
+          }
+        ],
+        "end": {
+          "x_grid": 3,
+          "y_grid": 7,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          8
+        ],
+        [
+          [
+            2.5,
+            8
+          ],
+          [
+            2.5,
+            7
+          ]
+        ],
+        [
+          3,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_3",
+      "color": "#ba68c8",
+      "segment": {
+        "start": {
+          "x_grid": 3,
+          "y_grid": 7,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 4,
+            "y_grid": 7,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 5,
+          "y_grid": 7,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          7
+        ],
+        [],
+        [
+          5,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_4",
+      "color": "#9575cd",
+      "segment": {
+        "start": {
+          "x_grid": 5,
+          "y_grid": 7,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 6,
+            "y_grid": 7,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 7,
+            "y_grid": 7,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 8,
+            "y_grid": 7,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 8,
+            "y_grid": 6,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 8,
+          "y_grid": 5,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          7
+        ],
+        [
+          [
+            8,
+            7
+          ]
+        ],
+        [
+          8,
+          5
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_5",
+      "color": "#7986cb",
+      "segment": {
+        "start": {
+          "x_grid": 1,
+          "y_grid": 6,
+          "node_type": "connect"
+        },
+        "stations": [],
+        "end": {
+          "x_grid": 2,
+          "y_grid": 6,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          1,
+          6
+        ],
+        [],
+        [
+          2,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_6",
+      "color": "#64b5f6",
+      "segment": {
+        "start": {
+          "x_grid": 2,
+          "y_grid": 6,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line"
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 2.5,
+            "y_grid": 5.5,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line"
+          }
+        ],
+        "end": {
+          "x_grid": 3,
+          "y_grid": 5,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          6
+        ],
+        [
+          [
+            2.5,
+            6
+          ],
+          [
+            2.5,
+            5
+          ]
+        ],
+        [
+          3,
+          5
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_7",
+      "color": "#4fc3f7",
+      "segment": {
+        "start": {
+          "x_grid": 3,
+          "y_grid": 5,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 3.5,
+            "y_grid": 5,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 4,
+          "y_grid": 5,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          5
+        ],
+        [],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_8",
+      "color": "#4dd0e1",
+      "segment": {
+        "start": {
+          "x_grid": 4,
+          "y_grid": 5,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 5,
+            "y_grid": 5,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 6,
+            "y_grid": 5,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 7,
+            "y_grid": 5,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 7,
+          "y_grid": 4,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          5
+        ],
+        [
+          [
+            7,
+            5
+          ]
+        ],
+        [
+          7,
+          4
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_9",
+      "color": "#4db6ac",
+      "segment": {
+        "start": {
+          "x_grid": 0,
+          "y_grid": 4,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 0,
+            "y_grid": 3.2,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 0,
+            "y_grid": 2.4,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line"
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 0.3999999999999999,
+            "y_grid": 2,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 1.2000000000000002,
+            "y_grid": 2,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 2,
+          "y_grid": 2,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          0,
+          4
+        ],
+        [
+          [
+            0,
+            2
+          ]
+        ],
+        [
+          2,
+          2
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_10",
+      "color": "#81c784",
+      "segment": {
+        "start": {
+          "x_grid": 2,
+          "y_grid": 2,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 2.5,
+            "y_grid": 2,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 3,
+          "y_grid": 2,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          2
+        ],
+        [],
+        [
+          3,
+          2
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_11",
+      "color": "#aed581",
+      "segment": {
+        "start": {
+          "x_grid": 3,
+          "y_grid": 2,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 3.5,
+            "y_grid": 2,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 4,
+            "y_grid": 2,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 4.5,
+            "y_grid": 2,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 5,
+          "y_grid": 2,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          2
+        ],
+        [],
+        [
+          5,
+          2
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_12",
+      "color": "#dce775",
+      "segment": {
+        "start": {
+          "x_grid": 3,
+          "y_grid": 8,
+          "node_type": "connect"
+        },
+        "stations": [],
+        "end": {
+          "x_grid": 3,
+          "y_grid": 7,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          8
+        ],
+        [],
+        [
+          3,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_13",
+      "color": "#fff176",
+      "segment": {
+        "start": {
+          "x_grid": 3,
+          "y_grid": 7,
+          "node_type": "connect"
+        },
+        "stations": [],
+        "end": {
+          "x_grid": 3,
+          "y_grid": 5,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          7
+        ],
+        [],
+        [
+          3,
+          5
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_14",
+      "color": "#ffb74d",
+      "segment": {
+        "start": {
+          "x_grid": 3,
+          "y_grid": 5,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line"
+          }
+        ],
+        "end": {
+          "x_grid": 4,
+          "y_grid": 3,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          5
+        ],
+        [
+          [
+            3,
+            3
+          ]
+        ],
+        [
+          4,
+          3
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_15",
+      "color": "#ff8a65",
+      "segment": {
+        "start": {
+          "x_grid": 4,
+          "y_grid": 3,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 5,
+            "y_grid": 3,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 6,
+          "y_grid": 3,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          3
+        ],
+        [],
+        [
+          6,
+          3
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_16",
+      "color": "#e57373",
+      "segment": {
+        "start": {
+          "x_grid": 5,
+          "y_grid": 8,
+          "node_type": "connect"
+        },
+        "stations": [],
+        "end": {
+          "x_grid": 5,
+          "y_grid": 7,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          8
+        ],
+        [],
+        [
+          5,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_17",
+      "color": "#f06292",
+      "segment": {
+        "start": {
+          "x_grid": 5,
+          "y_grid": 7,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line"
+          },
+          {
+            "node_type": "line"
+          }
+        ],
+        "end": {
+          "x_grid": 4,
+          "y_grid": 5,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          7
+        ],
+        [
+          [
+            5,
+            6
+          ],
+          [
+            4,
+            6
+          ]
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_18",
+      "color": "#ba68c8",
+      "segment": {
+        "start": {
+          "x_grid": 4,
+          "y_grid": 5,
+          "node_type": "connect"
+        },
+        "stations": [],
+        "end": {
+          "x_grid": 4,
+          "y_grid": 3,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          5
+        ],
+        [],
+        [
+          4,
+          3
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_19",
+      "color": "#9575cd",
+      "segment": {
+        "start": {
+          "x_grid": 4,
+          "y_grid": 3,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line"
+          },
+          {
+            "node_type": "line"
+          }
+        ],
+        "end": {
+          "x_grid": 3,
+          "y_grid": 2,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          3
+        ],
+        [
+          [
+            4,
+            2.5
+          ],
+          [
+            3,
+            2.5
+          ]
+        ],
+        [
+          3,
+          2
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_20",
+      "color": "#7986cb",
+      "segment": {
+        "start": {
+          "x_grid": 3,
+          "y_grid": 2,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line"
+          }
+        ],
+        "end": {
+          "x_grid": 2,
+          "y_grid": 1,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          2
+        ],
+        [
+          [
+            3,
+            1
+          ]
+        ],
+        [
+          2,
+          1
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_21",
+      "color": "#64b5f6",
+      "segment": {
+        "start": {
+          "x_grid": 2,
+          "y_grid": 1,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 1.3333333333333335,
+            "y_grid": 1,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line"
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 1,
+            "y_grid": 0.6666666666666667,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 1,
+          "y_grid": 0,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          1
+        ],
+        [
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_22",
+      "color": "#4fc3f7",
+      "segment": {
+        "start": {
+          "x_grid": 1,
+          "y_grid": 8,
+          "node_type": "connect"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "HD_J",
+          "station_name": "相接端",
+          "route_name_list": [
+            "手繪_1",
+            "手繪_2",
+            "手繪_22",
+            "手繪_23"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection",
+          "connect_number": 4,
+          "node_type": "connect",
+          "tags": {
+            "x_grid": 2,
+            "y_grid": 8
+          },
+          "route_list": [
+            "手繪_1",
+            "手繪_2",
+            "手繪_3",
+            "手繪_4",
+            "手繪_5",
+            "手繪_6",
+            "手繪_7",
+            "手繪_8",
+            "手繪_9",
+            "手繪_10",
+            "手繪_11",
+            "手繪_12",
+            "手繪_13",
+            "手繪_14",
+            "手繪_15",
+            "手繪_16",
+            "手繪_17",
+            "手繪_18",
+            "手繪_19",
+            "手繪_20",
+            "手繪_21",
+            "手繪_22",
+            "手繪_23",
+            "手繪_24",
+            "手繪_25",
+            "手繪_26"
+          ]
+        }
+      },
+      "routeCoordinates": [
+        [
+          1,
+          8
+        ],
+        [],
+        [
+          2,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_23",
+      "color": "#4dd0e1",
+      "segment": {
+        "start": {
+          "station_id": "HD_J",
+          "station_name": "相接端",
+          "route_name_list": [
+            "手繪_1",
+            "手繪_2",
+            "手繪_22",
+            "手繪_23"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection",
+          "connect_number": 4,
+          "node_type": "connect",
+          "tags": {
+            "x_grid": 2,
+            "y_grid": 8
+          },
+          "route_list": [
+            "手繪_1",
+            "手繪_2",
+            "手繪_3",
+            "手繪_4",
+            "手繪_5",
+            "手繪_6",
+            "手繪_7",
+            "手繪_8",
+            "手繪_9",
+            "手繪_10",
+            "手繪_11",
+            "手繪_12",
+            "手繪_13",
+            "手繪_14",
+            "手繪_15",
+            "手繪_16",
+            "手繪_17",
+            "手繪_18",
+            "手繪_19",
+            "手繪_20",
+            "手繪_21",
+            "手繪_22",
+            "手繪_23",
+            "手繪_24",
+            "手繪_25",
+            "手繪_26"
+          ]
+        },
+        "stations": [],
+        "end": {
+          "x_grid": 2,
+          "y_grid": 6,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          8
+        ],
+        [],
+        [
+          2,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_24",
+      "color": "#4db6ac",
+      "segment": {
+        "start": {
+          "x_grid": 2,
+          "y_grid": 6,
+          "node_type": "connect"
+        },
+        "stations": [],
+        "end": {
+          "x_grid": 2,
+          "y_grid": 2,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          6
+        ],
+        [],
+        [
+          2,
+          2
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_25",
+      "color": "#81c784",
+      "segment": {
+        "start": {
+          "x_grid": 2,
+          "y_grid": 2,
+          "node_type": "connect"
+        },
+        "stations": [],
+        "end": {
+          "x_grid": 2,
+          "y_grid": 1,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          2
+        ],
+        [],
+        [
+          2,
+          1
+        ]
+      ]
+    },
+    {
+      "routeName": "手繪_26",
+      "color": "#aed581",
+      "segment": {
+        "start": {
+          "x_grid": 2,
+          "y_grid": 1,
+          "node_type": "connect"
+        },
+        "stations": [
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 2,
+            "y_grid": 0,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          },
+          {
+            "node_type": "line",
+            "display": true,
+            "x_grid": 3,
+            "y_grid": 0,
+            "station_id": "HD_S",
+            "station_name": "加註站點",
+            "tags": {
+              "_forceDrawBlackDot": true
+            }
+          }
+        ],
+        "end": {
+          "x_grid": 4,
+          "y_grid": 0,
+          "node_type": "connect"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          1
+        ],
+        [
+          [
+            2,
+            0
+          ]
+        ],
+        [
+          4,
+          0
+        ]
+      ]
+    }
+  ],
+  "dataTableData": [
+    {
+      "#": 1,
+      "路線": "手繪_1",
+      "車站名稱1": "懸空端",
+      "車站名稱2": "相接端",
+      "座標1": "(0, 8)",
+      "座標2": "(2, 8)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 2,
+      "路線": "手繪_2",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(2, 8)",
+      "座標2": "(3, 8)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 3,
+      "路線": "手繪_2",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(3, 8)",
+      "座標2": "(3, 7)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 4,
+      "路線": "手繪_2",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "相接端",
+      "座標1": "(3, 7)",
+      "座標2": "(3, 7)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 5,
+      "路線": "手繪_3",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(3, 7)",
+      "座標2": "(4, 7)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 6,
+      "路線": "手繪_3",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "相接端",
+      "座標1": "(4, 7)",
+      "座標2": "(5, 7)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 7,
+      "路線": "手繪_4",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(5, 7)",
+      "座標2": "(6, 7)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 8,
+      "路線": "手繪_4",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(6, 7)",
+      "座標2": "(7, 7)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 9,
+      "路線": "手繪_4",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(7, 7)",
+      "座標2": "(8, 7)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 10,
+      "路線": "手繪_4",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(8, 7)",
+      "座標2": "(8, 6)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 11,
+      "路線": "手繪_4",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "懸空端",
+      "座標1": "(8, 6)",
+      "座標2": "(8, 5)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 12,
+      "路線": "手繪_5",
+      "車站名稱1": "懸空端",
+      "車站名稱2": "相接端",
+      "座標1": "(1, 6)",
+      "座標2": "(2, 6)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 13,
+      "路線": "手繪_6",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(2, 6)",
+      "座標2": "(3, 6)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 14,
+      "路線": "手繪_6",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "相接端",
+      "座標1": "(3, 6)",
+      "座標2": "(3, 5)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 15,
+      "路線": "手繪_7",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(3, 5)",
+      "座標2": "(4, 5)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 16,
+      "路線": "手繪_7",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "相接端",
+      "座標1": "(4, 5)",
+      "座標2": "(4, 5)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 17,
+      "路線": "手繪_8",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(4, 5)",
+      "座標2": "(5, 5)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 18,
+      "路線": "手繪_8",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(5, 5)",
+      "座標2": "(6, 5)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 19,
+      "路線": "手繪_8",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(6, 5)",
+      "座標2": "(7, 5)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 20,
+      "路線": "手繪_8",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "懸空端",
+      "座標1": "(7, 5)",
+      "座標2": "(7, 4)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 21,
+      "路線": "手繪_9",
+      "車站名稱1": "懸空端",
+      "車站名稱2": "加註站點",
+      "座標1": "(0, 4)",
+      "座標2": "(0, 3)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 22,
+      "路線": "手繪_9",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(0, 3)",
+      "座標2": "(0, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 23,
+      "路線": "手繪_9",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(0, 2)",
+      "座標2": "(0, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 24,
+      "路線": "手繪_9",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(0, 2)",
+      "座標2": "(1, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 25,
+      "路線": "手繪_9",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "相接端",
+      "座標1": "(1, 2)",
+      "座標2": "(2, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 26,
+      "路線": "手繪_10",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(2, 2)",
+      "座標2": "(3, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 27,
+      "路線": "手繪_10",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "相接端",
+      "座標1": "(3, 2)",
+      "座標2": "(3, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 28,
+      "路線": "手繪_11",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(3, 2)",
+      "座標2": "(4, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 29,
+      "路線": "手繪_11",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(4, 2)",
+      "座標2": "(4, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 30,
+      "路線": "手繪_11",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(4, 2)",
+      "座標2": "(5, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 31,
+      "路線": "手繪_11",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "懸空端",
+      "座標1": "(5, 2)",
+      "座標2": "(5, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 32,
+      "路線": "手繪_12",
+      "車站名稱1": "懸空端",
+      "車站名稱2": "相接端",
+      "座標1": "(3, 8)",
+      "座標2": "(3, 7)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 33,
+      "路線": "手繪_13",
+      "車站名稱1": "相接端",
+      "車站名稱2": "相接端",
+      "座標1": "(3, 7)",
+      "座標2": "(3, 5)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 34,
+      "路線": "手繪_14",
+      "車站名稱1": "相接端",
+      "車站名稱2": "相接端",
+      "座標1": "(3, 5)",
+      "座標2": "(4, 3)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 35,
+      "路線": "手繪_15",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(4, 3)",
+      "座標2": "(5, 3)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 36,
+      "路線": "手繪_15",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "懸空端",
+      "座標1": "(5, 3)",
+      "座標2": "(6, 3)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 37,
+      "路線": "手繪_16",
+      "車站名稱1": "懸空端",
+      "車站名稱2": "相接端",
+      "座標1": "(5, 8)",
+      "座標2": "(5, 7)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 38,
+      "路線": "手繪_17",
+      "車站名稱1": "相接端",
+      "車站名稱2": "相接端",
+      "座標1": "(5, 7)",
+      "座標2": "(4, 5)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 39,
+      "路線": "手繪_18",
+      "車站名稱1": "相接端",
+      "車站名稱2": "相接端",
+      "座標1": "(4, 5)",
+      "座標2": "(4, 3)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 40,
+      "路線": "手繪_19",
+      "車站名稱1": "相接端",
+      "車站名稱2": "相接端",
+      "座標1": "(4, 3)",
+      "座標2": "(3, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 41,
+      "路線": "手繪_20",
+      "車站名稱1": "相接端",
+      "車站名稱2": "相接端",
+      "座標1": "(3, 2)",
+      "座標2": "(2, 1)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 42,
+      "路線": "手繪_21",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(2, 1)",
+      "座標2": "(1, 1)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 43,
+      "路線": "手繪_21",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(1, 1)",
+      "座標2": "(1, 1)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 44,
+      "路線": "手繪_21",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "懸空端",
+      "座標1": "(1, 1)",
+      "座標2": "(1, 0)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 45,
+      "路線": "手繪_22",
+      "車站名稱1": "懸空端",
+      "車站名稱2": "相接端",
+      "座標1": "(1, 8)",
+      "座標2": "(2, 8)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 46,
+      "路線": "手繪_23",
+      "車站名稱1": "相接端",
+      "車站名稱2": "相接端",
+      "座標1": "(2, 8)",
+      "座標2": "(2, 6)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 47,
+      "路線": "手繪_24",
+      "車站名稱1": "相接端",
+      "車站名稱2": "相接端",
+      "座標1": "(2, 6)",
+      "座標2": "(2, 2)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 48,
+      "路線": "手繪_25",
+      "車站名稱1": "相接端",
+      "車站名稱2": "相接端",
+      "座標1": "(2, 2)",
+      "座標2": "(2, 1)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 49,
+      "路線": "手繪_26",
+      "車站名稱1": "相接端",
+      "車站名稱2": "加註站點",
+      "座標1": "(2, 1)",
+      "座標2": "(2, 0)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 50,
+      "路線": "手繪_26",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "加註站點",
+      "座標1": "(2, 0)",
+      "座標2": "(3, 0)",
+      "weight": 0,
+      "nav_weight": 1
+    },
+    {
+      "#": 51,
+      "路線": "手繪_26",
+      "車站名稱1": "加註站點",
+      "車站名稱2": "懸空端",
+      "座標1": "(3, 0)",
+      "座標2": "(4, 0)",
+      "weight": 0,
+      "nav_weight": 1
+    }
+  ],
+  "layerInfoData": {
+    "trafficCsvRows": 128,
+    "trafficEdgesMatched": 0,
+    "trafficEdgesUnmatched": 51
+  },
+  "dashboardData": {
+    "segmentCount": 51,
+    "sourceLayerId": "taipei_i3_dp_nd",
+    "trafficCsvFile": "taipei_city/mrt_link_volume_undirected.csv",
+    "trafficMatched": 0,
+    "trafficUnmatched": 51
+  }
+}

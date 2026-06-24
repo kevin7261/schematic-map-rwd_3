@@ -1,0 +1,31 @@
+{
+  // 📝 jsconfig.json - JavaScript 專案配置文件
+  // 為 VS Code 和其他編輯器提供 JavaScript 專案的智能提示和路徑解析
+
+  "compilerOptions": {
+    // 🎯 編譯目標版本 - 設定為 ES5 以確保廣泛的瀏覽器兼容性
+    "target": "es5",
+
+    // 📦 模組系統 - 使用 ESNext 模組語法（import/export）
+    "module": "esnext",
+
+    // 📁 基礎路徑 - 設定專案根目錄作為模組解析的基礎路徑
+    "baseUrl": "./",
+
+    // 🔍 模組解析策略 - 使用 Node.js 風格的模組解析
+    "moduleResolution": "node",
+
+    // 🔗 路徑映射 - 設定路徑別名以簡化模組引入
+    "paths": {
+      "@/*": ["src/*"] // '@' 別名指向 src 目錄
+    },
+
+    // 📚 庫文件引入 - 指定可用的 JavaScript 庫和 API
+    "lib": [
+      "esnext", // 最新的 ECMAScript 特性
+      "dom", // DOM API（瀏覽器環境）
+      "dom.iterable", // DOM 迭代器 API
+      "scripthost" // 腳本宿主環境 API
+    ]
+  }
+}
