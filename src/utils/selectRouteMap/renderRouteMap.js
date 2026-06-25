@@ -146,7 +146,8 @@ export function mountRouteMap(el, dataStore) {
     connects.forEach((p) => addStationDot(p, '#ff0000', 4, 'connect'));
   };
 
-  // 🏷️ 車站名常駐標籤：開關開啟時，於有 station_name 的站點顯示名稱
+  // 🏷️ 車站名常駐標籤：開關開啟時，於有 station_name 的站點「直接寫字」顯示名稱
+  //    （非 tooltip／popup，而是以 divIcon 將文字直接畫在地圖上）
   const renderNames = () => {
     nameGroup.clearLayers();
     if (!layer.selectRouteMapShowNames) return;
@@ -154,17 +155,27 @@ export function mountRouteMap(el, dataStore) {
       layer.selectRouteMapLines,
       layer.selectRouteMapBlackDots
     );
+    // 站名顏色與站點圓點一致：端點藍／交點紅／黑點黑；端點交點字較大，黑點字較小
+    const entries = [
+      ...terminals.map((p) => ({ p, fontSize: 13, color: '#1565c0' })),
+      ...connects.map((p) => ({ p, fontSize: 13, color: '#ff0000' })),
+      ...blacks.map((p) => ({ p, fontSize: 10, color: '#000000' })),
+    ];
     const seen = new Set();
-    [...terminals, ...connects, ...blacks].forEach((p) => {
+    entries.forEach(({ p, fontSize, color }) => {
       const k = llKey(p[0], p[1]);
       if (seen.has(k)) return;
       seen.add(k);
       const meta = (layer.selectRouteMapStationMeta && layer.selectRouteMapStationMeta[k]) || {};
       if (!meta.name) return;
-      L.tooltip({ permanent: true, direction: 'top', offset: [0, -4], opacity: 0.95 })
-        .setLatLng(p)
-        .setContent(esc(meta.name))
-        .addTo(nameGroup);
+      const icon = L.divIcon({
+        className: 'select-route-map-station-name',
+        // 置於站點「正上方」並留間距，避免文字蓋住站點圓點（translate -100% 讓文字底緣對齊錨點，top 再上移清開圓點半徑）
+        html: `<span style="position:absolute;left:0;top:-7px;transform:translate(-50%,-100%);text-align:center;white-space:nowrap;font-size:${fontSize}px;line-height:1.2;font-weight:600;color:${color};text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;pointer-events:none">${esc(meta.name)}</span>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+      });
+      L.marker(p, { icon, interactive: false, keyboard: false }).addTo(nameGroup);
     });
   };
 

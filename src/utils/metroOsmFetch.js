@@ -227,7 +227,15 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   const onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : () => {};
   const [s, w, n, e] = bbox;
   onProgress('連線 OpenStreetMap（Overpass）…');
-  const query = `[out:json][timeout:120];relation["route"~"^(subway|light_rail|monorail)$"](${s},${w},${n},${e})->.r;.r out geom;node(r.r);out tags;node["railway"~"^(station|halt)$"](${s},${w},${n},${e});out;`;
+  // 含營運中（subway/light_rail/monorail）＋施工中（route=construction）＋計畫中（route=proposed）的同類路線；
+  // 施工／計畫的實際模式記在 construction:route／proposed:route。
+  const modeRe = '^(subway|light_rail|monorail)$';
+  const query =
+    `[out:json][timeout:120];(` +
+    `relation["route"~"${modeRe}"](${s},${w},${n},${e});` +
+    `relation["route"="construction"]["construction:route"~"${modeRe}"](${s},${w},${n},${e});` +
+    `relation["route"="proposed"]["proposed:route"~"${modeRe}"](${s},${w},${n},${e});` +
+    `)->.r;.r out geom;node(r.r);out tags;node["railway"~"^(station|halt)$"](${s},${w},${n},${e});out;`;
   const json = await overpass(query, onProgress);
   onProgress('處理路線資料…');
 
@@ -249,9 +257,42 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     .filter((el) => el.type === 'node' && Number.isFinite(el.lat) && Number.isFinite(el.lon) && el.tags && /^(station|halt)$/.test(el.tags.railway || ''))
     .map((el) => ({ coord: [round6(el.lat), round6(el.lon)], id: el.id, name: el.tags.name || '', ref: el.tags.ref || '' }));
 
+  // 🌏 跨境過濾（以 network/operator 為單位）：bbox 邊緣可能與鄰境系統重疊（如載香港時 bbox
+  //    北緣與深圳相接，會把深圳地鐵抓進來）。把同一 network 的所有成員座標取重心，重心落在
+  //    bbox 外者整個 network 視為「鄰境系統」剔除；以 network 為單位可避免誤砍跨界的單一路線。
+  const inBbox = (lat, lng) => lat >= s && lat <= n && lng >= w && lng <= e;
+  const netAgg = new Map();
+  const netKeyOf = (tags) => (tags.network || tags.operator || '').trim();
+  for (const rel of rels) {
+    const k = netKeyOf(rel.tags || {});
+    if (!k) continue; // 無 network/operator 者不參與整組剔除，交由後續個別處理
+    let a = netAgg.get(k);
+    if (!a) {
+      a = { sumLat: 0, sumLng: 0, count: 0 };
+      netAgg.set(k, a);
+    }
+    for (const m of rel.members || []) {
+      if (m.type === 'node' && Number.isFinite(m.lat)) {
+        a.sumLat += m.lat;
+        a.sumLng += m.lon;
+        a.count++;
+      } else if (m.type === 'way' && Array.isArray(m.geometry)) {
+        for (const g of m.geometry) {
+          a.sumLat += g.lat;
+          a.sumLng += g.lon;
+          a.count++;
+        }
+      }
+    }
+  }
+  const foreignNets = new Set();
+  for (const [k, a] of netAgg)
+    if (a.count && !inBbox(a.sumLat / a.count, a.sumLng / a.count)) foreignNets.add(k);
+
   const groups = new Map();
   for (const rel of rels) {
     const tags = rel.tags || {};
+    if (foreignNets.has(netKeyOf(tags))) continue; // 鄰境系統（如載香港時的深圳地鐵）
     if (/[;,/]/.test((tags.ref || '').trim())) continue; // 多線直通合併關聯
     const stops = (rel.members || [])
       .filter(
@@ -271,6 +312,19 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     const ref = (tags.ref || '').trim();
     const ident = ref || cleanLineName(tags.name) || normColor(tags.colour || tags.color) || 'rel' + rel.id;
     const key = `${(tags.network || '').trim()}|${ident}`;
+    // 施工／計畫路線：實際模式在 construction:route／proposed:route；並記 status 供前端區分樣式
+    const status =
+      tags.route === 'construction'
+        ? 'construction'
+        : tags.route === 'proposed'
+          ? 'proposed'
+          : 'open';
+    const mode =
+      tags.route === 'construction'
+        ? tags['construction:route'] || 'subway'
+        : tags.route === 'proposed'
+          ? tags['proposed:route'] || 'subway'
+          : tags.route || 'subway';
     let g = groups.get(key);
     if (!g) {
       g = {
@@ -278,7 +332,8 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
         routeId: tags.ref || String(rel.id),
         routeName: tags.name || ref || '',
         osmId: String(rel.id),
-        railway: tags.route || 'subway',
+        railway: mode,
+        status,
         colorRaw: null,
         rels: [],
       };
@@ -387,6 +442,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
         route_name: l.routeName,
         osm_id: l.osmId,
         railway: l.railway,
+        status: l.status || 'open',
       },
       geometry: { type: 'LineString', coordinates: l.latlngs.map(([lat, lng]) => [lng, lat]) },
     });

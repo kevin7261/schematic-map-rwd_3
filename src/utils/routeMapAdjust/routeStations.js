@@ -342,3 +342,35 @@ export const computeRouteMapAdjustSharedSegments = (lines) => {
   const net = buildRouteMapAdjustMergedNetwork(lines);
   return net.edges.filter((e) => (e.routes?.length || 0) >= 2);
 };
+
+/**
+ * 找出「頭尾共點」：多條路線的端點（起點或終點）落在同一座標處。
+ *  - 僅取非封閉路線的兩個端點；座標取整（6 位小數）後比對。
+ *  - 該座標被 ≥2 條不同路線之端點共用時即列入。
+ * @param {Array} lines 路線
+ * @returns {Array<{latlng:[number,number], routeIndexes:number[]}>}
+ */
+export const computeRouteMapAdjustSharedEndpoints = (lines) => {
+  const safeLines = Array.isArray(lines)
+    ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
+    : [];
+  const round = (n) => Number(Number(n).toFixed(6));
+  const key = (p) => `${round(p[0])},${round(p[1])}`;
+  const map = new Map(); // key -> { latlng, routes:Set }
+  safeLines.forEach((line, li) => {
+    if (line.closed) return; // 封閉路線無端點
+    const pts = line.latlngs;
+    [pts[0], pts[pts.length - 1]].forEach((p) => {
+      const k = key(p);
+      let e = map.get(k);
+      if (!e) {
+        e = { latlng: [round(p[0]), round(p[1])], routes: new Set() };
+        map.set(k, e);
+      }
+      e.routes.add(li);
+    });
+  });
+  return [...map.values()]
+    .filter((e) => e.routes.size >= 2)
+    .map((e) => ({ latlng: e.latlng, routeIndexes: [...e.routes] }));
+};

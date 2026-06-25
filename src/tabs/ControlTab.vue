@@ -3457,6 +3457,7 @@
     addCrossStations: rmaAddCross,
     routeMapAdjustCrossList: rmaCrossList,
     sharedSegmentList: rmaSharedList,
+    sharedEndpointList: rmaEndpointList,
     buildMergedNetwork: rmaBuildMerged,
     mergedNetworkStats: rmaMergedStats,
     mergedNetworkEdgeList: rmaMergedEdges,
@@ -9926,13 +9927,13 @@
           <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
           <div class="my-title-xs-gray pb-2">
             共線段（重疊）
-            <span class="text-muted">· 預設於地圖以黃色底色高亮</span>
+            <span class="text-muted">· 預設於地圖以紅色底色高亮</span>
           </div>
           <div class="d-flex justify-content-between my-font-size-xs pb-1">
             <span class="d-flex align-items-center">
               <span
                 class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #ffe000"
+                style="width: 14px; height: 8px; background-color: #ff1744"
               ></span>
               共線段數
             </span>
@@ -9950,6 +9951,34 @@
             <span>{{ s.routeCount }} 路線：{{ s.routeNames.join('、') }}</span>
           </div>
           <div v-if="rmaSharedList.length" class="pb-2"></div>
+
+          <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
+          <div class="my-title-xs-gray pb-2">
+            頭尾共點
+            <span class="text-muted">· 預設於地圖以藍色高亮</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #1565c0; opacity: 0.6"
+              ></span>
+              共點數
+            </span>
+            <span>{{ rmaEndpointList.length }}</span>
+          </div>
+          <div v-if="rmaEndpointList.length === 0" class="my-font-size-xs pb-3">
+            無頭尾共點（沒有多條路線端點相接）。
+          </div>
+          <div
+            v-for="e in rmaEndpointList"
+            :key="e.index"
+            class="d-flex align-items-center my-font-size-xs pb-1"
+          >
+            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+            <span>{{ e.routeCount }} 路線：{{ e.routeNames.join('、') }}</span>
+          </div>
+          <div v-if="rmaEndpointList.length" class="pb-2"></div>
 
           <!-- 🕸️ 把整個路網合併成單一結構（重疊路線→一條線，屬性以 list 全記） -->
           <div class="my-title-xs-gray pb-2">路網結構</div>

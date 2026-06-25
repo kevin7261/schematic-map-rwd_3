@@ -8,7 +8,10 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { watch } from 'vue';
-import { computeRouteMapAdjustStations } from './routeStations.js';
+import {
+  computeRouteMapAdjustStations,
+  computeRouteMapAdjustSharedEndpoints,
+} from './routeStations.js';
 import { ROUTE_MAP_ADJUST_LAYER_ID } from './loadFromSelectRouteMap.js';
 
 /**
@@ -149,6 +152,18 @@ export function mountRouteMapAdjust(el, dataStore) {
       m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
       m.addTo(stationGroup);
     };
+    // 🔵 頭尾共點：多條路線端點相接處，藍色底色 halo 高亮（墊在站點底下）
+    const sharedEndpoints = computeRouteMapAdjustSharedEndpoints(layer.routeMapAdjustLines);
+    sharedEndpoints.forEach(({ latlng }) => {
+      L.circleMarker(latlng, {
+        radius: 11,
+        color: '#1565c0',
+        weight: 0,
+        fillColor: '#1565c0',
+        fillOpacity: 0.4,
+        interactive: false,
+      }).addTo(stationGroup);
+    });
     // 繪製順序：黑點 → 端點(藍) → 交點(紅) → 交叉(黃)，讓 cross 顯示在最上層
     blacks.forEach((p) => addStationDot(p, '#000000', 3, 'black'));
     terminals.forEach((p) => addStationDot(p, '#1565c0', 4, 'terminal'));
@@ -235,7 +250,7 @@ export function mountRouteMapAdjust(el, dataStore) {
     for (const edge of segs) {
       if (!edge || !Array.isArray(edge.a) || !Array.isArray(edge.b)) continue;
       const pl = L.polyline([edge.a, edge.b], {
-        color: '#ffe000', // 黃色底色高亮，標示共線（重疊）段
+        color: '#ff1744', // 紅色底色高亮，標示共線（重疊）段
         weight: 12,
         opacity: 0.85,
         lineCap: 'round',
@@ -246,7 +261,8 @@ export function mountRouteMapAdjust(el, dataStore) {
     }
   };
 
-  // 🏷️ 車站名常駐標籤：開關開啟時，於有 station_name 的站點顯示名稱
+  // 🏷️ 車站名常駐標籤：開關開啟時，於有 station_name 的站點「直接寫字」顯示名稱
+  //    （非 tooltip／popup，而是以 divIcon 將文字直接畫在地圖上）
   const renderNames = () => {
     nameGroup.clearLayers();
     if (!layer.routeMapAdjustShowNames) return;
@@ -254,17 +270,26 @@ export function mountRouteMapAdjust(el, dataStore) {
       layer.routeMapAdjustLines,
       layer.routeMapAdjustBlackDots
     );
+    // 端點(藍)／交點(紅)字較大，黑點字較小
+    const entries = [
+      ...terminals.map((p) => ({ p, fontSize: 13 })),
+      ...connects.map((p) => ({ p, fontSize: 13 })),
+      ...blacks.map((p) => ({ p, fontSize: 10 })),
+    ];
     const seen = new Set();
-    [...terminals, ...connects, ...blacks].forEach((p) => {
+    entries.forEach(({ p, fontSize }) => {
       const k = llKey(p[0], p[1]);
       if (seen.has(k)) return;
       seen.add(k);
       const meta = (layer.routeMapAdjustStationMeta && layer.routeMapAdjustStationMeta[k]) || {};
       if (!meta.name) return;
-      L.tooltip({ permanent: true, direction: 'top', offset: [0, -4], opacity: 0.95 })
-        .setLatLng(p)
-        .setContent(esc(meta.name))
-        .addTo(nameGroup);
+      const icon = L.divIcon({
+        className: 'route-map-adjust-station-name',
+        html: `<span style="position:absolute;left:0;top:0;transform:translate(-50%,-50%);text-align:center;white-space:nowrap;font-size:${fontSize}px;line-height:1.2;font-weight:600;color:#222;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;pointer-events:none">${esc(meta.name)}</span>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+      });
+      L.marker(p, { icon, interactive: false, keyboard: false }).addTo(nameGroup);
     });
   };
 

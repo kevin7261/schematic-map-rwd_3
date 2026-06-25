@@ -32,6 +32,7 @@ const QUICK_CITY_IDS = [
   'taiwan-taipei',
   'taiwan-kaohsiung',
   'japan-tokyo',
+  'japan-osaka',
   'united-kingdom-london',
   'china-hong-kong',
   'singapore-singapore',
