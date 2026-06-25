@@ -26,6 +26,7 @@
     leafletDrawToOsmRouteGeoJson,
   } from '@/utils/leafletDrawStations.js';
   import { useSelectRouteMapCatalog } from '@/utils/selectRouteMap/cityCatalog.js';
+  import { useRouteMapAdjust } from '@/utils/routeMapAdjust/loadFromSelectRouteMap.js';
   import {
     LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
     mergeOsm2GeojsonLoaderResultIntoLayer,
@@ -3441,6 +3442,22 @@
     routeMapRouteName: srmRouteName,
     routeMapStationLabel: srmStationLabel,
   } = useSelectRouteMapCatalog(dataStore);
+
+  // 🗺️「路線圖調整」(route_map_adjust) 載入面板 — 獨立複製版，邏輯集中於
+  //    src/utils/routeMapAdjust/loadFromSelectRouteMap.js；變數以 rma 前綴避免衝突。
+  const {
+    hasSourceRoutes: rmaHasSource,
+    isLoading: rmaLoading,
+    loadFromSelectRouteMap: rmaLoadFromSelect,
+    clearRouteMapAdjust: rmaClear,
+    routeMapAdjustSource: rmaSource,
+    routeMapAdjustStats: rmaStats,
+    routeMapAdjustRouteList: rmaRouteList,
+    routeMapAdjustStationColor: rmaStationColor,
+    routeMapAdjustRouteColor: rmaRouteColor,
+    routeMapAdjustRouteName: rmaRouteName,
+    routeMapAdjustStationLabel: rmaStationLabel,
+  } = useRouteMapAdjust(dataStore);
 
   /** 🗺️ Leaflet 畫線圖層物件 */
   const leafletDrawLayer = computed(() => dataStore.findLayerById('leaflet_josm_draw'));
@@ -9826,6 +9843,114 @@
                         :style="{ width: '16px', height: '5px', backgroundColor: srmRouteColor(ri) }"
                       ></span>
                       {{ srmRouteName(ri) }}
+                    </span>
+                  </template>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="pb-2"></div>
+        </div>
+
+        <!-- 🗺️ 路線圖調整（route_map_adjust）：從選擇路線圖載入（獨立複製，與其他圖層不共用） -->
+        <div v-if="layer.isRouteMapAdjustLayer" class="pb-3 mb-3 border-bottom">
+          <div class="my-title-xs-gray pb-2">來源</div>
+          <div class="d-flex gap-2 pb-1">
+            <button
+              type="button"
+              class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+              :disabled="!rmaHasSource || rmaLoading"
+              title="把「選擇路線圖」目前載入的路線複製一份到本圖層"
+              @click="rmaLoadFromSelect"
+            >
+              {{ rmaLoading ? '載入中…' : '從選擇路線圖載入' }}
+            </button>
+            <button
+              type="button"
+              class="btn rounded-pill border-0 my-btn-red my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+              @click="rmaClear"
+            >
+              清除
+            </button>
+          </div>
+          <div v-if="!rmaHasSource" class="text-muted my-font-size-xs pb-2">
+            「選擇路線圖」目前尚無路線，請先到「選擇路線圖」載入城市路線。
+          </div>
+          <div v-if="rmaSource" class="text-muted my-font-size-xs pb-3" style="line-height: 1.45">
+            資料來源：{{ rmaSource }}
+          </div>
+
+          <!-- 目前路線／站點統計 -->
+          <div class="my-title-xs-gray pb-2">目前路線／站點</div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span>路線</span><span>{{ rmaStats.routes }} 條</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #ff0000"
+              ></span>
+              connect（交點）
+            </span>
+            <span>{{ rmaStats.connect }}</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #1565c0"
+              ></span>
+              terminal（端點）
+            </span>
+            <span>{{ rmaStats.terminal }}</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-3">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #000000"
+              ></span>
+              一般（黑點）
+            </span>
+            <span>{{ rmaStats.black }}</span>
+          </div>
+
+          <!-- 各路線站點（依序：起點 → 終點） -->
+          <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
+          <div v-if="rmaRouteList.length === 0" class="my-font-size-xs pb-3">尚未載入任何路線</div>
+          <div v-for="route in rmaRouteList" :key="route.routeIndex" class="pb-2">
+            <div class="d-flex align-items-center my-font-size-xs pb-1">
+              <span
+                class="d-inline-block rounded-pill me-2"
+                :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
+              ></span>
+              {{ rmaRouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
+                route.stations.length
+              }}
+              站）
+            </div>
+            <div class="ps-3">
+              <div
+                v-for="(st, si) in route.stations"
+                :key="si"
+                class="d-flex align-items-center my-font-size-xs pb-1"
+              >
+                <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  :style="{ width: '8px', height: '8px', backgroundColor: rmaStationColor(st.type) }"
+                ></span>
+                <span class="d-flex align-items-center">
+                  {{ rmaStationLabel(st.type) }}
+                  <template v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length">
+                    <span class="ms-1 me-1">· 交會</span>
+                    <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
+                      <span
+                        class="d-inline-block rounded-pill me-1"
+                        :style="{ width: '16px', height: '5px', backgroundColor: rmaRouteColor(ri) }"
+                      ></span>
+                      {{ rmaRouteName(ri) }}
                     </span>
                   </template>
                 </span>

@@ -1,0 +1,199 @@
+/**
+ * 🗺️ 路線圖調整（route_map_adjust）— Leaflet 唯讀顯示
+ *
+ * ⚠️ 本檔為「路線圖調整」圖層**獨立複製**之版本，刻意不與 select_route_map / SpaceNetworkGridTab
+ *    的渲染共用任何程式。為唯讀顯示：畫出載入的路線與三類站點（端點藍／交點紅／黑點），
+ *    hover 顯示屬性，並可由 store 觸發一次性 fitBounds；不含任何編輯互動。
+ */
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { watch } from 'vue';
+import { computeRouteMapAdjustStations } from './routeStations.js';
+import { ROUTE_MAP_ADJUST_LAYER_ID } from './loadFromSelectRouteMap.js';
+
+/**
+ * 在指定 DOM 容器上掛載「路線圖調整」的 Leaflet 地圖。
+ * @param {HTMLElement} el 容器（須已有尺寸）
+ * @param {*} dataStore Pinia dataStore 實例
+ * @returns {{ invalidateSize: () => void, destroy: () => void }}
+ */
+export function mountRouteMapAdjust(el, dataStore) {
+  const layer = dataStore.findLayerById(ROUTE_MAP_ADJUST_LAYER_ID);
+  if (!el || !layer) {
+    return { invalidateSize: () => {}, destroy: () => {} };
+  }
+  if (!Array.isArray(layer.routeMapAdjustLines)) layer.routeMapAdjustLines = [];
+  if (!Array.isArray(layer.routeMapAdjustBlackDots)) layer.routeMapAdjustBlackDots = [];
+
+  if (el._leaflet_id) delete el._leaflet_id;
+  el.innerHTML = '';
+
+  const map = L.map(el, {
+    center: [25.0478, 121.5319], // 台北車站附近
+    zoom: 12,
+    zoomControl: true,
+    attributionControl: false,
+  });
+
+  // 底圖：CartoDB Positron（乾淨淺色）
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    subdomains: 'abcd',
+  }).addTo(map);
+  // 疊加：OpenRailwayMap 鐵道／捷運路線
+  L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    subdomains: 'abc',
+  }).addTo(map);
+
+  const finishedGroup = L.layerGroup().addTo(map);
+  const stationGroup = L.layerGroup().addTo(map);
+
+  const esc = (s) =>
+    String(s == null ? '' : s).replace(
+      /[&<>]/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]
+    );
+  const llKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
+  const rowHtml = (k, v) =>
+    v == null || v === '' ? '' : `<div><span style="color:#888">${esc(k)}</span> ${esc(v)}</div>`;
+
+  const lineTooltipHtml = (ln) =>
+    `<div style="font-size:12px;line-height:1.5">` +
+    rowHtml('route_name', ln.routeName) +
+    rowHtml('route_id', ln.routeId) +
+    rowHtml('route_company', ln.routeCompany) +
+    rowHtml('railway', ln.railway) +
+    rowHtml('osm_id', ln.osmId) +
+    rowHtml('color', ln.color) +
+    `</div>`;
+
+  const typeLabel = (t) =>
+    t === 'terminal' ? '端點 terminal' : t === 'connect' ? '交點 intersection' : '一般 normal';
+
+  const buildRoutesAtCoord = () => {
+    const m = new Map();
+    for (const ln of layer.routeMapAdjustLines || []) {
+      if (!ln || !Array.isArray(ln.latlngs)) continue;
+      for (const c of ln.latlngs) {
+        const k = llKey(c[0], c[1]);
+        let set = m.get(k);
+        if (!set) {
+          set = new Set();
+          m.set(k, set);
+        }
+        if (ln.routeName) set.add(ln.routeName);
+      }
+    }
+    return m;
+  };
+  const stationTooltipHtml = (latlng, type, routesAtCoord) => {
+    const k = llKey(latlng[0], latlng[1]);
+    const meta = (layer.routeMapAdjustStationMeta && layer.routeMapAdjustStationMeta[k]) || {};
+    const routes = [...(routesAtCoord.get(k) || [])];
+    return (
+      `<div style="font-size:12px;line-height:1.5">` +
+      rowHtml('station_name', meta.name) +
+      rowHtml('station_id', meta.id) +
+      rowHtml('osm_id', meta.osmId) +
+      rowHtml('type', typeLabel(type)) +
+      (routes.length
+        ? `<div><span style="color:#888">route_name_list</span> ${esc(routes.join('、'))}</div>`
+        : '') +
+      `</div>`
+    );
+  };
+
+  const renderFinished = () => {
+    finishedGroup.clearLayers();
+    for (const ln of layer.routeMapAdjustLines) {
+      if (!ln || !Array.isArray(ln.latlngs) || ln.latlngs.length < 2) continue;
+      const pl = L.polyline(ln.latlngs, {
+        color: ln.color || '#e6194b',
+        weight: 4,
+        opacity: 0.9,
+        interactive: true,
+      });
+      pl.bindTooltip(lineTooltipHtml(ln), { sticky: true });
+      pl.addTo(finishedGroup);
+    }
+  };
+
+  const renderStations = () => {
+    stationGroup.clearLayers();
+    const { terminals, connects, blacks } = computeRouteMapAdjustStations(
+      layer.routeMapAdjustLines,
+      layer.routeMapAdjustBlackDots
+    );
+    const routesAtCoord = buildRoutesAtCoord();
+    const addStationDot = (latlng, fillColor, radius, type) => {
+      const m = L.circleMarker(latlng, {
+        radius,
+        color: fillColor,
+        weight: 1,
+        fillColor,
+        fillOpacity: 1,
+        interactive: true,
+      });
+      m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
+      m.addTo(stationGroup);
+    };
+    // 繪製順序：黑點 → 端點(藍) → 交點(紅)，讓交點顯示在最上層
+    blacks.forEach((p) => addStationDot(p, '#000000', 3, 'black'));
+    terminals.forEach((p) => addStationDot(p, '#1565c0', 4, 'terminal'));
+    connects.forEach((p) => addStationDot(p, '#ff0000', 4, 'connect'));
+  };
+
+  const renderAll = () => {
+    renderFinished();
+    renderStations();
+  };
+  renderAll();
+
+  // 反應式重繪：載入／清除等外部變更時即時更新地圖
+  const stopLinesWatch = watch(
+    () => [layer.routeMapAdjustLines, layer.routeMapAdjustBlackDots],
+    renderAll,
+    { deep: true }
+  );
+
+  // 一次性縮放到目前所有線（從選擇路線圖載入後由 store 觸發）
+  const fitToContent = () => {
+    const pts = [];
+    for (const ln of layer.routeMapAdjustLines || []) {
+      if (ln && Array.isArray(ln.latlngs)) pts.push(...ln.latlngs);
+    }
+    (layer.routeMapAdjustBlackDots || []).forEach((p) => pts.push(p));
+    if (pts.length >= 2) map.fitBounds(L.latLngBounds(pts), { padding: [24, 24] });
+  };
+  const stopFitWatch = watch(() => dataStore.routeMapAdjustFitTrigger, fitToContent);
+  // 初次掛載時若已有資料，縮放到內容
+  fitToContent();
+
+  return {
+    invalidateSize: () => {
+      try {
+        map.invalidateSize();
+      } catch (e) {
+        void e;
+      }
+    },
+    destroy: () => {
+      try {
+        stopLinesWatch();
+      } catch (e) {
+        void e;
+      }
+      try {
+        stopFitWatch();
+      } catch (e) {
+        void e;
+      }
+      try {
+        map.remove();
+      } catch (e) {
+        void e;
+      }
+    },
+  };
+}

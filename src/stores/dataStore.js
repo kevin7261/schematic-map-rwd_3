@@ -237,14 +237,14 @@ export const useDataStore = defineStore(
      */
     const layers = ref([
       {
-        groupName: '空間網格',
+        groupName: '路線圖處理',
         groupLayers: [
           {
             /** 🗺️ 選擇路線圖（select_route_map）— 載入世界各城市路線並唯讀顯示。
              *  與 leaflet_josm_draw 完全獨立（程式集中於 src/utils/selectRouteMap/）。 */
             layerId: 'select_route_map',
             layerName: '選擇路線圖',
-            visible: true,
+            visible: false,
             isLoading: false,
             isLoaded: true,
             colorName: 'red',
@@ -279,6 +279,46 @@ export const useDataStore = defineStore(
             selectRouteMapSource: null,
             upperViewTabs: ['select-route-map'],
           },
+          {
+            /** 🗺️ 路線圖調整（route_map_adjust）— 從「選擇路線圖」載入路線後（之後可）調整。
+             *  與 select_route_map 完全獨立（程式集中於 src/utils/routeMapAdjust/）。 */
+            layerId: 'route_map_adjust',
+            layerName: '路線圖調整',
+            visible: false,
+            isLoading: false,
+            isLoaded: true,
+            colorName: 'blue',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            layoutGridJsonData: null,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: null,
+            isDataLayer: false,
+            hideFromMap: true,
+            display: true,
+            /** 🏷️ 標記為「路線圖調整」圖層 */
+            isRouteMapAdjustLayer: true,
+            /** ✏️ 調整中之路線：[{ color, latlngs:[[lat,lng],...], routeName?, routeId?, ... }, ...] */
+            routeMapAdjustLines: [],
+            /** ⚫ 一般黑點（中間站）：[[lat, lng], ...] */
+            routeMapAdjustBlackDots: [],
+            /** 站點中繼資料：{ '${lat},${lng}': { id, name, osmId } } */
+            routeMapAdjustStationMeta: null,
+            /** 資料來源標籤 */
+            routeMapAdjustSource: null,
+            upperViewTabs: ['route-map-adjust'],
+          },
         ],
       },
       {
@@ -288,7 +328,7 @@ export const useDataStore = defineStore(
             /** 🗺️ Leaflet 自由畫線圖層（JOSM 式畫法）— 置於分頁最上方 */
             layerId: 'leaflet_josm_draw',
             layerName: '畫線',
-            visible: true,
+            visible: false,
             isLoading: false,
             isLoaded: true,
             colorName: 'red',
@@ -2338,6 +2378,12 @@ export const useDataStore = defineStore(
       selectRouteMapFitTrigger.value += 1;
     };
 
+    /** 🗺️「路線圖調整」(route_map_adjust) 一次性 fitBounds 觸發器（與其他圖層完全獨立） */
+    const routeMapAdjustFitTrigger = ref(0);
+    const requestRouteMapAdjustFit = () => {
+      routeMapAdjustFitTrigger.value += 1;
+    };
+
     /**
      * layout-grid-viewer 加權版面：「全部隨機 weight」後 3 秒路線／比例條內插動畫。
      * snapshot：{ routes, remap }；anim：{ layerId, from, to, progress, active, pendingTo, startTime }
@@ -2887,6 +2933,8 @@ export const useDataStore = defineStore(
       requestLeafletDrawFit,
       selectRouteMapFitTrigger,
       requestSelectRouteMapFit,
+      routeMapAdjustFitTrigger,
+      requestRouteMapAdjustFit,
       layoutVhDrawRouteAnimSnapshot,
       layoutVhDrawRouteAnim,
       layoutVhDrawRouteAnimTrigger,
