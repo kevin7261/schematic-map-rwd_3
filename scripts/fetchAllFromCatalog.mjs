@@ -76,6 +76,7 @@ async function main() {
         dropByName: ov.dropByName,
         includeRail: ov.includeRail,
         onlyLineName: ov.onlyLineName,
+        clipToBbox: ov.clipToBbox,
       });
       if (isMainlandChina(c)) convertFcToTraditional(fc); // 大陸城市簡→繁
       const v = validateGeojson(fc);

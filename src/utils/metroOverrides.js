@@ -53,13 +53,14 @@ export const METRO_OVERRIDES = {
 
   // 🇨🇳 長三角／珠三角緊鄰城市：discovery 的 bbox 過大，誤含鄰市整套地鐵 → 以營運者/線名剔除鄰市線。
   //    （共線如廣佛線由鄰市營運者經營，會一併被剔，屬可接受的取捨；驗證若標 missing 可再個別補。）
-  'china-foshan': { dropByName: '广州|廣州|Guangzhou|黄埔|黃埔|海珠' },
-  'china-dongguan': { dropByName: '广州|廣州|Guangzhou|黄埔|黃埔|海珠' },
-  'china-suzhou': { dropByName: '无锡|無錫|Wuxi|常州|Changzhou|嘉善|嘉兴|嘉興' },
-  'china-wuxi': { dropByName: '苏州|蘇州|Suzhou|常州|Changzhou|苏虞张' },
-  'china-changzhou': { dropByName: '无锡|無錫|Wuxi|苏州|蘇州|Suzhou' },
-  'china-nantong': { dropByName: '苏州|蘇州|Suzhou|苏虞张|常熟|张家港|張家港' },
-  'china-shaoxing': { dropByName: '杭州|Hangzhou|杭海|临平|臨平|萧山|蕭山' },
+  // 緊鄰城市群：鄰市線名/營運者常無城市標記，改用「收緊 bbox ＋ 地理裁切」剔除鄰市線
+  'china-foshan': { bbox: [22.85, 112.82, 23.22, 113.28], clipToBbox: true },
+  'china-dongguan': { bbox: [22.73, 113.6, 23.18, 114.08], clipToBbox: true },
+  'china-suzhou': { bbox: [31.12, 120.4, 31.48, 121.0], clipToBbox: true },
+  'china-wuxi': { bbox: [31.42, 120.1, 31.72, 120.58], clipToBbox: true },
+  'china-changzhou': { bbox: [31.63, 119.78, 31.95, 120.12], clipToBbox: true },
+  'china-nantong': { bbox: [31.88, 120.68, 32.12, 121.12], clipToBbox: true },
+  'china-shaoxing': { bbox: [29.92, 120.42, 30.12, 120.78], clipToBbox: true },
   // 北京：剔除城際/雄安(屬河北)與纜車；八通線等重複交給 dedupe
   'china-beijing': { dropByName: '雄安|城际|城際|缆车|纜車', dedupeByName: ['八通'] },
   // 🇮🇳 古爾岡：剔除德里地鐵（屬鄰市德里），只留 Rapid Metro
@@ -82,12 +83,25 @@ export const METRO_OVERRIDES = {
   // 桃園：已併入台北；此獨立條目只留桃園自有線（機場捷運＋桃園綠線）
   'taiwan-taoyuan': { onlyLineName: '桃園|機場|Taoyuan|Airport' },
 
-  // 🌏 其餘鄰市過度抓取：以營運者/線名剔除鄰市線
-  'south-korea-incheon': { dropByName: '서울|首爾|首尔|Seoul|의정부|광명|Gwangmyeong|김포|Gimpo' },
   // 單線/小系統城市，bbox 誤含鄰近大都會網 → 只留自有線
   'united-kingdom-docklands-light-railway': { onlyLineName: 'DLR|Docklands' },
   'india-noida': { onlyLineName: 'Aqua|Noida|नोएडा' },
   'india-navi-mumbai': { onlyLineName: 'Navi Mumbai|नवी' },
+  // 橫濱：剔除東京/鎌倉鄰市線
+  'japan-yokohama': { dropByName: 'ゆりかもめ|江ノ島|江ノ電|羽田|世田谷|湘南' },
+  // 里昂：剔除 TER 區域火車與機場接駁（非地鐵）
+  'france-lyon': { dropByName: 'TER |Rhônexpress' },
+
+  // 方向/分支變體重複去重；個別鄰市/雜訊線剔除
+  'india-mumbai': { dedupeByName: ['Line 9', 'Line-2|Line 2', 'Green Line'] },
+  'india-chennai': { dedupeByName: ['Line 3', 'Line 4', 'Line 5'] },
+  'iran-karaj': { dropByName: 'خط ۱۰|Line 10', dedupeByName: ['خط ۲'] },
+  'qatar-doha': { dedupeByName: ['الأحمر|Red', 'الذهب|Gold|金'] },
+  'united-states-washington-dc': { dedupeByName: ['Purple'] },
+  'south-korea-incheon': {
+    dropByName: '서울|首爾|首尔|Seoul|의정부|광명|Gwangmyeong|김포|Gimpo|신분당|新盆唐|Sinbundang',
+  },
+  'chile-santiago': { dedupeByName: ['Línea 1|Line 1', 'Línea 2', 'Línea 4', 'Línea 5'] },
 };
 
 /** 取得某 city id 的覆寫設定（無則回空物件） */

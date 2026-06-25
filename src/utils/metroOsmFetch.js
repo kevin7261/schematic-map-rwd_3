@@ -242,7 +242,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   // 🚫 剔除符合者（per-city）：依 route_company 或 route_name 比對，剔除鄰市誤抓線（如佛山的廣州地鐵）。
   const dropRe = opts.dropByName ? new RegExp(opts.dropByName) : null;
   // 🗑️ 全域雜訊過濾：depot/車輛段、機場旅客捷運(APM)、纜車/索道、動物園單軌、空白或單字名。
-  const NOISE_RE = /機廠|车辆段|車輛段|車庫|车库|depot|旅客捷運|旅客自動|Automated People Mover|People Mover|纜車|缆车|索道|cable car|funicular|動物園|动物园|Wild Asia|APM/i;
+  const NOISE_RE = /機廠|车辆段|車輛段|車庫|车库|depot|旅客捷運|旅客自動|Automated People Mover|People Mover|纜車|缆车|索道|cable car|funicular|動物園|动物园|Wild Asia|APM|Capitol Subway|Dirksen|Russell Line|Rayburn|華為|华为|松山湖/i;
   const isDrop = (company, name) => {
     const c = company || '';
     const nm = (name || '').trim();
@@ -263,6 +263,8 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   // 🎯 只保留線名符合者（per-city）：用於「單線城市」（如りんかい線、ゆりかもめ、PATH、桃園），
   //    其 bbox 會誤含整個都會網，故只留該線本身。
   const onlyRe = opts.onlyLineName ? new RegExp(opts.onlyLineName) : null;
+  // 🗺️ 地理裁切（per-city）：營運線若多數頂點落在 bbox 外即剔除。用於緊鄰城市群（如佛山↔廣州），
+  //    鄰市線名/營運者無城市標記、name-based 過濾抓不到時，以地理範圍剔除。需搭配收緊 bbox。
   onProgress('連線 OpenStreetMap（Overpass）…');
   // 含營運中（subway/light_rail/monorail）＋施工中（route=construction）＋計畫中（route=proposed）的同類路線；
   // 施工／計畫的實際模式記在 construction:route／proposed:route。
@@ -503,6 +505,11 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       continue;
     if (!l.forceInclude && isDrop(l.routeCompany, l.routeName)) continue; // 鄰市誤抓線 / 雜訊 / 空名
     if (onlyRe && !onlyRe.test(l.routeName || '')) continue; // 單線城市：只留指定線
+    // 地理裁切：營運線多數頂點在 bbox 外 → 鄰市線，剔除（施工/計畫線與 forceInclude 不受限）
+    if (opts.clipToBbox && (l.status || 'open') === 'open' && !l.forceInclude) {
+      const inN = l.latlngs.filter((c) => inBbox(c[0], c[1])).length;
+      if (inN / l.latlngs.length < 0.5) continue;
+    }
     const ks = new Set(l.latlngs.map(keyOf));
     let dup = false;
     for (const kk of keptKeys) {
