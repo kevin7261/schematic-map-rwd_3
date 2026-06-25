@@ -214,3 +214,131 @@ export const computeRouteMapAdjustRouteStations = (lines, blackDots) => {
     };
   });
 };
+
+/** 兩向量外積（z 分量）：(px,py) × (qx,qy) */
+const cross = (px, py, qx, qy) => px * qy - py * qx;
+
+/**
+ * 線段 a-b 與 c-d 的「真交叉」交點（0<t<1 且 0<u<1，端點接觸不算）。
+ * @returns {[number,number]|null} 交點 [lat,lng] 或 null
+ */
+const segSegIntersection = (a, b, c, d) => {
+  const ax = a[1];
+  const ay = a[0];
+  const bx = b[1];
+  const by = b[0];
+  const cx = c[1];
+  const cy = c[0];
+  const dx = d[1];
+  const dy = d[0];
+  const rx = bx - ax;
+  const ry = by - ay;
+  const sx = dx - cx;
+  const sy = dy - cy;
+  const denom = cross(rx, ry, sx, sy);
+  if (Math.abs(denom) < 1e-15) return null; // 平行或共線
+  const qpx = cx - ax;
+  const qpy = cy - ay;
+  const t = cross(qpx, qpy, sx, sy) / denom;
+  const u = cross(qpx, qpy, rx, ry) / denom;
+  if (t > 0 && t < 1 && u > 0 && u < 1) {
+    return [ay + t * ry, ax + t * rx]; // [lat,lng]
+  }
+  return null;
+};
+
+/**
+ * 找出「路線幾何交叉但該處沒有站點」的位置（cross）。
+ *  - 取不同路線之線段「真交叉」（線段內部相交，非端點接觸）。
+ *  - 排除已落在既有站點（terminal／connect／black）附近者 → 只留下「沒有站點」的交叉。
+ *  - 不會插入頂點、不截斷任何線；僅回傳交叉座標供疊加標示。
+ * @param {Array<{latlngs:Array<[number,number]>}>} lines
+ * @param {Array<[number,number]>} [excludePoints] 已有站點座標（要排除的位置）
+ * @returns {Array<[number,number]>} 交叉站點座標 [lat,lng]
+ */
+export const computeRouteMapAdjustCrossPoints = (lines, excludePoints = []) => {
+  const safeLines = Array.isArray(lines)
+    ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
+    : [];
+  const raw = [];
+  for (let i = 0; i < safeLines.length; i++) {
+    for (let j = i + 1; j < safeLines.length; j++) {
+      const A = safeLines[i].latlngs;
+      const B = safeLines[j].latlngs;
+      for (let p = 0; p < A.length - 1; p++) {
+        for (let q = 0; q < B.length - 1; q++) {
+          const x = segSegIntersection(A[p], A[p + 1], B[q], B[q + 1]);
+          if (x) raw.push(x);
+        }
+      }
+    }
+  }
+  const deduped = dedupePoints(raw, 1e-6);
+  const EXCLUDE_TOL = 1e-5; // 約 1m：與既有站點重合則視為「已有站點」，不列為 cross
+  const excl = Array.isArray(excludePoints) ? excludePoints : [];
+  return deduped.filter(
+    (p) =>
+      !excl.some((s) => Math.abs(s[0] - p[0]) < EXCLUDE_TOL && Math.abs(s[1] - p[1]) < EXCLUDE_TOL)
+  );
+};
+
+/**
+ * 把整個路網合併成單一結構（圖：節點＋邊）。
+ *  - 每條路線拆成相鄰兩點的線段；以「無方向、座標取整（6 位小數 ≈ 0.1m）」為鍵合併。
+ *  - 多條路線重疊（共用同一線段）時合併成同一條邊（一條線），
+ *    但該邊的 `routes` 以 **list** 記下所有經過此邊之路線的完整屬性。
+ * @param {Array<{latlngs:Array<[number,number]>, color?,routeName?,routeId?,routeCompany?,railway?,osmId?}>} lines
+ * @returns {{nodes:Array<[number,number]>, edges:Array<{a:[number,number],b:[number,number],routes:object[]}>}}
+ */
+export const buildRouteMapAdjustMergedNetwork = (lines) => {
+  const safeLines = Array.isArray(lines)
+    ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
+    : [];
+  const round = (n) => Number(Number(n).toFixed(6));
+  const nodeKey = (p) => `${round(p[0])},${round(p[1])}`;
+  const nodes = new Map(); // key -> [lat,lng]
+  const edges = new Map(); // edgeKey -> { a, b, routes: [] }
+
+  safeLines.forEach((line, li) => {
+    const attr = {
+      routeIndex: li,
+      routeName: line.routeName ?? null,
+      routeId: line.routeId ?? null,
+      routeCompany: line.routeCompany ?? null,
+      railway: line.railway ?? null,
+      osmId: line.osmId ?? null,
+      color: line.color ?? null,
+    };
+    const pts = line.latlngs;
+    for (let k = 0; k < pts.length - 1; k++) {
+      const aK = nodeKey(pts[k]);
+      const bK = nodeKey(pts[k + 1]);
+      if (aK === bK) continue; // 零長線段略過
+      if (!nodes.has(aK)) nodes.set(aK, [round(pts[k][0]), round(pts[k][1])]);
+      if (!nodes.has(bK)) nodes.set(bK, [round(pts[k + 1][0]), round(pts[k + 1][1])]);
+      const lo = aK < bK ? aK : bK;
+      const hi = aK < bK ? bK : aK;
+      const ek = `${lo}|${hi}`;
+      let e = edges.get(ek);
+      if (!e) {
+        e = { a: nodes.get(lo), b: nodes.get(hi), routes: [] };
+        edges.set(ek, e);
+      }
+      // 同一條路線在同一邊只記一次（路線往返同段時避免重複）
+      if (!e.routes.some((r) => r.routeIndex === li)) e.routes.push(attr);
+    }
+  });
+
+  return { nodes: [...nodes.values()], edges: [...edges.values()] };
+};
+
+/**
+ * 取出「共線段」：被 ≥2 條路線共用（重疊）的線段。
+ *  - 以 {@link buildRouteMapAdjustMergedNetwork} 合併後，篩出 routes.length >= 2 的邊。
+ * @param {Array} lines 路線
+ * @returns {Array<{a:[number,number],b:[number,number],routes:object[]}>} 共線段（每段含經過之路線屬性 list）
+ */
+export const computeRouteMapAdjustSharedSegments = (lines) => {
+  const net = buildRouteMapAdjustMergedNetwork(lines);
+  return net.edges.filter((e) => (e.routes?.length || 0) >= 2);
+};

@@ -156,6 +156,8 @@ export function useSelectRouteMapCatalog(dataStore) {
         window.alert('此城市資料無有效路線。');
         return;
       }
+      // 保存原始 GeoJSON（FeatureCollection），供 UpperView 之 GeoJSON 檢視分頁顯示
+      lyr.selectRouteMapGeojson = fc;
       lyr.selectRouteMapSource = `${city.city}, ${city.country}・© OpenStreetMap contributors（ODbL）`;
       dataStore.requestSelectRouteMapFit();
     } catch (e) {
@@ -174,6 +176,7 @@ export function useSelectRouteMapCatalog(dataStore) {
       lyr.selectRouteMapBlackDots = [];
       lyr.selectRouteMapStationMeta = null;
       lyr.selectRouteMapSource = null;
+      lyr.selectRouteMapGeojson = null;
     }
   };
 

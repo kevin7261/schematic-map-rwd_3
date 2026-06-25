@@ -46,7 +46,11 @@ export function mountRouteMapAdjust(el, dataStore) {
     subdomains: 'abc',
   }).addTo(map);
 
+  // ⚠️ 群組加入順序＝由下而上的圖層順序：
+  //    共線黃色底色（最底）→ 路線 → 合併結構 → 站點／交叉（最上）
+  const sharedGroup = L.layerGroup().addTo(map); // 🟡 共線段黃色底色高亮（墊在路線底下）
   const finishedGroup = L.layerGroup().addTo(map);
+  const mergedGroup = L.layerGroup().addTo(map);
   const stationGroup = L.layerGroup().addTo(map);
 
   const esc = (s) =>
@@ -69,7 +73,13 @@ export function mountRouteMapAdjust(el, dataStore) {
     `</div>`;
 
   const typeLabel = (t) =>
-    t === 'terminal' ? '端點 terminal' : t === 'connect' ? '交點 intersection' : '一般 normal';
+    t === 'terminal'
+      ? '端點 terminal'
+      : t === 'connect'
+        ? '交點 intersection'
+        : t === 'cross'
+          ? '交叉 cross'
+          : '一般 normal';
 
   const buildRoutesAtCoord = () => {
     const m = new Map();
@@ -138,21 +148,127 @@ export function mountRouteMapAdjust(el, dataStore) {
       m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
       m.addTo(stationGroup);
     };
-    // 繪製順序：黑點 → 端點(藍) → 交點(紅)，讓交點顯示在最上層
+    // 繪製順序：黑點 → 端點(藍) → 交點(紅) → 交叉(黃)，讓 cross 顯示在最上層
     blacks.forEach((p) => addStationDot(p, '#000000', 3, 'black'));
     terminals.forEach((p) => addStationDot(p, '#1565c0', 4, 'terminal'));
     connects.forEach((p) => addStationDot(p, '#ff0000', 4, 'connect'));
+    // 🟡 交叉站點（cross）：路線幾何交叉但無站點處。以黃色底色 halo + 黃點 highlight。
+    const crosses = Array.isArray(layer.routeMapAdjustCrossStations)
+      ? layer.routeMapAdjustCrossStations
+      : [];
+    crosses.forEach((p) => {
+      // 黃色底色光暈（halo）
+      L.circleMarker(p, {
+        radius: 10,
+        color: '#ffe000',
+        weight: 0,
+        fillColor: '#ffe000',
+        fillOpacity: 0.45,
+        interactive: false,
+      }).addTo(stationGroup);
+      addStationDot(p, '#ffd600', 5, 'cross');
+    });
+  };
+
+  // 合併後路網結構：每條邊只畫一次（重疊之多條路線→一條線）；
+  // 共用邊（≥2 路線）以深色粗線強調，單一路線邊用該路線顏色；tooltip 列出所有經過之路線屬性。
+  const mergedEdgeTooltipHtml = (edge) => {
+    const routes = Array.isArray(edge.routes) ? edge.routes : [];
+    const rows = routes
+      .map(
+        (r) =>
+          `<div>` +
+          rowHtml('route_name', r.routeName) +
+          rowHtml('route_id', r.routeId) +
+          rowHtml('railway', r.railway) +
+          rowHtml('color', r.color) +
+          `</div>`
+      )
+      .join('<hr style="margin:3px 0;border:none;border-top:1px solid #eee">');
+    return (
+      `<div style="font-size:12px;line-height:1.5">` +
+      `<div><span style="color:#888">routes</span> ${routes.length}</div>` +
+      rows +
+      `</div>`
+    );
+  };
+  const renderMerged = () => {
+    mergedGroup.clearLayers();
+    const net = layer.routeMapAdjustMergedNetwork;
+    const edges = Array.isArray(net?.edges) ? net.edges : [];
+    for (const edge of edges) {
+      if (!edge || !Array.isArray(edge.a) || !Array.isArray(edge.b)) continue;
+      const shared = (edge.routes?.length || 0) >= 2;
+      const pl = L.polyline([edge.a, edge.b], {
+        color: shared ? '#222222' : edge.routes?.[0]?.color || '#888888',
+        weight: shared ? 5 : 3,
+        opacity: 0.9,
+        interactive: true,
+      });
+      pl.bindTooltip(mergedEdgeTooltipHtml(edge), { sticky: true });
+      pl.addTo(mergedGroup);
+    }
+  };
+
+  const hasMerged = () => {
+    const net = layer.routeMapAdjustMergedNetwork;
+    return !!net && Array.isArray(net.edges) && net.edges.length > 0;
+  };
+
+  // 🟡 共線段（被 ≥2 路線共用之重疊段）高亮：預設顯示，以黃色粗線當「底色」墊在路線底下
+  //    （像螢光筆），讓彩色路線疊在黃色高亮之上。
+  const sharedTooltipHtml = (edge) => {
+    const routes = Array.isArray(edge.routes) ? edge.routes : [];
+    return (
+      `<div style="font-size:12px;line-height:1.5">` +
+      `<div><span style="color:#888">共線 routes</span> ${routes.length}</div>` +
+      routes.map((r) => rowHtml('route_name', r.routeName)).join('') +
+      `</div>`
+    );
+  };
+  const renderShared = () => {
+    sharedGroup.clearLayers();
+    const segs = Array.isArray(layer.routeMapAdjustSharedSegments)
+      ? layer.routeMapAdjustSharedSegments
+      : [];
+    for (const edge of segs) {
+      if (!edge || !Array.isArray(edge.a) || !Array.isArray(edge.b)) continue;
+      const pl = L.polyline([edge.a, edge.b], {
+        color: '#ffe000', // 黃色底色高亮，標示共線（重疊）段
+        weight: 12,
+        opacity: 0.85,
+        lineCap: 'round',
+        interactive: true,
+      });
+      pl.bindTooltip(sharedTooltipHtml(edge), { sticky: true });
+      pl.addTo(sharedGroup);
+    }
   };
 
   const renderAll = () => {
-    renderFinished();
-    renderStations();
+    // 已合併：顯示單一結構（重疊→一條線）；否則顯示原始各路線 + 共線高亮
+    if (hasMerged()) {
+      finishedGroup.clearLayers();
+      sharedGroup.clearLayers();
+      renderMerged();
+    } else {
+      mergedGroup.clearLayers();
+      renderFinished();
+      renderShared(); // 預設顯示共線
+    }
+    renderStations(); // 站點 + 交叉（cross）預設顯示
   };
   renderAll();
 
   // 反應式重繪：載入／清除等外部變更時即時更新地圖
   const stopLinesWatch = watch(
-    () => [layer.routeMapAdjustLines, layer.routeMapAdjustBlackDots],
+    () => [
+      layer.routeMapAdjustLines,
+      layer.routeMapAdjustBlackDots,
+      layer.routeMapAdjustCrossStations,
+      layer.routeMapAdjustSharedSegments,
+      layer.routeMapAdjustMergedNetwork,
+    ],
     renderAll,
     { deep: true }
   );

@@ -8,6 +8,9 @@ import { ref, computed } from 'vue';
 import {
   computeRouteMapAdjustStations,
   computeRouteMapAdjustRouteStations,
+  computeRouteMapAdjustCrossPoints,
+  buildRouteMapAdjustMergedNetwork,
+  computeRouteMapAdjustSharedSegments,
   routeMapAdjustColorNameForIndex,
 } from './routeStations.js';
 
@@ -54,11 +57,23 @@ export function useRouteMapAdjust(dataStore) {
     }
     isLoading.value = true;
     try {
-      dst.routeMapAdjustLines = deepClone(lines);
-      dst.routeMapAdjustBlackDots = deepClone(
+      const clonedLines = deepClone(lines);
+      const clonedBlacks = deepClone(
         Array.isArray(src.selectRouteMapBlackDots) ? src.selectRouteMapBlackDots : []
       );
+      dst.routeMapAdjustLines = clonedLines;
+      dst.routeMapAdjustBlackDots = clonedBlacks;
       dst.routeMapAdjustStationMeta = deepClone(src.selectRouteMapStationMeta || null);
+      // 預設即顯示「共線」與「路線交叉的地方」：載入後自動計算
+      const { terminals, connects, blacks } = computeRouteMapAdjustStations(clonedLines, clonedBlacks);
+      dst.routeMapAdjustCrossStations = computeRouteMapAdjustCrossPoints(clonedLines, [
+        ...terminals,
+        ...connects,
+        ...blacks,
+      ]);
+      dst.routeMapAdjustSharedSegments = computeRouteMapAdjustSharedSegments(clonedLines);
+      // 完整「合併為單一結構」仍由按鈕觸發
+      dst.routeMapAdjustMergedNetwork = null;
       dst.routeMapAdjustSource = src.selectRouteMapSource
         ? `從選擇路線圖載入：${src.selectRouteMapSource}`
         : '從選擇路線圖載入';
@@ -76,8 +91,98 @@ export function useRouteMapAdjust(dataStore) {
       dst.routeMapAdjustBlackDots = [];
       dst.routeMapAdjustStationMeta = null;
       dst.routeMapAdjustSource = null;
+      dst.routeMapAdjustCrossStations = [];
+      dst.routeMapAdjustSharedSegments = [];
+      dst.routeMapAdjustMergedNetwork = null;
     }
   };
+
+  /**
+   * 🕸️ 把整個路網合併成單一結構：重疊（共用線段）之多條路線合併為一條邊，
+   *    屬性以 list 全部記下，存到圖層供顯示與列出。
+   */
+  const buildMergedNetwork = () => {
+    const lyr = adjustLayer.value;
+    if (!lyr) return;
+    const lines = Array.isArray(lyr.routeMapAdjustLines) ? lyr.routeMapAdjustLines : [];
+    if (!lines.length) {
+      window.alert('尚未載入路線，請先「從選擇路線圖載入」。');
+      return;
+    }
+    lyr.routeMapAdjustMergedNetwork = buildRouteMapAdjustMergedNetwork(lines);
+    dataStore.requestRouteMapAdjustFit();
+  };
+
+  /** 合併結構統計：節點數、邊數、被多條路線共用（重疊）之邊數 */
+  const mergedNetworkStats = computed(() => {
+    const net = adjustLayer.value?.routeMapAdjustMergedNetwork;
+    if (!net) return { built: false, nodes: 0, edges: 0, sharedEdges: 0 };
+    const edges = Array.isArray(net.edges) ? net.edges : [];
+    return {
+      built: true,
+      nodes: Array.isArray(net.nodes) ? net.nodes.length : 0,
+      edges: edges.length,
+      sharedEdges: edges.filter((e) => (e.routes?.length || 0) >= 2).length,
+    };
+  });
+
+  /** 合併結構的邊清單（供面板列出：每邊一條 list，含經過之所有路線屬性） */
+  const mergedNetworkEdgeList = computed(() => {
+    const net = adjustLayer.value?.routeMapAdjustMergedNetwork;
+    const edges = Array.isArray(net?.edges) ? net.edges : [];
+    return edges.map((e, i) => ({
+      index: i,
+      a: e.a,
+      b: e.b,
+      routeCount: e.routes?.length || 0,
+      routes: e.routes || [],
+      routeNames: (e.routes || []).map(
+        (r) => r.routeName || routeMapAdjustColorNameForIndex(r.routeIndex)
+      ),
+    }));
+  });
+
+  /**
+   * ➕ 在「路線幾何交叉但沒有站點」的位置加上 cross 站點（黃色）。
+   *    不截斷任何路線、不插入頂點；僅將交叉座標存到圖層供疊加標示與列出。
+   */
+  const addCrossStations = () => {
+    const lyr = adjustLayer.value;
+    if (!lyr) return;
+    const lines = Array.isArray(lyr.routeMapAdjustLines) ? lyr.routeMapAdjustLines : [];
+    const blackDots = Array.isArray(lyr.routeMapAdjustBlackDots) ? lyr.routeMapAdjustBlackDots : [];
+    if (!lines.length) {
+      window.alert('尚未載入路線，請先「從選擇路線圖載入」。');
+      return;
+    }
+    const { terminals, connects, blacks } = computeRouteMapAdjustStations(lines, blackDots);
+    const existing = [...terminals, ...connects, ...blacks];
+    lyr.routeMapAdjustCrossStations = computeRouteMapAdjustCrossPoints(lines, existing);
+  };
+
+  /** 🔶 共線段清單（被 ≥2 路線共用之重疊段），供面板列出（含路線屬性 list） */
+  const sharedSegmentList = computed(() => {
+    const lyr = adjustLayer.value;
+    const segs = Array.isArray(lyr?.routeMapAdjustSharedSegments)
+      ? lyr.routeMapAdjustSharedSegments
+      : [];
+    return segs.map((e, i) => ({
+      index: i,
+      routeCount: e.routes?.length || 0,
+      routeNames: (e.routes || []).map(
+        (r) => r.routeName || routeMapAdjustColorNameForIndex(r.routeIndex)
+      ),
+    }));
+  });
+
+  /** cross 站點清單（type 固定為 'cross'），供面板列出 */
+  const routeMapAdjustCrossList = computed(() => {
+    const lyr = adjustLayer.value;
+    const arr = Array.isArray(lyr?.routeMapAdjustCrossStations)
+      ? lyr.routeMapAdjustCrossStations
+      : [];
+    return arr.map((latlng, i) => ({ index: i, type: 'cross', latlng }));
+  });
 
   const routeMapAdjustSource = computed(() => adjustLayer.value?.routeMapAdjustSource || '');
 
@@ -117,6 +222,12 @@ export function useRouteMapAdjust(dataStore) {
     isLoading,
     loadFromSelectRouteMap,
     clearRouteMapAdjust,
+    addCrossStations,
+    routeMapAdjustCrossList,
+    sharedSegmentList,
+    buildMergedNetwork,
+    mergedNetworkStats,
+    mergedNetworkEdgeList,
     routeMapAdjustSource,
     routeMapAdjustStats,
     routeMapAdjustRouteList,

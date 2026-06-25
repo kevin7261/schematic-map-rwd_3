@@ -277,7 +277,9 @@ export const useDataStore = defineStore(
             selectRouteMapStationMeta: null,
             /** 資料來源標籤 */
             selectRouteMapSource: null,
-            upperViewTabs: ['select-route-map'],
+            /** 載入之原始 GeoJSON（FeatureCollection），供 GeoJSON 檢視分頁顯示 */
+            selectRouteMapGeojson: null,
+            upperViewTabs: ['select-route-map', 'select-route-map-geojson'],
           },
           {
             /** 🗺️ 路線圖調整（route_map_adjust）— 從「選擇路線圖」載入路線後（之後可）調整。
@@ -313,6 +315,12 @@ export const useDataStore = defineStore(
             routeMapAdjustLines: [],
             /** ⚫ 一般黑點（中間站）：[[lat, lng], ...] */
             routeMapAdjustBlackDots: [],
+            /** 🟡 交叉站點（cross）：路線幾何交叉但無站點處，[[lat, lng], ...] */
+            routeMapAdjustCrossStations: [],
+            /** 🔶 共線段：被 ≥2 路線共用（重疊）之線段，[{a,b,routes:[屬性...]}...]（載入後預設計算） */
+            routeMapAdjustSharedSegments: [],
+            /** 🕸️ 合併後路網結構：{ nodes:[[lat,lng]...], edges:[{a,b,routes:[屬性...]}...] }｜null */
+            routeMapAdjustMergedNetwork: null,
             /** 站點中繼資料：{ '${lat},${lng}': { id, name, osmId } } */
             routeMapAdjustStationMeta: null,
             /** 資料來源標籤 */
