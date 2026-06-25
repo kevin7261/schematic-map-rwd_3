@@ -103,33 +103,6 @@ export function buildTaipeiB3ExecuteLayerFieldsFromGeojson(geojson) {
 }
 
 /**
- * 資料處理_2：executeOsmGeojsonToRouteSegmentsProc2／taipei_b3_dp_2 專用（與 buildTaipeiB3ExecuteLayerFieldsFromGeojson 分函式複製，dashboard.sourceLayerId 獨立）
- * @param {*} geojson - FeatureCollection
- */
-export function buildTaipeiB3ExecuteLayerFieldsFromGeojsonProc2(geojson) {
-  const { rows, flatSegs, computed, colabMeta, linearizeAlgorithm } = computeTaipeiA3NetworkFromGeojson(geojson, {
-    forceCoordinateRouteSegments: true,
-  });
-
-  return {
-    processedJsonData: rows,
-    spaceNetworkGridJsonData: flatSegs,
-    spaceNetworkGridJsonData_SectionData: computed.sectionData,
-    spaceNetworkGridJsonData_ConnectData: computed.connectData,
-    spaceNetworkGridJsonData_StationData: computed.stationData,
-    showStationPlacement: true,
-    dashboardData: {
-      segmentCount: flatSegs.length,
-      exportRowCount: rows.length,
-      sourceLayerId: 'taipei_osm_geojson_2',
-      segmentExportSource: 'geojson',
-      linearizeAlgorithm,
-      ...(colabMeta ? { colabLinearize: colabMeta } : {}),
-    },
-  };
-}
-
-/**
  * 網絡繪製（_nd）：executeOsmGeojsonToRouteSegmentsNd／手繪 network_draw_sketch GeoJSON→taipei_b3_dp_nd 專用（與 Proc2 函式分檔複製）
  * @param {*} geojson - FeatureCollection
  */

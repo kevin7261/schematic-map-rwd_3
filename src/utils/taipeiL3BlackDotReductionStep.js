@@ -19,7 +19,6 @@ import { flatSegmentsToGeojsonStyleExportRows } from './taipeiTest3/flatSegments
 const TAIPEI_L3_BLACK_DOT_REDUCTION_LAYER_IDS = new Set([
   'taipei_l3',
   'taipei_l3_dp',
-  'taipei_l3_dp_2',
   'taipei_l3_dp_nd',
 ]);
 

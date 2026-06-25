@@ -292,7 +292,7 @@
 
     // 檢查圖層是否屬於可執行「下一步」之群組
     const groupName = dataStore.findGroupNameByLayerId(currentLayer.value.layerId);
-    if (groupName !== '資料處理_2' && groupName !== '空間網絡網格') return false;
+    if (groupName !== '空間網絡網格') return false;
 
     // 檢查是否有 executeFunction
     return (
@@ -12828,10 +12828,7 @@
               權重數字同步 <code class="small">space-network-grid</code> 與
               <code class="small">space-network-grid-k3</code>／
               <code class="small">space-network-grid-k4</code> 折線上
-              <code class="small">station_weights</code>；
-              <code class="small">space-network-grid-l3</code>／
-              <code class="small">space-network-grid-m3</code>
-              為與「網格示意圖測試」同色之動態預覽網格（欄列依版面、單格寬高≤50pt）、不顯示權重數字。示意格層時仍須專區「顯示權重」為開。預設為顯示。
+              <code class="small">station_weights</code>。
               紅／藍站名開關為 <code class="small">connect</code>（交叉紅／末端藍）上之文字標籤；與
               taipei_f
               專區「顯示站名」同一全域設定。黑點（沿線站）站名為下一項獨立開關。預設皆關閉。

@@ -4128,11 +4128,6 @@
       layerTab === 'taipei_f3_dp' ||
       layerTab === 'taipei_g3_dp' ||
       layerTab === 'taipei_h3_dp' ||
-      layerTab === 'taipei_d3_dp_2' ||
-      layerTab === 'taipei_e3_dp_2' ||
-      layerTab === 'taipei_f3_dp_2' ||
-      layerTab === 'taipei_g3_dp_2' ||
-      layerTab === 'taipei_h3_dp_2' ||
       layerTab === JSON_GRID_COORD_NORMALIZED_LAYER_ID ||
       layerTab === POINT_ORTHOGONAL_LAYER_ID ||
       layerTab === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
@@ -5104,11 +5099,9 @@
     if (isTaipeiTest3I3OrJ3LayerTab(layerTab)) {
       const tab = layerTab;
       const h3LayerId =
-        typeof tab === 'string' && tab.endsWith('_dp_2')
-          ? 'taipei_h3_dp_2'
-          : typeof tab === 'string' && tab.endsWith('_dp')
-            ? 'taipei_h3_dp'
-            : 'taipei_h3';
+        typeof tab === 'string' && tab.endsWith('_dp')
+          ? 'taipei_h3_dp'
+          : 'taipei_h3';
       const h3Layer = dataStore.findLayerById(h3LayerId);
       const h3Data = h3Layer?.spaceNetworkGridJsonData;
       if (Array.isArray(h3Data) && h3Data.length > 0) {
@@ -8616,7 +8609,6 @@
         TAIPEI_TEST_SPACE_NETWORK_STATION_TAB_IDS.includes(layerTab) &&
         layerTab !== 'taipei_h3' &&
         layerTab !== 'taipei_h3_dp' &&
-        layerTab !== 'taipei_h3_dp_2' &&
         !isTaipeiTest3I3OrJ3LayerTab(layerTab) &&
         stLayer?.spaceNetworkGridJsonData_SectionData?.length > 0 &&
         stLayer?.showStationPlacement
@@ -8695,8 +8687,7 @@
           hbL3 &&
           hbL3.layerId === layerTab &&
           (layerTab === 'taipei_l3' ||
-            layerTab === 'taipei_l3_dp' ||
-            layerTab === 'taipei_l3_dp_2') &&
+            layerTab === 'taipei_l3_dp') &&
           (hbSidL3 != null && String(hbSidL3).trim() !== ''
             ? String(sidLine ?? '').trim() === String(hbSidL3).trim()
             : Math.abs(Number(gxLine) - Number(hbL3.x)) < coordEpsL3 &&
@@ -9019,7 +9010,6 @@
         stLayer?.showStationPlacement &&
         layerTab !== 'taipei_h3' &&
         layerTab !== 'taipei_h3_dp' &&
-        layerTab !== 'taipei_h3_dp_2' &&
         !isTaipeiTest3I3OrJ3LayerTab(layerTab)
       ) {
         const connectData = stLayer.spaceNetworkGridJsonData_ConnectData;
@@ -11370,10 +11360,6 @@
         if (oldLayerId === 'taipei_l3_dp' && newLayerId !== 'taipei_l3_dp') {
           const hb = dataStore.highlightedBlackStation;
           if (hb?.layerId === 'taipei_l3_dp') dataStore.setHighlightedBlackStation(null);
-        }
-        if (oldLayerId === 'taipei_l3_dp_2' && newLayerId !== 'taipei_l3_dp_2') {
-          const hb = dataStore.highlightedBlackStation;
-          if (hb?.layerId === 'taipei_l3_dp_2') dataStore.setHighlightedBlackStation(null);
         }
         // 確保 SVG 內容和 tooltip 已清除（雙重保險）
         const containerId = getContainerId();

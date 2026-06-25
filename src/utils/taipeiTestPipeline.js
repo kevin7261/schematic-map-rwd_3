@@ -142,7 +142,6 @@ export function isTaipeiE3DiagonalSawtoothDisplayLayerTab(tab) {
   return (
     tab === 'taipei_e3' ||
     tab === 'taipei_e3_dp' ||
-    tab === 'taipei_e3_dp_2' ||
     tab === 'taipei_e3_dp_nd'
   );
 }
