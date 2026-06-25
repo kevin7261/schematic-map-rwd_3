@@ -36,6 +36,11 @@ node 屬性：`osm_id, station_name, station_id`。
 5. **per-city 營運者白名單** `keepOperators`：只保留符合 regex 的營運者（僅 status=open 生效）。如東京只留東京メトロ＋都營。
 6. **per-city 配色** `colorByName`：依 route_name 套官方色，首個符合者勝；施工/計畫線藉此**繼承母線色**。
 7. **per-city 去重** `dedupeByName`：同一 regex family 只留座標點最多者（清掉 OSM 同線多名稱重複）。
+8. **per-city 剔除** `dropByName`：route_company 或 route_name 符合者剔除（清鄰市誤抓線，如佛山的廣州地鐵；香港的深圳線）。
+9. **全域雜訊過濾**：depot/車輛段、機場旅客捷運(APM)、纜車/索道、動物園單軌、空白或單字名（如 "G"）一律剔除。
+10. **簡→繁**：中國大陸城市（country=China，排除港澳）抓後以 opencc-js 轉繁體（`scripts/_toTraditional.mjs`）；OSM 若有 name:zh-Hant 亦優先採用。日本/台灣等**不轉**（避免誤改日文漢字）。
+11. **站點必備欄位**：每個 node 一定有 `station_name` 與 `station_id`，缺任一者不輸出（線仍穿過）；`route_name_list` 由「站點必在線上、線必有名」保證非空。
+12. **per-city 納入指定鐵道** `includeRail`：強制納入符合 regex 的 route=train 線（繞過跨境/直通/白名單，但仍排除「直通」變體），如「東京+山手線+中央線」版本。
 
 ## per-city 覆寫（src/utils/metroOverrides.js）
 
@@ -46,7 +51,15 @@ node 屬性：`osm_id, station_name, station_id`。
   dedupeByName: ['萬大|樹林', '環狀.*東環|東環段'],
 },
 'japan-tokyo': { keepOperators: '東京メトロ|東京地下鉄|Tokyo Metro|東京都交通局' },
+'china-foshan': { dropByName: '广州|廣州|Guangzhou' },   // 剔除鄰市（廣州）誤抓線
+'japan-tokyo-yamanote-chuo': {                            // 東京+JR山手線+中央線
+  keepOperators: '東京メトロ|東京地下鉄|Tokyo Metro|東京都交通局',
+  includeRail: '山手線|Yamanote|中央線|中央・総武|Chūō|Chuo',
+  dedupeByName: ['山手|Yamanote', '中央線快速|中央線（', '中央・総武'],
+},
 ```
+
+可用覆寫欄位：`bbox`、`keepOperators`、`colorByName`、`dedupeByName`、`dropByName`、`includeRail`。
 
 ## 常見任務
 

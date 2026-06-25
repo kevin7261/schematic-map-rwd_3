@@ -352,7 +352,8 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   const groups = new Map();
   for (const rel of rels) {
     const tags = rel.tags || {};
-    const forceInclude = includeRe ? includeRe.test(nameOf(tags)) : false; // 指定 JR 線強制納入
+    // 指定 JR 線強制納入，但仍排除「直通運転」等延伸變體
+    const forceInclude = includeRe ? includeRe.test(nameOf(tags)) && !/直通/.test(nameOf(tags)) : false;
     if (!forceInclude && foreignNets.has(netKeyOf(tags))) continue; // 鄰境系統（如載香港時的深圳地鐵）
     if (!forceInclude && /[;,/]/.test((tags.ref || '').trim())) continue; // 多線直通合併關聯
     if (!forceInclude && isThroughRun(tags)) continue; // 與私鐵/JR 直通運轉之路段

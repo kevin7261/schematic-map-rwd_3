@@ -48,6 +48,7 @@ export const METRO_OVERRIDES = {
   'japan-tokyo-yamanote-chuo': {
     keepOperators: '東京メトロ|東京地下鉄|Tokyo Metro|東京都交通局',
     includeRail: '山手線|Yamanote|中央線|中央・総武|Chūō|Chuo',
+    dedupeByName: ['山手|Yamanote', '中央線快速|中央線（', '中央・総武'],
   },
 
   // 🇨🇳 長三角／珠三角緊鄰城市：discovery 的 bbox 過大，誤含鄰市整套地鐵 → 以營運者/線名剔除鄰市線。
