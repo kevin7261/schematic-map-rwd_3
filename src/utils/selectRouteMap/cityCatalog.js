@@ -7,7 +7,7 @@
  * 提供：洲 → 國家 → 城市 三層選單、讀取所選城市之 GeoJSON 並畫到「選擇路線圖」圖層、
  * 以及目前路線／站點統計與各路線站點清單。
  */
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import {
   computeRouteMapStations,
   computeRouteMapRouteStations,
@@ -25,6 +25,17 @@ const CONTINENT_ORDER = [
   '大洋洲 Oceania',
   '非洲 Africa',
   '其他 Other',
+];
+
+/** 🔖 快選城市（固定顯示順序）：值對應 _catalog.json 的 id */
+const QUICK_CITY_IDS = [
+  'taiwan-taipei',
+  'taiwan-kaohsiung',
+  'japan-tokyo',
+  'united-kingdom-london',
+  'china-hong-kong',
+  'singapore-singapore',
+  'united-states-new-york-city',
 ];
 
 /**
@@ -106,8 +117,15 @@ export function useSelectRouteMapCatalog(dataStore) {
   const selContinent = ref('');
   const selCountry = ref('');
   const selCity = ref('');
+  /** 快選下拉目前選取的 city id（與三層選單獨立） */
+  const selQuick = ref('');
 
   const loadableCities = computed(() => metroCatalog.value.filter((c) => c.file));
+  /** 快選城市清單：依 QUICK_CITY_IDS 順序，僅保留 catalog 中實際可載入者 */
+  const quickCities = computed(() => {
+    const byId = new Map(loadableCities.value.map((c) => [c.id, c]));
+    return QUICK_CITY_IDS.map((id) => byId.get(id)).filter(Boolean);
+  });
   const drawContinents = computed(() => {
     const set = new Set(loadableCities.value.map((c) => c.continent));
     return CONTINENT_ORDER.filter((c) => set.has(c));
@@ -137,12 +155,8 @@ export function useSelectRouteMapCatalog(dataStore) {
   /** 📂 載入所選城市「預先抓好」的 GeoJSON 並畫到「選擇路線圖」圖層 */
   const isTracingRefMap = ref(false);
   const drawLoadMsg = ref('');
-  const loadSelectedCity = async () => {
-    const city = metroCatalog.value.find((c) => c.id === selCity.value);
-    if (!city || !city.file) {
-      window.alert('請依序選擇 洲 → 國家 → 城市。');
-      return;
-    }
+  /** 載入指定 city 物件之 GeoJSON 並畫到圖層（三層選單與快選共用） */
+  const loadCity = async (city) => {
     const lyr = routeMapLayer.value;
     if (!lyr) return;
     isTracingRefMap.value = true;
@@ -166,6 +180,29 @@ export function useSelectRouteMapCatalog(dataStore) {
       isTracingRefMap.value = false;
       drawLoadMsg.value = '';
     }
+  };
+
+  /** 📂 載入三層選單所選城市 */
+  const loadSelectedCity = async () => {
+    const city = metroCatalog.value.find((c) => c.id === selCity.value);
+    if (!city || !city.file) {
+      window.alert('請依序選擇 洲 → 國家 → 城市。');
+      return;
+    }
+    await loadCity(city);
+  };
+
+  /** ⚡ 快選城市：同步三層選單以反映選擇，並立即載入 */
+  const quickLoadCity = async (cityId) => {
+    const city = metroCatalog.value.find((c) => c.id === cityId);
+    if (!city || !city.file) return;
+    // 依序設定三層選單；watch 會在每次 nextTick 清空下一層，故逐層 await 後再設下一層
+    selContinent.value = city.continent;
+    await nextTick();
+    selCountry.value = city.country;
+    await nextTick();
+    selCity.value = city.id;
+    await loadCity(city);
   };
 
   /** 🧹 清除目前載入的路線 */
@@ -222,13 +259,16 @@ export function useSelectRouteMapCatalog(dataStore) {
     selContinent,
     selCountry,
     selCity,
+    selQuick,
     loadableCities,
+    quickCities,
     drawContinents,
     drawCountries,
     drawCities,
     isTracingRefMap,
     drawLoadMsg,
     loadSelectedCity,
+    quickLoadCity,
     clearRouteMap,
     routeMapSource,
     routeMapStats,

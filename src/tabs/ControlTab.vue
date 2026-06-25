@@ -3426,13 +3426,16 @@
     selContinent: srmContinent,
     selCountry: srmCountry,
     selCity: srmCity,
+    selQuick: srmQuick,
     loadableCities: srmLoadableCities,
+    quickCities: srmQuickCities,
     drawContinents: srmContinents,
     drawCountries: srmCountries,
     drawCities: srmCities,
     isTracingRefMap: srmTracing,
     drawLoadMsg: srmLoadMsg,
     loadSelectedCity: srmLoadSelectedCity,
+    quickLoadCity: srmQuickLoad,
     clearRouteMap: srmClear,
     routeMapSource: srmSource,
     routeMapStats: srmStats,
@@ -9728,6 +9731,20 @@
       >
         <!-- 🗺️ 選擇路線圖（select_route_map）：載入城市路線（獨立複製，與畫線圖層不共用） -->
         <div v-if="layer.isSelectRouteMapLayer" class="pb-3 mb-3 border-bottom">
+          <!-- ⚡ 快選：常用城市一鍵載入 -->
+          <div class="my-title-xs-gray pb-2">快選城市</div>
+          <select
+            v-model="srmQuick"
+            :disabled="srmTracing"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-3 my-cursor-pointer"
+            @change="srmQuickLoad(srmQuick)"
+          >
+            <option value="">快選城市…</option>
+            <option v-for="c in srmQuickCities" :key="c.id" :value="c.id">
+              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+            </option>
+          </select>
+
           <!-- 載入世界各城市路線：洲 → 國家 → 城市，按「讀取並畫出」載入 -->
           <div class="my-title-xs-gray pb-2">載入城市路線（全球）</div>
           <select
