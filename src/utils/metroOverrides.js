@@ -66,6 +66,28 @@ export const METRO_OVERRIDES = {
   'india-gurgaon': { dropByName: 'Delhi|DMRC' },
   // 🇭🇰 香港：剔除深圳殘留（簡體深圳線）；APM 由全域雜訊過濾處理
   'china-hong-kong': { dropByName: '深圳|Shenzhen' },
+
+  // 🚇 單線「城市」：discovery 把單一路線當成城市，其 bbox 會誤含整個都會網 → 只保留該線本身。
+  'japan-rinkai-line': { includeRail: 'りんかい|臨海|Rinkai', onlyLineName: 'りんかい|臨海|Rinkai' },
+  'japan-yurikamome': { onlyLineName: 'ゆりかもめ|Yurikamome' },
+  'japan-minatomirai-line': { onlyLineName: 'みなとみらい|Minatomirai' },
+  'japan-saitama-rapid-railway-line': { onlyLineName: '埼玉高速|Saitama Rapid' },
+  'japan-kanazawa-seaside-line': { onlyLineName: 'シーサイド|金沢シーサイド|Seaside' },
+  'japan-kobe-new-transit': { onlyLineName: 'ポートライナー|六甲ライナー|Port Liner|Rokko' },
+  'japan-nippori-toneri-liner': { onlyLineName: '日暮里|舎人|Nippori|Toneri' },
+  'japan-saitama-prefecture': { onlyLineName: '埼玉|伊奈線|New Shuttle|ニューシャトル' },
+  'south-korea-shinbundang-line': { onlyLineName: '신분당|新盆唐|Shinbundang|DX' },
+  'united-states-path': { onlyLineName: 'PATH|Port Authority Trans' },
+  'united-states-staten-island-railway': { onlyLineName: 'Staten Island' },
+  // 桃園：已併入台北；此獨立條目只留桃園自有線（機場捷運＋桃園綠線）
+  'taiwan-taoyuan': { onlyLineName: '桃園|機場|Taoyuan|Airport' },
+
+  // 🌏 其餘鄰市過度抓取：以營運者/線名剔除鄰市線
+  'south-korea-incheon': { dropByName: '서울|首爾|首尔|Seoul|의정부|광명|Gwangmyeong|김포|Gimpo' },
+  // 單線/小系統城市，bbox 誤含鄰近大都會網 → 只留自有線
+  'united-kingdom-docklands-light-railway': { onlyLineName: 'DLR|Docklands' },
+  'india-noida': { onlyLineName: 'Aqua|Noida|नोएडा' },
+  'india-navi-mumbai': { onlyLineName: 'Navi Mumbai|नवी' },
 };
 
 /** 取得某 city id 的覆寫設定（無則回空物件） */

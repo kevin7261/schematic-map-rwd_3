@@ -59,7 +59,9 @@ node 屬性：`osm_id, station_name, station_id`。
 },
 ```
 
-可用覆寫欄位：`bbox`、`keepOperators`、`colorByName`、`dedupeByName`、`dropByName`、`includeRail`。
+可用覆寫欄位：`bbox`、`keepOperators`、`colorByName`、`dedupeByName`、`dropByName`、`includeRail`、`onlyLineName`。
+
+- `onlyLineName`：只保留 route_name 符合 regex 的線。用於「單線城市」（discovery 把單一路線當城市，bbox 會誤含整個都會網），如 `japan-yurikamome`、`united-states-path`、`taiwan-taoyuan`、`united-kingdom-docklands-light-railway`。若該線為 route=train（如東京りんかい線）需同時設 `includeRail`。
 
 ## 常見任務
 

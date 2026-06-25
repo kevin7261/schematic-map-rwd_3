@@ -33,6 +33,7 @@ for (const id of ids) {
       dedupeByName: ov.dedupeByName,
       dropByName: ov.dropByName,
       includeRail: ov.includeRail,
+      onlyLineName: ov.onlyLineName,
     });
     if (isMainlandChina(c)) convertFcToTraditional(fc); // 大陸城市簡→繁
     const v = validateGeojson(fc);

@@ -260,6 +260,9 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   // 🚆 特別納入指定的鐵道(route=train)路線（per-city，如東京要含 JR 山手線/中央線）：
   //    這些線名符合者強制納入，繞過跨境/直通/營運者白名單等過濾。
   const includeRe = opts.includeRail ? new RegExp(opts.includeRail) : null;
+  // 🎯 只保留線名符合者（per-city）：用於「單線城市」（如りんかい線、ゆりかもめ、PATH、桃園），
+  //    其 bbox 會誤含整個都會網，故只留該線本身。
+  const onlyRe = opts.onlyLineName ? new RegExp(opts.onlyLineName) : null;
   onProgress('連線 OpenStreetMap（Overpass）…');
   // 含營運中（subway/light_rail/monorail）＋施工中（route=construction）＋計畫中（route=proposed）的同類路線；
   // 施工／計畫的實際模式記在 construction:route／proposed:route。
@@ -499,6 +502,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     if (keepOps && (l.status || 'open') === 'open' && !keepOps.test(l.routeCompany || '') && !l.forceInclude)
       continue;
     if (!l.forceInclude && isDrop(l.routeCompany, l.routeName)) continue; // 鄰市誤抓線 / 雜訊 / 空名
+    if (onlyRe && !onlyRe.test(l.routeName || '')) continue; // 單線城市：只留指定線
     const ks = new Set(l.latlngs.map(keyOf));
     let dup = false;
     for (const kk of keptKeys) {
@@ -576,6 +580,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     const ident = cleanLineName(cpName) || (t.ref || '').trim();
     if (!ident) continue; // 無名無 ref 的碎段（多為橫渡線／引道）→ 略過
     if (isDrop(t.operator || '', cpName)) continue; // 鄰市誤抓的施工/計畫線 / 雜訊
+    if (onlyRe && !onlyRe.test(cpName)) continue; // 單線城市：只留指定線
     let g = cpGroups.get(ident);
     if (!g) {
       g = { name: cpName || t.ref || '', ref: (t.ref || '').trim(), status: t.railway, railway: mode, firstId: wy.id, ways: [] };
