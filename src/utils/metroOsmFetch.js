@@ -239,6 +239,27 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   };
   // 🧹 同名變體去重（per-city）：同一 regex family 只保留座標點最多者
   const dedupeRules = Array.isArray(opts.dedupeByName) ? opts.dedupeByName.map((s) => new RegExp(s)) : [];
+  // 🚫 剔除符合者（per-city）：依 route_company 或 route_name 比對，剔除鄰市誤抓線（如佛山的廣州地鐵）。
+  const dropRe = opts.dropByName ? new RegExp(opts.dropByName) : null;
+  // 🗑️ 全域雜訊過濾：depot/車輛段、機場旅客捷運(APM)、纜車/索道、動物園單軌、空白或單字名。
+  const NOISE_RE = /機廠|车辆段|車輛段|車庫|车库|depot|旅客捷運|旅客自動|Automated People Mover|People Mover|纜車|缆车|索道|cable car|funicular|動物園|动物园|Wild Asia|APM/i;
+  const isDrop = (company, name) => {
+    const c = company || '';
+    const nm = (name || '').trim();
+    if (dropRe && (dropRe.test(c) || dropRe.test(nm))) return true;
+    if (!nm || nm.length <= 1) return true; // 空白或單字（如 "G"）
+    if (NOISE_RE.test(nm)) return true;
+    return false;
+  };
+  // 🇨🇳 繁體優先：中國等地 OSM 多為簡體 name，若有 name:zh-Hant/zh-TW 則優先採用（符合「全繁體」規範）。
+  const nameOf = (tags) =>
+    (tags &&
+      (tags['name:zh-Hant'] || tags['name:zh-hant'] || tags['name:zh-TW'] || tags['name:zh_Hant'])) ||
+    (tags && tags.name) ||
+    '';
+  // 🚆 特別納入指定的鐵道(route=train)路線（per-city，如東京要含 JR 山手線/中央線）：
+  //    這些線名符合者強制納入，繞過跨境/直通/營運者白名單等過濾。
+  const includeRe = opts.includeRail ? new RegExp(opts.includeRail) : null;
   onProgress('連線 OpenStreetMap（Overpass）…');
   // 含營運中（subway/light_rail/monorail）＋施工中（route=construction）＋計畫中（route=proposed）的同類路線；
   // 施工／計畫的實際模式記在 construction:route／proposed:route。
@@ -250,6 +271,9 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     `relation["route"~"${modeRe}"](${s},${w},${n},${e});` +
     `relation["route"="construction"]["construction:route"~"${modeRe}"](${s},${w},${n},${e});` +
     `relation["route"="proposed"]["proposed:route"~"${modeRe}"](${s},${w},${n},${e});` +
+    (opts.includeRail
+      ? `relation["route"="train"]["name"~"${opts.includeRail}"](${s},${w},${n},${e});`
+      : '') +
     `)->.r;.r out geom;node(r.r);out tags;` +
     `node["railway"~"^(station|halt)$"](${s},${w},${n},${e});out;` +
     `way["railway"="construction"]["construction"~"${modeRe}"](${s},${w},${n},${e});out geom;` +
@@ -265,7 +289,8 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   for (const el of els)
     if (el.type === 'node' && el.tags) {
       const t = el.tags;
-      if (t.name) nodeName.set(el.id, t.name);
+      const nm = nameOf(t);
+      if (nm) nodeName.set(el.id, nm);
       if (t.ref) nodeRef.set(el.id, t.ref);
       if (/^(stop|station|halt|tram_stop)$/.test(t.railway || '') || t.public_transport === 'stop_position' || t.station === 'subway')
         stationIds.add(el.id);
@@ -273,7 +298,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   // bbox 內的車站節點（含座標），供「關聯無 stop 成員」時補站點（如 Turin）
   const stationPool = els
     .filter((el) => el.type === 'node' && Number.isFinite(el.lat) && Number.isFinite(el.lon) && el.tags && /^(station|halt)$/.test(el.tags.railway || ''))
-    .map((el) => ({ coord: [round6(el.lat), round6(el.lon)], id: el.id, name: el.tags.name || '', ref: el.tags.ref || '' }));
+    .map((el) => ({ coord: [round6(el.lat), round6(el.lon)], id: el.id, name: nameOf(el.tags), ref: el.tags.ref || '' }));
 
   // 🌏 跨境過濾（以 network/operator 為單位）：bbox 邊緣可能與鄰境系統重疊（如載香港時 bbox
   //    北緣與深圳相接，會把深圳地鐵抓進來）。把同一 network 的所有成員座標取重心，重心落在
@@ -327,9 +352,10 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   const groups = new Map();
   for (const rel of rels) {
     const tags = rel.tags || {};
-    if (foreignNets.has(netKeyOf(tags))) continue; // 鄰境系統（如載香港時的深圳地鐵）
-    if (/[;,/]/.test((tags.ref || '').trim())) continue; // 多線直通合併關聯
-    if (isThroughRun(tags)) continue; // 與私鐵/JR 直通運轉之路段
+    const forceInclude = includeRe ? includeRe.test(nameOf(tags)) : false; // 指定 JR 線強制納入
+    if (!forceInclude && foreignNets.has(netKeyOf(tags))) continue; // 鄰境系統（如載香港時的深圳地鐵）
+    if (!forceInclude && /[;,/]/.test((tags.ref || '').trim())) continue; // 多線直通合併關聯
+    if (!forceInclude && isThroughRun(tags)) continue; // 與私鐵/JR 直通運轉之路段
     const stops = (rel.members || [])
       .filter(
         (m) =>
@@ -346,7 +372,8 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     if (!stops.length && !ways.length) continue;
 
     const ref = (tags.ref || '').trim();
-    const ident = ref || cleanLineName(tags.name) || normColor(tags.colour || tags.color) || 'rel' + rel.id;
+    const relName = nameOf(tags);
+    const ident = ref || cleanLineName(relName) || normColor(tags.colour || tags.color) || 'rel' + rel.id;
     const key = `${(tags.network || '').trim()}|${ident}`;
     // 施工／計畫路線：實際模式在 construction:route／proposed:route；並記 status 供前端區分樣式
     const status =
@@ -366,10 +393,11 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       g = {
         routeCompany: tags.operator || tags.network || '',
         routeId: tags.ref || String(rel.id),
-        routeName: tags.name || ref || '',
+        routeName: relName || ref || '',
         osmId: String(rel.id),
         railway: mode,
         status,
+        forceInclude,
         colorRaw: null,
         rels: [],
       };
@@ -467,7 +495,9 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   for (const l of built) {
     // per-city 營運者白名單（須在建站點前過濾，否則被剔線的站點會變孤立 node）：
     // 營運中路線須為允許之營運者；施工/計畫線不受限
-    if (keepOps && (l.status || 'open') === 'open' && !keepOps.test(l.routeCompany || '')) continue;
+    if (keepOps && (l.status || 'open') === 'open' && !keepOps.test(l.routeCompany || '') && !l.forceInclude)
+      continue;
+    if (!l.forceInclude && isDrop(l.routeCompany, l.routeName)) continue; // 鄰市誤抓線 / 雜訊 / 空名
     const ks = new Set(l.latlngs.map(keyOf));
     let dup = false;
     for (const kk of keptKeys) {
@@ -522,9 +552,12 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     for (const [nm, cnt] of t.names) if (cnt > bestCnt) ((bestCnt = cnt), (bestName = nm));
     const [lat, lng] = k.split(',').map(Number);
     const osmId = t.id != null ? String(t.id) : '';
+    const stationId = t.ref || osmId;
+    // 每個站點必須有 station_name 與 station_id；缺任一者不輸出該站（線仍照常穿過）
+    if (!bestName || !stationId) continue;
     features.push({
       type: 'Feature',
-      properties: { osm_id: osmId, station_name: bestName, element_type: 'node', station_id: t.ref || osmId },
+      properties: { osm_id: osmId, station_name: bestName, element_type: 'node', station_id: stationId },
       geometry: { type: 'Point', coordinates: [lng, lat] },
     });
   }
@@ -538,11 +571,13 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     const t = wy.tags;
     const mode = t.construction || t.proposed || '';
     if (!/^(subway|light_rail|monorail)$/.test(mode)) continue;
-    const ident = cleanLineName(t.name) || (t.ref || '').trim();
+    const cpName = nameOf(t);
+    const ident = cleanLineName(cpName) || (t.ref || '').trim();
     if (!ident) continue; // 無名無 ref 的碎段（多為橫渡線／引道）→ 略過
+    if (isDrop(t.operator || '', cpName)) continue; // 鄰市誤抓的施工/計畫線 / 雜訊
     let g = cpGroups.get(ident);
     if (!g) {
-      g = { name: t.name || t.ref || '', ref: (t.ref || '').trim(), status: t.railway, railway: mode, firstId: wy.id, ways: [] };
+      g = { name: cpName || t.ref || '', ref: (t.ref || '').trim(), status: t.railway, railway: mode, firstId: wy.id, ways: [] };
       cpGroups.set(ident, g);
     }
     g.ways.push(wy.geometry.map((p) => [round6(p.lat), round6(p.lon)]));

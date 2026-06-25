@@ -17,6 +17,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { fetchMetroGeojsonByBbox } from '../src/utils/metroOsmFetch.js';
 import { overridesFor } from '../src/utils/metroOverrides.js';
+import { isMainlandChina, convertFcToTraditional } from './_toTraditional.mjs';
 import { validateGeojson } from './validateMetroGeojson.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -72,7 +73,10 @@ async function main() {
         keepOperators: ov.keepOperators,
         colorByName: ov.colorByName,
         dedupeByName: ov.dedupeByName,
+        dropByName: ov.dropByName,
+        includeRail: ov.includeRail,
       });
+      if (isMainlandChina(c)) convertFcToTraditional(fc); // 大陸城市簡→繁
       const v = validateGeojson(fc);
       if (v.errors.length) {
         fail++;

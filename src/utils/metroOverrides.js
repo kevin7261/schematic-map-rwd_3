@@ -44,6 +44,27 @@ export const METRO_OVERRIDES = {
   'japan-tokyo-metro': {
     keepOperators: '東京メトロ|東京地下鉄|Tokyo Metro|東京都交通局',
   },
+  // 東京（兩家地鐵公司）＋ JR 山手線 ＋ JR 中央線（強制納入此二 JR 線，繞過直通/JR 過濾）
+  'japan-tokyo-yamanote-chuo': {
+    keepOperators: '東京メトロ|東京地下鉄|Tokyo Metro|東京都交通局',
+    includeRail: '山手線|Yamanote|中央線|中央・総武|Chūō|Chuo',
+  },
+
+  // 🇨🇳 長三角／珠三角緊鄰城市：discovery 的 bbox 過大，誤含鄰市整套地鐵 → 以營運者/線名剔除鄰市線。
+  //    （共線如廣佛線由鄰市營運者經營，會一併被剔，屬可接受的取捨；驗證若標 missing 可再個別補。）
+  'china-foshan': { dropByName: '广州|廣州|Guangzhou|黄埔|黃埔|海珠' },
+  'china-dongguan': { dropByName: '广州|廣州|Guangzhou|黄埔|黃埔|海珠' },
+  'china-suzhou': { dropByName: '无锡|無錫|Wuxi|常州|Changzhou|嘉善|嘉兴|嘉興' },
+  'china-wuxi': { dropByName: '苏州|蘇州|Suzhou|常州|Changzhou|苏虞张' },
+  'china-changzhou': { dropByName: '无锡|無錫|Wuxi|苏州|蘇州|Suzhou' },
+  'china-nantong': { dropByName: '苏州|蘇州|Suzhou|苏虞张|常熟|张家港|張家港' },
+  'china-shaoxing': { dropByName: '杭州|Hangzhou|杭海|临平|臨平|萧山|蕭山' },
+  // 北京：剔除城際/雄安(屬河北)與纜車；八通線等重複交給 dedupe
+  'china-beijing': { dropByName: '雄安|城际|城際|缆车|纜車', dedupeByName: ['八通'] },
+  // 🇮🇳 古爾岡：剔除德里地鐵（屬鄰市德里），只留 Rapid Metro
+  'india-gurgaon': { dropByName: 'Delhi|DMRC' },
+  // 🇭🇰 香港：剔除深圳殘留（簡體深圳線）；APM 由全域雜訊過濾處理
+  'china-hong-kong': { dropByName: '深圳|Shenzhen' },
 };
 
 /** 取得某 city id 的覆寫設定（無則回空物件） */
