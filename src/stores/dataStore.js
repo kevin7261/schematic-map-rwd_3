@@ -279,6 +279,8 @@ export const useDataStore = defineStore(
             selectRouteMapSource: null,
             /** 載入之原始 GeoJSON（FeatureCollection），供 GeoJSON 檢視分頁顯示 */
             selectRouteMapGeojson: null,
+            /** 🏷️ 是否在地圖上常駐顯示車站名 */
+            selectRouteMapShowNames: false,
             upperViewTabs: ['select-route-map', 'select-route-map-geojson'],
           },
           {
@@ -325,6 +327,8 @@ export const useDataStore = defineStore(
             routeMapAdjustStationMeta: null,
             /** 資料來源標籤 */
             routeMapAdjustSource: null,
+            /** 🏷️ 是否在地圖上常駐顯示車站名 */
+            routeMapAdjustShowNames: false,
             upperViewTabs: ['route-map-adjust'],
           },
         ],

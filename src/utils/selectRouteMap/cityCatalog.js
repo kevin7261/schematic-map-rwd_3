@@ -220,6 +220,14 @@ export function useSelectRouteMapCatalog(dataStore) {
   /** 目前資料來源標籤 */
   const routeMapSource = computed(() => routeMapLayer.value?.selectRouteMapSource || '');
 
+  /** 🏷️ 車站名顯示開關（讀寫圖層欄位，供 v-model 綁定） */
+  const showStationNames = computed({
+    get: () => !!routeMapLayer.value?.selectRouteMapShowNames,
+    set: (v) => {
+      if (routeMapLayer.value) routeMapLayer.value.selectRouteMapShowNames = !!v;
+    },
+  });
+
   /** 目前路線／站點統計 */
   const routeMapStats = computed(() => {
     const lyr = routeMapLayer.value;
@@ -271,6 +279,7 @@ export function useSelectRouteMapCatalog(dataStore) {
     quickLoadCity,
     clearRouteMap,
     routeMapSource,
+    showStationNames,
     routeMapStats,
     routeMapRouteList,
     routeMapStationColor,

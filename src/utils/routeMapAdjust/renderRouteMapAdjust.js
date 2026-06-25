@@ -52,6 +52,7 @@ export function mountRouteMapAdjust(el, dataStore) {
   const finishedGroup = L.layerGroup().addTo(map);
   const mergedGroup = L.layerGroup().addTo(map);
   const stationGroup = L.layerGroup().addTo(map);
+  const nameGroup = L.layerGroup().addTo(map); // 🏷️ 車站名常駐標籤（由開關控制）
 
   const esc = (s) =>
     String(s == null ? '' : s).replace(
@@ -245,6 +246,28 @@ export function mountRouteMapAdjust(el, dataStore) {
     }
   };
 
+  // 🏷️ 車站名常駐標籤：開關開啟時，於有 station_name 的站點顯示名稱
+  const renderNames = () => {
+    nameGroup.clearLayers();
+    if (!layer.routeMapAdjustShowNames) return;
+    const { terminals, connects, blacks } = computeRouteMapAdjustStations(
+      layer.routeMapAdjustLines,
+      layer.routeMapAdjustBlackDots
+    );
+    const seen = new Set();
+    [...terminals, ...connects, ...blacks].forEach((p) => {
+      const k = llKey(p[0], p[1]);
+      if (seen.has(k)) return;
+      seen.add(k);
+      const meta = (layer.routeMapAdjustStationMeta && layer.routeMapAdjustStationMeta[k]) || {};
+      if (!meta.name) return;
+      L.tooltip({ permanent: true, direction: 'top', offset: [0, -4], opacity: 0.95 })
+        .setLatLng(p)
+        .setContent(esc(meta.name))
+        .addTo(nameGroup);
+    });
+  };
+
   const renderAll = () => {
     // 已合併：顯示單一結構（重疊→一條線）；否則顯示原始各路線 + 共線高亮
     if (hasMerged()) {
@@ -257,6 +280,7 @@ export function mountRouteMapAdjust(el, dataStore) {
       renderShared(); // 預設顯示共線
     }
     renderStations(); // 站點 + 交叉（cross）預設顯示
+    renderNames();
   };
   renderAll();
 
@@ -268,6 +292,7 @@ export function mountRouteMapAdjust(el, dataStore) {
       layer.routeMapAdjustCrossStations,
       layer.routeMapAdjustSharedSegments,
       layer.routeMapAdjustMergedNetwork,
+      layer.routeMapAdjustShowNames,
     ],
     renderAll,
     { deep: true }

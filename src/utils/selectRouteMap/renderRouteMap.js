@@ -49,6 +49,7 @@ export function mountRouteMap(el, dataStore) {
 
   const finishedGroup = L.layerGroup().addTo(map);
   const stationGroup = L.layerGroup().addTo(map);
+  const nameGroup = L.layerGroup().addTo(map); // 🏷️ 車站名常駐標籤（由開關控制）
 
   const esc = (s) =>
     String(s == null ? '' : s).replace(
@@ -145,15 +146,42 @@ export function mountRouteMap(el, dataStore) {
     connects.forEach((p) => addStationDot(p, '#ff0000', 4, 'connect'));
   };
 
+  // 🏷️ 車站名常駐標籤：開關開啟時，於有 station_name 的站點顯示名稱
+  const renderNames = () => {
+    nameGroup.clearLayers();
+    if (!layer.selectRouteMapShowNames) return;
+    const { terminals, connects, blacks } = computeRouteMapStations(
+      layer.selectRouteMapLines,
+      layer.selectRouteMapBlackDots
+    );
+    const seen = new Set();
+    [...terminals, ...connects, ...blacks].forEach((p) => {
+      const k = llKey(p[0], p[1]);
+      if (seen.has(k)) return;
+      seen.add(k);
+      const meta = (layer.selectRouteMapStationMeta && layer.selectRouteMapStationMeta[k]) || {};
+      if (!meta.name) return;
+      L.tooltip({ permanent: true, direction: 'top', offset: [0, -4], opacity: 0.95 })
+        .setLatLng(p)
+        .setContent(esc(meta.name))
+        .addTo(nameGroup);
+    });
+  };
+
   const renderAll = () => {
     renderFinished();
     renderStations();
+    renderNames();
   };
   renderAll();
 
   // 反應式重繪：載入／清除等外部變更時即時更新地圖
   const stopLinesWatch = watch(
-    () => [layer.selectRouteMapLines, layer.selectRouteMapBlackDots],
+    () => [
+      layer.selectRouteMapLines,
+      layer.selectRouteMapBlackDots,
+      layer.selectRouteMapShowNames,
+    ],
     renderAll,
     { deep: true }
   );

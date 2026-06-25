@@ -186,6 +186,14 @@ export function useRouteMapAdjust(dataStore) {
 
   const routeMapAdjustSource = computed(() => adjustLayer.value?.routeMapAdjustSource || '');
 
+  /** 🏷️ 車站名顯示開關（讀寫圖層欄位，供 v-model 綁定） */
+  const showStationNames = computed({
+    get: () => !!adjustLayer.value?.routeMapAdjustShowNames,
+    set: (v) => {
+      if (adjustLayer.value) adjustLayer.value.routeMapAdjustShowNames = !!v;
+    },
+  });
+
   const routeMapAdjustStats = computed(() => {
     const lyr = adjustLayer.value;
     const lines = Array.isArray(lyr?.routeMapAdjustLines) ? lyr.routeMapAdjustLines : [];
@@ -229,6 +237,7 @@ export function useRouteMapAdjust(dataStore) {
     mergedNetworkStats,
     mergedNetworkEdgeList,
     routeMapAdjustSource,
+    showStationNames,
     routeMapAdjustStats,
     routeMapAdjustRouteList,
     routeMapAdjustStationColor,

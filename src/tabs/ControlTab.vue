@@ -3438,6 +3438,7 @@
     quickLoadCity: srmQuickLoad,
     clearRouteMap: srmClear,
     routeMapSource: srmSource,
+    showStationNames: srmShowNames,
     routeMapStats: srmStats,
     routeMapRouteList: srmRouteList,
     routeMapStationColor: srmStationColor,
@@ -3460,6 +3461,7 @@
     mergedNetworkStats: rmaMergedStats,
     mergedNetworkEdgeList: rmaMergedEdges,
     routeMapAdjustSource: rmaSource,
+    showStationNames: rmaShowNames,
     routeMapAdjustStats: rmaStats,
     routeMapAdjustRouteList: rmaRouteList,
     routeMapAdjustStationColor: rmaStationColor,
@@ -9795,6 +9797,15 @@
             資料來源：{{ srmSource }}
           </div>
 
+          <!-- 🏷️ 顯示車站名開關 -->
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="my-content-sm-black">顯示車站名</div>
+            <div class="layer-toggle" @click.stop>
+              <input type="checkbox" id="switch-select-route-map-names" v-model="srmShowNames" />
+              <label for="switch-select-route-map-names"></label>
+            </div>
+          </div>
+
           <!-- 目前路線／站點統計 -->
           <div class="my-title-xs-gray pb-2">目前路線／站點</div>
           <div class="d-flex justify-content-between my-font-size-xs pb-1">
@@ -9901,6 +9912,15 @@
           </div>
           <div v-if="rmaSource" class="text-muted my-font-size-xs pb-3" style="line-height: 1.45">
             資料來源：{{ rmaSource }}
+          </div>
+
+          <!-- 🏷️ 顯示車站名開關 -->
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="my-content-sm-black">顯示車站名</div>
+            <div class="layer-toggle" @click.stop>
+              <input type="checkbox" id="switch-route-map-adjust-names" v-model="rmaShowNames" />
+              <label for="switch-route-map-adjust-names"></label>
+            </div>
           </div>
 
           <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
