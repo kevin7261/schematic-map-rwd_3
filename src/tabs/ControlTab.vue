@@ -25,6 +25,7 @@
     routeColorForIndex,
     leafletDrawToOsmRouteGeoJson,
   } from '@/utils/leafletDrawStations.js';
+  import { useSelectRouteMapCatalog } from '@/utils/selectRouteMap/cityCatalog.js';
   import {
     LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
     mergeOsm2GeojsonLoaderResultIntoLayer,
@@ -3414,6 +3415,32 @@
   const setActiveLayerTab = (layerId) => {
     activeLayerTab.value = layerId;
   };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🗺️「選擇路線圖」(select_route_map) 載入面板 — 與下方 leaflet 畫線完全獨立之複製版，
+  //    邏輯集中於 src/utils/selectRouteMap/cityCatalog.js；此處僅將其暴露給 template。
+  //    變數一律以 srm 前綴，避免與既有畫線圖層變數衝突。
+  // ─────────────────────────────────────────────────────────────────────────
+  const {
+    selContinent: srmContinent,
+    selCountry: srmCountry,
+    selCity: srmCity,
+    loadableCities: srmLoadableCities,
+    drawContinents: srmContinents,
+    drawCountries: srmCountries,
+    drawCities: srmCities,
+    isTracingRefMap: srmTracing,
+    drawLoadMsg: srmLoadMsg,
+    loadSelectedCity: srmLoadSelectedCity,
+    clearRouteMap: srmClear,
+    routeMapSource: srmSource,
+    routeMapStats: srmStats,
+    routeMapRouteList: srmRouteList,
+    routeMapStationColor: srmStationColor,
+    routeMapRouteColor: srmRouteColor,
+    routeMapRouteName: srmRouteName,
+    routeMapStationLabel: srmStationLabel,
+  } = useSelectRouteMapCatalog(dataStore);
 
   /** 🗺️ Leaflet 畫線圖層物件 */
   const leafletDrawLayer = computed(() => dataStore.findLayerById('leaflet_josm_draw'));
@@ -9676,6 +9703,138 @@
         :key="layer.layerId"
         v-show="activeLayerTab === layer.layerId"
       >
+        <!-- 🗺️ 選擇路線圖（select_route_map）：載入城市路線（獨立複製，與畫線圖層不共用） -->
+        <div v-if="layer.isSelectRouteMapLayer" class="pb-3 mb-3 border-bottom">
+          <!-- 載入世界各城市路線：洲 → 國家 → 城市，按「讀取並畫出」載入 -->
+          <div class="my-title-xs-gray pb-2">載入城市路線（全球）</div>
+          <select
+            v-model="srmContinent"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇洲別…（共 {{ srmLoadableCities.length }} 城市）</option>
+            <option v-for="c in srmContinents" :key="c" :value="c">{{ c }}</option>
+          </select>
+          <select
+            v-model="srmCountry"
+            :disabled="!srmContinent"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇國家…</option>
+            <option v-for="c in srmCountries" :key="c.country" :value="c.country">{{ c.label }}</option>
+          </select>
+          <select
+            v-model="srmCity"
+            :disabled="!srmCountry"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇城市…</option>
+            <option v-for="c in srmCities" :key="c.id" :value="c.id">
+              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+            </option>
+          </select>
+          <div class="d-flex gap-2 pb-1">
+            <button
+              type="button"
+              class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+              :disabled="!srmCity || srmTracing"
+              title="載入所選城市的路線並畫到地圖上"
+              @click="srmLoadSelectedCity"
+            >
+              {{ srmTracing ? '讀取中…' : '讀取並畫出' }}
+            </button>
+            <button
+              type="button"
+              class="btn rounded-pill border-0 my-btn-red my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+              @click="srmClear"
+            >
+              清除
+            </button>
+          </div>
+          <div v-if="srmTracing && srmLoadMsg" class="text-muted my-font-size-xs pb-2">{{ srmLoadMsg }}</div>
+          <div v-if="srmSource" class="text-muted my-font-size-xs pb-3" style="line-height: 1.45">
+            資料來源：{{ srmSource }}
+          </div>
+
+          <!-- 目前路線／站點統計 -->
+          <div class="my-title-xs-gray pb-2">目前路線／站點</div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span>路線</span><span>{{ srmStats.routes }} 條</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #ff0000"
+              ></span>
+              connect（交點）
+            </span>
+            <span>{{ srmStats.connect }}</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #1565c0"
+              ></span>
+              terminal（端點）
+            </span>
+            <span>{{ srmStats.terminal }}</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-3">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #000000"
+              ></span>
+              一般（黑點）
+            </span>
+            <span>{{ srmStats.black }}</span>
+          </div>
+
+          <!-- 各路線站點（依序：起點 → 終點） -->
+          <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
+          <div v-if="srmRouteList.length === 0" class="my-font-size-xs pb-3">尚未載入任何路線</div>
+          <div v-for="route in srmRouteList" :key="route.routeIndex" class="pb-2">
+            <div class="d-flex align-items-center my-font-size-xs pb-1">
+              <span
+                class="d-inline-block rounded-pill me-2"
+                :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
+              ></span>
+              {{ srmRouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
+                route.stations.length
+              }}
+              站）
+            </div>
+            <div class="ps-3">
+              <div
+                v-for="(st, si) in route.stations"
+                :key="si"
+                class="d-flex align-items-center my-font-size-xs pb-1"
+              >
+                <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  :style="{ width: '8px', height: '8px', backgroundColor: srmStationColor(st.type) }"
+                ></span>
+                <span class="d-flex align-items-center">
+                  {{ srmStationLabel(st.type) }}
+                  <template v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length">
+                    <span class="ms-1 me-1">· 交會</span>
+                    <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
+                      <span
+                        class="d-inline-block rounded-pill me-1"
+                        :style="{ width: '16px', height: '5px', backgroundColor: srmRouteColor(ri) }"
+                      ></span>
+                      {{ srmRouteName(ri) }}
+                    </span>
+                  </template>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="pb-2"></div>
+        </div>
+
         <!-- Leaflet 自由畫線（JOSM 式）：工具切換、統計、說明、清除 -->
         <div v-if="layer.isLeafletDrawLayer" class="pb-3 mb-3 border-bottom">
           <!-- 主要操作（置頂）：隨機產生 / 清除全部 -->

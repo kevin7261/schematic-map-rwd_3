@@ -237,6 +237,51 @@ export const useDataStore = defineStore(
      */
     const layers = ref([
       {
+        groupName: '空間網格',
+        groupLayers: [
+          {
+            /** 🗺️ 選擇路線圖（select_route_map）— 載入世界各城市路線並唯讀顯示。
+             *  與 leaflet_josm_draw 完全獨立（程式集中於 src/utils/selectRouteMap/）。 */
+            layerId: 'select_route_map',
+            layerName: '選擇路線圖',
+            visible: true,
+            isLoading: false,
+            isLoaded: true,
+            colorName: 'red',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            layoutGridJsonData: null,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: null,
+            isDataLayer: false,
+            hideFromMap: true,
+            display: true,
+            /** 🏷️ 標記為「選擇路線圖」圖層 */
+            isSelectRouteMapLayer: true,
+            /** ✏️ 載入之路線：[{ color, latlngs:[[lat,lng],...], routeName?, routeId?, ... }, ...] */
+            selectRouteMapLines: [],
+            /** ⚫ 一般黑點（中間站）：[[lat, lng], ...] */
+            selectRouteMapBlackDots: [],
+            /** 站點中繼資料：{ '${lat},${lng}': { id, name, osmId } } */
+            selectRouteMapStationMeta: null,
+            /** 資料來源標籤 */
+            selectRouteMapSource: null,
+            upperViewTabs: ['select-route-map'],
+          },
+        ],
+      },
+      {
         groupName: '空間網絡網格',
         groupLayers: [
           {
@@ -2287,6 +2332,12 @@ export const useDataStore = defineStore(
       leafletDrawFitTrigger.value += 1;
     };
 
+    /** 🗺️「選擇路線圖」(select_route_map) 一次性 fitBounds 觸發器（與 leaflet 畫線完全獨立） */
+    const selectRouteMapFitTrigger = ref(0);
+    const requestSelectRouteMapFit = () => {
+      selectRouteMapFitTrigger.value += 1;
+    };
+
     /**
      * layout-grid-viewer 加權版面：「全部隨機 weight」後 3 秒路線／比例條內插動畫。
      * snapshot：{ routes, remap }；anim：{ layerId, from, to, progress, active, pendingTo, startTime }
@@ -2834,6 +2885,8 @@ export const useDataStore = defineStore(
       setLeafletDrawRefMap,
       leafletDrawFitTrigger,
       requestLeafletDrawFit,
+      selectRouteMapFitTrigger,
+      requestSelectRouteMapFit,
       layoutVhDrawRouteAnimSnapshot,
       layoutVhDrawRouteAnim,
       layoutVhDrawRouteAnimTrigger,
