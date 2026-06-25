@@ -23,7 +23,7 @@ for (const id of ids) {
   }
   process.stdout.write(`抓取 ${c.city} (${id}) … `);
   try {
-    const fc = await fetchMetroGeojsonByBbox(c.bbox, { onProgress: () => {} });
+    const fc = await fetchMetroGeojsonByBbox(c.bbox, { onProgress: () => {}, keepOperators: c.keepOperators });
     const v = validateGeojson(fc);
     const ways = fc.features.filter((f) => f.properties?.element_type === 'way');
     const constr = ways.filter((f) => f.properties?.status === 'construction').length;

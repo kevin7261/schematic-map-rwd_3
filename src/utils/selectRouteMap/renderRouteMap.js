@@ -47,6 +47,14 @@ export function mountRouteMap(el, dataStore) {
     subdomains: 'abc',
   }).addTo(map);
 
+  // 自訂 pane 控制疊放順序：線(overlayPane 400) < 站名 < 站點圓點
+  //  → 站名永遠在圓點「之下」，名稱絕不會擋到任何站點
+  map.createPane('srmNames');
+  map.getPane('srmNames').style.zIndex = 450;
+  map.createPane('srmDots');
+  map.getPane('srmDots').style.zIndex = 460;
+  map.getPane('srmNames').style.pointerEvents = 'none';
+
   const finishedGroup = L.layerGroup().addTo(map);
   const stationGroup = L.layerGroup().addTo(map);
   const nameGroup = L.layerGroup().addTo(map); // 🏷️ 車站名常駐標籤（由開關控制）
@@ -136,6 +144,7 @@ export function mountRouteMap(el, dataStore) {
         fillColor,
         fillOpacity: 1,
         interactive: true,
+        pane: 'srmDots', // 圓點置於最上層 pane，永遠不被站名遮住
       });
       m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
       m.addTo(stationGroup);
@@ -175,7 +184,7 @@ export function mountRouteMap(el, dataStore) {
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
-      L.marker(p, { icon, interactive: false, keyboard: false }).addTo(nameGroup);
+      L.marker(p, { icon, interactive: false, keyboard: false, pane: 'srmNames' }).addTo(nameGroup);
     });
   };
 

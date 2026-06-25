@@ -226,16 +226,24 @@ const dedupeConsecutive = (pts) => {
 export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   const onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : () => {};
   const [s, w, n, e] = bbox;
+  // 🚇 僅保留特定營運者（per-city 設定，如東京只留東京メトロ＋都營兩家地鐵公司）：
+  //    僅對「營運中(open)」路線生效；施工/計畫線（刻意納入、常無營運者標記）不受此限。
+  const keepOps = opts.keepOperators ? new RegExp(opts.keepOperators) : null;
   onProgress('連線 OpenStreetMap（Overpass）…');
   // 含營運中（subway/light_rail/monorail）＋施工中（route=construction）＋計畫中（route=proposed）的同類路線；
   // 施工／計畫的實際模式記在 construction:route／proposed:route。
   const modeRe = '^(subway|light_rail|monorail)$';
+  // 施工／計畫路線在 OSM 常以 way 層級（railway=construction/proposed + construction/proposed=模式）標記、
+  // 而無 route 關聯（如台北環狀線各環段、民生汐止線、三鶯線、五股泰山輕軌…）；故另抓這些 way。
   const query =
     `[out:json][timeout:120];(` +
     `relation["route"~"${modeRe}"](${s},${w},${n},${e});` +
     `relation["route"="construction"]["construction:route"~"${modeRe}"](${s},${w},${n},${e});` +
     `relation["route"="proposed"]["proposed:route"~"${modeRe}"](${s},${w},${n},${e});` +
-    `)->.r;.r out geom;node(r.r);out tags;node["railway"~"^(station|halt)$"](${s},${w},${n},${e});out;`;
+    `)->.r;.r out geom;node(r.r);out tags;` +
+    `node["railway"~"^(station|halt)$"](${s},${w},${n},${e});out;` +
+    `way["railway"="construction"]["construction"~"${modeRe}"](${s},${w},${n},${e});out geom;` +
+    `way["railway"="proposed"]["proposed"~"${modeRe}"](${s},${w},${n},${e});out geom;`;
   const json = await overpass(query, onProgress);
   onProgress('處理路線資料…');
 
@@ -289,11 +297,28 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   for (const [k, a] of netAgg)
     if (a.count && !inBbox(a.sumLat / a.count, a.sumLng / a.count)) foreignNets.add(k);
 
+  // 🇯🇵 直通運轉剔除（主要針對東京等日本都市）：地鐵與私鐵/JR 的「相互直通運転」關聯會把
+  //    路線延伸到遠郊私鐵段，使「地鐵線」變成 30~78km 的怪物。核心地鐵線在 OSM 另有乾淨的
+  //    單獨關聯，故把直通關聯整個剔除。以日文 token 判定，不影響他國資料。
+  const JP_METRO_OP = /(東京メトロ|東京地下鉄|Tokyo Metro|都営|東京都交通局|Toei|大阪メトロ|Osaka Metro|名古屋市|横浜市営|札幌市|京都市|神戸市|福岡市|仙台市)/;
+  const JP_PRIVATE = /(京成|京急|京浜|東武|東急|西武|小田急|相鉄|京王|埼玉高速|東葉|北総|新京成|東京臨海|りんかい)/;
+  const isThroughRun = (tags) => {
+    const name = `${tags.name || ''}`;
+    const op = `${tags.operator || ''}`;
+    const net = `${tags.network || ''}`;
+    if (/(直通|快特|快速特急|エアポート快|S-Train|Sトレイン)/.test(name)) return true; // 直通運転／直通之機場快特・特急服務種別
+    if ((/;/.test(op) || /;/.test(net)) && JP_METRO_OP.test(`${op};${net}`)) return true; // 多營運商合併（含日本地鐵業者）
+    if (/(都営|メトロ|地下鉄)/.test(name) && JP_PRIVATE.test(name)) return true; // 名稱同時含地鐵線與私鐵
+    if (/旅客鉄道/.test(op) && !JP_METRO_OP.test(op)) return true; // 純 JR（非地鐵），多為直通進地鐵之 JR 段
+    return false;
+  };
+
   const groups = new Map();
   for (const rel of rels) {
     const tags = rel.tags || {};
     if (foreignNets.has(netKeyOf(tags))) continue; // 鄰境系統（如載香港時的深圳地鐵）
     if (/[;,/]/.test((tags.ref || '').trim())) continue; // 多線直通合併關聯
+    if (isThroughRun(tags)) continue; // 與私鐵/JR 直通運轉之路段
     const stops = (rel.members || [])
       .filter(
         (m) =>
@@ -394,6 +419,36 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   }
   if (!built.length) return { type: 'FeatureCollection', generator: 'metroOsmFetch (OSM/Overpass, ODbL)', features: [] };
 
+  // 🔗 同名車站合併：同一 station_name 視為同一站，只保留一個點。把各線上同名站的座標一律改為
+  //    「最佳位置」＝所有同名出現點的重心（centroid），讓多線在此相接於單一交點、且僅產生一個站點。
+  const byName = new Map();
+  for (const l of built) {
+    if (!l.canon) continue;
+    for (const st of l.canon) {
+      const nm = (st.name || '').trim();
+      if (!nm) continue;
+      let arr = byName.get(nm);
+      if (!arr) {
+        arr = [];
+        byName.set(nm, arr);
+      }
+      arr.push(st.c);
+    }
+  }
+  const nameToCoord = new Map();
+  for (const [nm, coords] of byName) {
+    const cen = coords.reduce((a, c) => [a[0] + c[0], a[1] + c[1]], [0, 0]);
+    nameToCoord.set(nm, [round6(cen[0] / coords.length), round6(cen[1] / coords.length)]);
+  }
+  for (const l of built) {
+    if (!l.canon) continue;
+    for (const st of l.canon) {
+      const nm = (st.name || '').trim();
+      if (nm && nameToCoord.has(nm)) st.c = nameToCoord.get(nm);
+    }
+    l.latlngs = dedupeConsecutive(l.canon.map((s2) => s2.c));
+  }
+
   // 去除互相高度重疊的線（同線雙向/變體未合併）
   built.sort((a, b) => b.latlngs.length - a.latlngs.length);
   const lineDefs = [];
@@ -432,6 +487,8 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
 
   const features = [];
   for (const l of lineDefs) {
+    // per-city 營運者白名單：營運中路線須為允許之營運者；施工/計畫線不受限
+    if (keepOps && (l.status || 'open') === 'open' && !keepOps.test(l.routeCompany || '')) continue;
     features.push({
       type: 'Feature',
       properties: {
@@ -459,5 +516,72 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       geometry: { type: 'Point', coordinates: [lng, lat] },
     });
   }
+  // 🚧 施工／計畫路線（way 層級、無 route 關聯）：依名稱／ref 分組 → 縫合 → 取最長鏈 → 簡化。
+  //    丟掉過短鏈（剪式橫渡線、引道等碎段）與重心落在 bbox 外者；與既有線高度重疊者視為重複剔除。
+  const cpWays = els.filter(
+    (el) => el.type === 'way' && Array.isArray(el.geometry) && el.geometry.length >= 2 && el.tags
+  );
+  const cpGroups = new Map();
+  for (const wy of cpWays) {
+    const t = wy.tags;
+    const mode = t.construction || t.proposed || '';
+    if (!/^(subway|light_rail|monorail)$/.test(mode)) continue;
+    const ident = cleanLineName(t.name) || (t.ref || '').trim();
+    if (!ident) continue; // 無名無 ref 的碎段（多為橫渡線／引道）→ 略過
+    let g = cpGroups.get(ident);
+    if (!g) {
+      g = { name: t.name || t.ref || '', ref: (t.ref || '').trim(), status: t.railway, railway: mode, firstId: wy.id, ways: [] };
+      cpGroups.set(ident, g);
+    }
+    g.ways.push(wy.geometry.map((p) => [round6(p.lat), round6(p.lon)]));
+  }
+  // 以「鄰近既有折線」判重（OSM 常把同一條計畫線以不同名稱／階段重複描繪，頂點不吻合但走向相同）：
+  // 若候選鏈多數頂點落在已保留折線 ~66m 內，視為同線剔除。種子為營運／施工關聯線，逐條累加。
+  const keptPolylines = lineDefs.map((l) => l.latlngs);
+  const coveredFrac = (chain, polys) => {
+    if (!polys.length) return 0;
+    let hit = 0;
+    for (const p of chain) {
+      for (const pl of polys) {
+        const pr = projectPolyline(pl, p);
+        if (pr && pr.perp < 0.0006) {
+          hit++;
+          break;
+        }
+      }
+    }
+    return hit / chain.length;
+  };
+  let pIdx = lineDefs.length;
+  // 較長者先處理，讓完整版優先保留、短變體被判為重複
+  const cpSorted = [...cpGroups.values()].sort((a, b) => b.ways.length - a.ways.length);
+  for (const g of cpSorted) {
+    let best = null;
+    let bl = -1;
+    for (const c of stitchWays(g.ways)) if (lineLenDeg(c) > bl) ((bl = lineLenDeg(c)), (best = c));
+    if (!best) continue;
+    const chain = simplify(best, 0.0006);
+    if (chain.length < 2 || lineLenDeg(chain) < 0.008) continue; // 過短（≲0.9km）→ 碎段，略過
+    const cen = chain.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]).map((v) => v / chain.length);
+    if (!inBbox(cen[0], cen[1])) continue; // 重心在 bbox 外 → 鄰境的計畫線
+    if (coveredFrac(chain, keptPolylines) >= 0.6) continue; // 與既有線走向重複（如萬大線多版本）
+    keptPolylines.push(chain);
+    features.push({
+      type: 'Feature',
+      properties: {
+        route_company: '',
+        route_id: g.ref || String(g.firstId),
+        element_type: 'way',
+        color: FALLBACK_PALETTE[pIdx % FALLBACK_PALETTE.length],
+        route_name: g.name,
+        osm_id: String(g.firstId),
+        railway: g.railway,
+        status: g.status === 'proposed' ? 'proposed' : 'construction',
+      },
+      geometry: { type: 'LineString', coordinates: chain.map(([lat, lng]) => [lng, lat]) },
+    });
+    pIdx += 1;
+  }
+
   return { type: 'FeatureCollection', generator: 'metroOsmFetch (OpenStreetMap / Overpass, ODbL)', features };
 }

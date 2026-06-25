@@ -344,9 +344,11 @@ export const computeRouteMapAdjustSharedSegments = (lines) => {
 };
 
 /**
- * 找出「頭尾共點」：多條路線的端點（起點或終點）落在同一座標處。
- *  - 僅取非封閉路線的兩個端點；座標取整（6 位小數）後比對。
- *  - 該座標被 ≥2 條不同路線之端點共用時即列入。
+ * 找出「頭尾共點」：某條路線的端點（起點或終點）與另一條路線共點。
+ *  - 僅取非封閉路線的兩個端點。
+ *  - 判定方式：該端點是否「落在」≥2 條路線上（含自身）。另一條路線只是「經過」此點
+ *    （該點為其中間節點）也算共點 —— 例如某線在此終止、另一線從此通過。
+ *  - 以投影距離（perpDist ≤ 容差）判定點是否落在某折線上，與 connect 偵測一致。
  * @param {Array} lines 路線
  * @returns {Array<{latlng:[number,number], routeIndexes:number[]}>}
  */
@@ -354,23 +356,136 @@ export const computeRouteMapAdjustSharedEndpoints = (lines) => {
   const safeLines = Array.isArray(lines)
     ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
     : [];
+  const ON_TOL = 1e-6; // 約 0.1m：點是否落在折線上
   const round = (n) => Number(Number(n).toFixed(6));
   const key = (p) => `${round(p[0])},${round(p[1])}`;
-  const map = new Map(); // key -> { latlng, routes:Set }
-  safeLines.forEach((line, li) => {
+  const out = new Map(); // key -> { latlng, routes:Set }
+  safeLines.forEach((line) => {
     if (line.closed) return; // 封閉路線無端點
     const pts = line.latlngs;
     [pts[0], pts[pts.length - 1]].forEach((p) => {
+      // 找出所有「通過此端點」的路線（含自身）
+      const touching = new Set();
+      safeLines.forEach((l2, lj) => {
+        const pr = projectOnPolyline(l2.latlngs, p);
+        if (pr && pr.perpDist <= ON_TOL) touching.add(lj);
+      });
+      if (touching.size < 2) return; // 僅自身 → 非共點
       const k = key(p);
-      let e = map.get(k);
+      let e = out.get(k);
       if (!e) {
         e = { latlng: [round(p[0]), round(p[1])], routes: new Set() };
-        map.set(k, e);
+        out.set(k, e);
       }
-      e.routes.add(li);
+      touching.forEach((r) => e.routes.add(r));
     });
   });
-  return [...map.values()]
-    .filter((e) => e.routes.size >= 2)
-    .map((e) => ({ latlng: e.latlng, routeIndexes: [...e.routes] }));
+  return [...out.values()].map((e) => ({ latlng: e.latlng, routeIndexes: [...e.routes] }));
+};
+
+/**
+ * 找出「頭尾共點」線段：在**同一對紅點（共點）之間**，有 **≥2 條路線各走不同路徑（分歧）**
+ * 的那些「中段」。
+ *  - 紅點＝該路線上有 ≥2 條路線通過的頂點（連接點 connect）。
+ *  - 把每條路線依紅點切成「相鄰兩紅點之間」的子路段；只取**獨有（非共線）**的子路段。
+ *  - 依「兩端紅點配對」分組；某對紅點之間若出現 **≥2 種不同幾何路徑** → 這些分歧路段即為
+ *    頭尾共點（同頭同尾、中間各自分開），全部標出。只有單一路徑（或共線）者不算。
+ * @param {Array} lines 路線
+ * @returns {Array<{routeIndex:number, path:Array<[number,number]>, color:string|null,
+ *                  aRouteCount:number, bRouteCount:number}>}
+ */
+export const computeRouteMapAdjustSharedEndpointSegments = (lines) => {
+  const safeLines = Array.isArray(lines)
+    ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
+    : [];
+  const ON_TOL = 1e-6;
+  const round = (n) => Number(Number(n).toFixed(6));
+  const nodeKey = (p) => `${round(p[0])},${round(p[1])}`;
+  const edgeKey = (a, b) => {
+    const ka = nodeKey(a);
+    const kb = nodeKey(b);
+    return ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`;
+  };
+  /** 通過頂點 p 的路線數（含自身）；≥2 即為紅點（連接點） */
+  const routesThrough = (p, li) => {
+    let c = 1; // 自身
+    for (let lj = 0; lj < safeLines.length; lj++) {
+      if (lj === li) continue;
+      const pr = projectOnPolyline(safeLines[lj].latlngs, p);
+      if (pr && pr.perpDist <= ON_TOL) c += 1;
+    }
+    return c;
+  };
+
+  // 共線邊（被 ≥2 條路線共用之線段）鍵集合：用於排除「相連（共線）」的子路段
+  const sharedEdgeKeys = new Set();
+  buildRouteMapAdjustMergedNetwork(safeLines).edges.forEach((e) => {
+    if ((e.routes?.length || 0) >= 2) sharedEdgeKeys.add(edgeKey(e.a, e.b));
+  });
+  const exclusiveBetween = (pts, i0, i1) => {
+    for (let e = i0; e < i1; e++) {
+      if (sharedEdgeKeys.has(edgeKey(pts[e], pts[e + 1]))) return false;
+    }
+    return true;
+  };
+
+  // 1) 收集每條路線「相鄰兩紅點之間、且獨有（非共線）」的子路段
+  const subpaths = [];
+  safeLines.forEach((line, li) => {
+    const pts = line.latlngs;
+    const redIdx = [];
+    for (let i = 0; i < pts.length; i++) {
+      if (routesThrough(pts[i], li) >= 2) redIdx.push(i);
+    }
+    for (let k = 0; k < redIdx.length - 1; k++) {
+      const i0 = redIdx[k];
+      const i1 = redIdx[k + 1];
+      if (i1 - i0 < 1) continue;
+      if (!exclusiveBetween(pts, i0, i1)) continue; // 共線段不算
+      const path = pts.slice(i0, i1 + 1);
+      const a = pts[i0];
+      const b = pts[i1];
+      const ka = nodeKey(a);
+      const kb = nodeKey(b);
+      const pairKey = ka < kb ? `${ka}#${kb}` : `${kb}#${ka}`;
+      const seq = path.map(nodeKey);
+      const fwd = seq.join('>');
+      const rev = [...seq].reverse().join('>');
+      const pathKey = fwd < rev ? fwd : rev; // 幾何路徑鍵（無方向）
+      subpaths.push({
+        routeIndex: li,
+        path,
+        color: line.color || null,
+        pairKey,
+        pathKey,
+        aRouteCount: routesThrough(a, li),
+        bRouteCount: routesThrough(b, li),
+      });
+    }
+  });
+
+  // 2) 依「兩端紅點配對」分組；同對紅點間出現 ≥2 種不同路徑（分歧）才標出
+  const byPair = new Map();
+  for (const sp of subpaths) {
+    if (!byPair.has(sp.pairKey)) byPair.set(sp.pairKey, []);
+    byPair.get(sp.pairKey).push(sp);
+  }
+  const out = [];
+  for (const group of byPair.values()) {
+    const distinct = new Set(group.map((s) => s.pathKey));
+    if (distinct.size < 2) continue; // 只有一種路徑（或全共線）→ 非分歧
+    const seen = new Set();
+    for (const sp of group) {
+      if (seen.has(sp.pathKey)) continue; // 每種不同路徑取一條代表
+      seen.add(sp.pathKey);
+      out.push({
+        routeIndex: sp.routeIndex,
+        path: sp.path,
+        color: sp.color,
+        aRouteCount: sp.aRouteCount,
+        bRouteCount: sp.bRouteCount,
+      });
+    }
+  }
+  return out;
 };

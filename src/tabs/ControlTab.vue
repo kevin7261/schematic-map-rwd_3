@@ -9955,20 +9955,20 @@
           <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
           <div class="my-title-xs-gray pb-2">
             頭尾共點
-            <span class="text-muted">· 預設於地圖以藍色高亮</span>
+            <span class="text-muted">· 頭尾兩端皆為紅點（交點）之路線段，地圖以藍色線高亮</span>
           </div>
           <div class="d-flex justify-content-between my-font-size-xs pb-1">
             <span class="d-flex align-items-center">
               <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #1565c0; opacity: 0.6"
+                class="d-inline-block me-2"
+                style="width: 14px; height: 8px; background-color: #1e88e5"
               ></span>
-              共點數
+              線段數
             </span>
             <span>{{ rmaEndpointList.length }}</span>
           </div>
           <div v-if="rmaEndpointList.length === 0" class="my-font-size-xs pb-3">
-            無頭尾共點（沒有多條路線端點相接）。
+            無此類線段（沒有頭尾兩端皆為紅點之路線段）。
           </div>
           <div
             v-for="e in rmaEndpointList"
@@ -9976,7 +9976,7 @@
             class="d-flex align-items-center my-font-size-xs pb-1"
           >
             <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
-            <span>{{ e.routeCount }} 路線：{{ e.routeNames.join('、') }}</span>
+            <span>{{ e.routeName }}（紅點×{{ e.aRouteCount }} → 紅點×{{ e.bRouteCount }}）</span>
           </div>
           <div v-if="rmaEndpointList.length" class="pb-2"></div>
 

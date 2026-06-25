@@ -66,7 +66,7 @@ async function main() {
       }
     }
     try {
-      const fc = await fetchMetroGeojsonByBbox(c.bbox);
+      const fc = await fetchMetroGeojsonByBbox(c.bbox, { keepOperators: c.keepOperators });
       const v = validateGeojson(fc);
       if (v.errors.length) {
         fail++;

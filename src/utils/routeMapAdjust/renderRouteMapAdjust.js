@@ -10,7 +10,7 @@ import 'leaflet/dist/leaflet.css';
 import { watch } from 'vue';
 import {
   computeRouteMapAdjustStations,
-  computeRouteMapAdjustSharedEndpoints,
+  computeRouteMapAdjustSharedEndpointSegments,
 } from './routeStations.js';
 import { ROUTE_MAP_ADJUST_LAYER_ID } from './loadFromSelectRouteMap.js';
 
@@ -49,9 +49,18 @@ export function mountRouteMapAdjust(el, dataStore) {
     subdomains: 'abc',
   }).addTo(map);
 
+  // 自訂 pane 控制疊放順序：線(overlayPane 400) < 站名 < 站點圓點
+  //  → 站名永遠在圓點「之下」，名稱絕不會擋到任何站點
+  map.createPane('srmaNames');
+  map.getPane('srmaNames').style.zIndex = 450;
+  map.getPane('srmaNames').style.pointerEvents = 'none';
+  map.createPane('srmaDots');
+  map.getPane('srmaDots').style.zIndex = 460;
+
   // ⚠️ 群組加入順序＝由下而上的圖層順序：
   //    共線黃色底色（最底）→ 路線 → 合併結構 → 站點／交叉（最上）
-  const sharedGroup = L.layerGroup().addTo(map); // 🟡 共線段黃色底色高亮（墊在路線底下）
+  const sharedGroup = L.layerGroup().addTo(map); // 🔴 共線段底色高亮（墊在路線底下）
+  const endpointGroup = L.layerGroup().addTo(map); // 🔵 頭尾共點端點線段藍色底色高亮（墊在路線底下）
   const finishedGroup = L.layerGroup().addTo(map);
   const mergedGroup = L.layerGroup().addTo(map);
   const stationGroup = L.layerGroup().addTo(map);
@@ -148,22 +157,11 @@ export function mountRouteMapAdjust(el, dataStore) {
         fillColor,
         fillOpacity: 1,
         interactive: true,
+        pane: 'srmaDots', // 圓點置於最上層 pane，永遠不被站名遮住
       });
       m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
       m.addTo(stationGroup);
     };
-    // 🔵 頭尾共點：多條路線端點相接處，藍色底色 halo 高亮（墊在站點底下）
-    const sharedEndpoints = computeRouteMapAdjustSharedEndpoints(layer.routeMapAdjustLines);
-    sharedEndpoints.forEach(({ latlng }) => {
-      L.circleMarker(latlng, {
-        radius: 11,
-        color: '#1565c0',
-        weight: 0,
-        fillColor: '#1565c0',
-        fillOpacity: 0.4,
-        interactive: false,
-      }).addTo(stationGroup);
-    });
     // 繪製順序：黑點 → 端點(藍) → 交點(紅) → 交叉(黃)，讓 cross 顯示在最上層
     blacks.forEach((p) => addStationDot(p, '#000000', 3, 'black'));
     terminals.forEach((p) => addStationDot(p, '#1565c0', 4, 'terminal'));
@@ -181,6 +179,7 @@ export function mountRouteMapAdjust(el, dataStore) {
         fillColor: '#ffe000',
         fillOpacity: 0.45,
         interactive: false,
+        pane: 'srmaDots',
       }).addTo(stationGroup);
       addStationDot(p, '#ffd600', 5, 'cross');
     });
@@ -270,14 +269,14 @@ export function mountRouteMapAdjust(el, dataStore) {
       layer.routeMapAdjustLines,
       layer.routeMapAdjustBlackDots
     );
-    // 端點(藍)／交點(紅)字較大，黑點字較小
+    // 站名顏色與站點圓點一致：端點藍／交點紅／黑點黑；端點交點字較大，黑點字較小
     const entries = [
-      ...terminals.map((p) => ({ p, fontSize: 13 })),
-      ...connects.map((p) => ({ p, fontSize: 13 })),
-      ...blacks.map((p) => ({ p, fontSize: 10 })),
+      ...terminals.map((p) => ({ p, fontSize: 13, color: '#1565c0' })),
+      ...connects.map((p) => ({ p, fontSize: 13, color: '#ff0000' })),
+      ...blacks.map((p) => ({ p, fontSize: 10, color: '#000000' })),
     ];
     const seen = new Set();
-    entries.forEach(({ p, fontSize }) => {
+    entries.forEach(({ p, fontSize, color }) => {
       const k = llKey(p[0], p[1]);
       if (seen.has(k)) return;
       seen.add(k);
@@ -285,24 +284,44 @@ export function mountRouteMapAdjust(el, dataStore) {
       if (!meta.name) return;
       const icon = L.divIcon({
         className: 'route-map-adjust-station-name',
-        html: `<span style="position:absolute;left:0;top:0;transform:translate(-50%,-50%);text-align:center;white-space:nowrap;font-size:${fontSize}px;line-height:1.2;font-weight:600;color:#222;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;pointer-events:none">${esc(meta.name)}</span>`,
+        // 置於站點「正上方」並留間距，避免文字蓋住站點圓點（translate -100% 讓文字底緣對齊錨點，top 再上移清開圓點半徑）
+        html: `<span style="position:absolute;left:0;top:-7px;transform:translate(-50%,-100%);text-align:center;white-space:nowrap;font-size:${fontSize}px;line-height:1.2;font-weight:600;color:${color};text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;pointer-events:none">${esc(meta.name)}</span>`,
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
-      L.marker(p, { icon, interactive: false, keyboard: false }).addTo(nameGroup);
+      L.marker(p, { icon, interactive: false, keyboard: false, pane: 'srmaNames' }).addTo(nameGroup);
     });
   };
 
+  // 🔵 頭尾共點：以藍色粗線標示「端點 → 下一個交叉點」之間的整段子路徑（底色，墊在路線底下）
+  const renderEndpoints = () => {
+    endpointGroup.clearLayers();
+    const segs = computeRouteMapAdjustSharedEndpointSegments(layer.routeMapAdjustLines);
+    for (const s of segs) {
+      if (!Array.isArray(s.path) || s.path.length < 2) continue;
+      L.polyline(s.path, {
+        color: '#1e88e5', // 藍色底色高亮，標示頭尾共點之子路徑
+        weight: 12,
+        opacity: 0.85,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false,
+      }).addTo(endpointGroup);
+    }
+  };
+
   const renderAll = () => {
-    // 已合併：顯示單一結構（重疊→一條線）；否則顯示原始各路線 + 共線高亮
+    // 已合併：顯示單一結構（重疊→一條線）；否則顯示原始各路線 + 共線/頭尾共點高亮
     if (hasMerged()) {
       finishedGroup.clearLayers();
       sharedGroup.clearLayers();
+      endpointGroup.clearLayers();
       renderMerged();
     } else {
       mergedGroup.clearLayers();
       renderFinished();
-      renderShared(); // 預設顯示共線
+      renderShared(); // 預設顯示共線（紅）
+      renderEndpoints(); // 預設顯示頭尾共點（藍線）
     }
     renderStations(); // 站點 + 交叉（cross）預設顯示
     renderNames();

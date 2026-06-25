@@ -11,7 +11,7 @@ import {
   computeRouteMapAdjustCrossPoints,
   buildRouteMapAdjustMergedNetwork,
   computeRouteMapAdjustSharedSegments,
-  computeRouteMapAdjustSharedEndpoints,
+  computeRouteMapAdjustSharedEndpointSegments,
   routeMapAdjustColorNameForIndex,
 } from './routeStations.js';
 
@@ -176,17 +176,15 @@ export function useRouteMapAdjust(dataStore) {
     }));
   });
 
-  /** 🔵 頭尾共點清單（多條路線端點相接處），供面板列出（地圖以藍色高亮） */
+  /** 🔵 頭尾共點線段清單（頭尾兩端皆為紅點之路線子路徑），供面板列出（地圖以藍色線高亮） */
   const sharedEndpointList = computed(() => {
     const lyr = adjustLayer.value;
     const lines = Array.isArray(lyr?.routeMapAdjustLines) ? lyr.routeMapAdjustLines : [];
-    return computeRouteMapAdjustSharedEndpoints(lines).map((e, i) => ({
+    return computeRouteMapAdjustSharedEndpointSegments(lines).map((s, i) => ({
       index: i,
-      latlng: e.latlng,
-      routeCount: e.routeIndexes.length,
-      routeNames: e.routeIndexes.map(
-        (ri) => lines[ri]?.routeName || routeMapAdjustColorNameForIndex(ri)
-      ),
+      routeName: lines[s.routeIndex]?.routeName || routeMapAdjustColorNameForIndex(s.routeIndex),
+      aRouteCount: s.aRouteCount,
+      bRouteCount: s.bRouteCount,
     }));
   });
 
