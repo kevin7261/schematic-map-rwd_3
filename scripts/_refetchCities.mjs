@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchMetroGeojsonByBbox } from '../src/utils/metroOsmFetch.js';
+import { overridesFor } from '../src/utils/metroOverrides.js';
 import { validateGeojson } from './validateMetroGeojson.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,7 +24,13 @@ for (const id of ids) {
   }
   process.stdout.write(`抓取 ${c.city} (${id}) … `);
   try {
-    const fc = await fetchMetroGeojsonByBbox(c.bbox, { onProgress: () => {}, keepOperators: c.keepOperators });
+    const ov = overridesFor(id);
+    const fc = await fetchMetroGeojsonByBbox(ov.bbox || c.bbox, {
+      onProgress: () => {},
+      keepOperators: ov.keepOperators,
+      colorByName: ov.colorByName,
+      dedupeByName: ov.dedupeByName,
+    });
     const v = validateGeojson(fc);
     const ways = fc.features.filter((f) => f.properties?.element_type === 'way');
     const constr = ways.filter((f) => f.properties?.status === 'construction').length;

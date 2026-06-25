@@ -229,6 +229,16 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   // 🚇 僅保留特定營運者（per-city 設定，如東京只留東京メトロ＋都營兩家地鐵公司）：
   //    僅對「營運中(open)」路線生效；施工/計畫線（刻意納入、常無營運者標記）不受此限。
   const keepOps = opts.keepOperators ? new RegExp(opts.keepOperators) : null;
+  // 🎨 官方配色（per-city）：依 route_name 套色，首個符合者勝；施工/計畫線藉此繼承母線色。
+  const colorRules = Array.isArray(opts.colorByName)
+    ? opts.colorByName.map((r) => ({ re: new RegExp(r.match), color: r.color }))
+    : [];
+  const colorFor = (name, fallback) => {
+    for (const r of colorRules) if (r.re.test(name || '')) return r.color;
+    return fallback;
+  };
+  // 🧹 同名變體去重（per-city）：同一 regex family 只保留座標點最多者
+  const dedupeRules = Array.isArray(opts.dedupeByName) ? opts.dedupeByName.map((s) => new RegExp(s)) : [];
   onProgress('連線 OpenStreetMap（Overpass）…');
   // 含營運中（subway/light_rail/monorail）＋施工中（route=construction）＋計畫中（route=proposed）的同類路線；
   // 施工／計畫的實際模式記在 construction:route／proposed:route。
@@ -268,6 +278,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   // 🌏 跨境過濾（以 network/operator 為單位）：bbox 邊緣可能與鄰境系統重疊（如載香港時 bbox
   //    北緣與深圳相接，會把深圳地鐵抓進來）。把同一 network 的所有成員座標取重心，重心落在
   //    bbox 外者整個 network 視為「鄰境系統」剔除；以 network 為單位可避免誤砍跨界的單一路線。
+  //    註：若本地線重心剛好落在界外一點（如台北淡海輕軌），請以 per-city bbox 覆寫放寬該邊界。
   const inBbox = (lat, lng) => lat >= s && lat <= n && lng >= w && lng <= e;
   const netAgg = new Map();
   const netKeyOf = (tags) => (tags.network || tags.operator || '').trim();
@@ -454,6 +465,9 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   const lineDefs = [];
   const keptKeys = [];
   for (const l of built) {
+    // per-city 營運者白名單（須在建站點前過濾，否則被剔線的站點會變孤立 node）：
+    // 營運中路線須為允許之營運者；施工/計畫線不受限
+    if (keepOps && (l.status || 'open') === 'open' && !keepOps.test(l.routeCompany || '')) continue;
     const ks = new Set(l.latlngs.map(keyOf));
     let dup = false;
     for (const kk of keptKeys) {
@@ -487,15 +501,13 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
 
   const features = [];
   for (const l of lineDefs) {
-    // per-city 營運者白名單：營運中路線須為允許之營運者；施工/計畫線不受限
-    if (keepOps && (l.status || 'open') === 'open' && !keepOps.test(l.routeCompany || '')) continue;
     features.push({
       type: 'Feature',
       properties: {
         route_company: l.routeCompany,
         route_id: l.routeId,
         element_type: 'way',
-        color: l.color,
+        color: colorFor(l.routeName, l.color),
         route_name: l.routeName,
         osm_id: l.osmId,
         railway: l.railway,
@@ -572,7 +584,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
         route_company: '',
         route_id: g.ref || String(g.firstId),
         element_type: 'way',
-        color: FALLBACK_PALETTE[pIdx % FALLBACK_PALETTE.length],
+        color: colorFor(g.name, FALLBACK_PALETTE[pIdx % FALLBACK_PALETTE.length]),
         route_name: g.name,
         osm_id: String(g.firstId),
         railway: g.railway,
@@ -583,5 +595,34 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     pIdx += 1;
   }
 
-  return { type: 'FeatureCollection', generator: 'metroOsmFetch (OpenStreetMap / Overpass, ODbL)', features };
+  // 🧹 同名變體去重：同一 family（regex）的 way 只保留座標點最多者；再清掉因此孤立的 node
+  let finalFeatures = features;
+  if (dedupeRules.length) {
+    const wayFeats = features.filter((f) => f.properties.element_type === 'way');
+    const drop = new Set();
+    for (const re of dedupeRules) {
+      const grp = wayFeats.filter((f) => re.test(f.properties.route_name || ''));
+      if (grp.length <= 1) continue;
+      grp.sort((a, b) => b.geometry.coordinates.length - a.geometry.coordinates.length);
+      for (let i = 1; i < grp.length; i++) drop.add(grp[i]);
+    }
+    if (drop.size) {
+      finalFeatures = features.filter((f) => !drop.has(f));
+      const wayKeys = new Set();
+      for (const f of finalFeatures)
+        if (f.properties.element_type === 'way')
+          for (const c of f.geometry.coordinates) wayKeys.add(keyOf([c[1], c[0]]));
+      finalFeatures = finalFeatures.filter(
+        (f) =>
+          f.properties.element_type !== 'node' ||
+          wayKeys.has(keyOf([f.geometry.coordinates[1], f.geometry.coordinates[0]]))
+      );
+    }
+  }
+
+  return {
+    type: 'FeatureCollection',
+    generator: 'metroOsmFetch (OpenStreetMap / Overpass, ODbL)',
+    features: finalFeatures,
+  };
 }

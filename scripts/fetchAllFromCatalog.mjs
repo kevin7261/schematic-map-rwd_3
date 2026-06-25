@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { fetchMetroGeojsonByBbox } from '../src/utils/metroOsmFetch.js';
+import { overridesFor } from '../src/utils/metroOverrides.js';
 import { validateGeojson } from './validateMetroGeojson.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -66,7 +67,12 @@ async function main() {
       }
     }
     try {
-      const fc = await fetchMetroGeojsonByBbox(c.bbox, { keepOperators: c.keepOperators });
+      const ov = overridesFor(c.id);
+      const fc = await fetchMetroGeojsonByBbox(ov.bbox || c.bbox, {
+        keepOperators: ov.keepOperators,
+        colorByName: ov.colorByName,
+        dedupeByName: ov.dedupeByName,
+      });
       const v = validateGeojson(fc);
       if (v.errors.length) {
         fail++;
