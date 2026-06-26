@@ -1,1 +1,1481 @@
-{}
+{
+"algeria-algiers": {
+"L1": "#ee0000"
+},
+"egypt-cairo": {
+"1": "#184998",
+"2": "#a12b2e",
+"3": "#2f5410"
+},
+"armenia-yerevan": {
+"1": "#000080"
+},
+"azerbaijan-baku": {
+"1": "#ee1d23",
+"2": "#00ab5b",
+"3": "#8e177c",
+"2B": "#9bca3b"
+},
+"bangladesh-dhaka": {
+"6": "#006747"
+},
+"china-beijing": {
+"1": "#a4343a",
+"2": "#004b87",
+"3": "#d90627",
+"4": "#008c95",
+"5": "#aa0061",
+"6": "#b58500",
+"7": "#ffc56e",
+"8": "#009b77",
+"9": "#97d700",
+"10": "#0092bc",
+"11": "#ff8674",
+"13": "#f4da40",
+"14": "#ca9a8e",
+"15": "#653279",
+"16": "#6ba539",
+"17": "#00abab",
+"18": "#685bc7",
+"19": "#d3a3c9",
+"西郊": "#d22630",
+"L1": "#a192b2",
+"10136948": "#0049a5",
+"27": "#d986ba",
+"25N": "#d86018",
+"25S": "#d86018",
+"4S": "#008c95",
+"18441518": "#9c4f01"
+},
+"china-changchun": {
+"1": "#e50011",
+"2": "#3b6a96",
+"3": "#009943",
+"4": "#7d4697",
+"6": "#e88f99",
+"8": "#25b7bc"
+},
+"china-changsha": {
+"1": "#e60012",
+"2": "#00afec",
+"3": "#abcd03",
+"4": "#920783",
+"5": "#ffe200",
+"6": "#005bac",
+"Maglev": "#f891a5"
+},
+"china-changzhou": {
+"1": "#cd5c5c",
+"2": "#529fc9"
+},
+"china-chengdu": {
+"1": "#0f0f96",
+"2": "#fe633d",
+"3": "#d60f6b",
+"4": "#1cad64",
+"5": "#a03f92",
+"6": "#be7331",
+"7": "#65d0de",
+"8": "#a6c215",
+"9": "#f1ad17",
+"10": "#0054bb",
+"13": "#b2a225",
+"17": "#87e0aa",
+"18": "#1a686e",
+"19": "#94a2dc",
+"27": "#00a4e0",
+"30": "#e3718f",
+"18168582": "#858686",
+"S5": "#a7c6ed"
+},
+"china-chongqing": {
+"1": "#e4002b",
+"2": "#007a33",
+"3": "#003da5",
+"4": "#dc8633",
+"5": "#00a3e0",
+"6": "#f67599",
+"9": "#861f41",
+"10": "#5f259f",
+"18": "#2cd5c4",
+"环": "#f2a900",
+"BT": "#0057b8",
+"JT": "#0057b8"
+},
+"china-dalian": {
+"1": "#00944b",
+"2": "#009ad8",
+"3": "#de0079",
+"5": "#ff0000",
+"12": "#4d4498"
+},
+"china-dongguan": {
+"1": "#034ea2",
+"2": "#ed1c24"
+},
+"china-foshan": {
+"F3": "#faa61a",
+"8": "#c4d600",
+"F2": "#ed1c24",
+"TNH1": "#5eb3e4"
+},
+"china-fuzhou": {
+"1": "#bb1e10",
+"4": "#ff7f41",
+"6441135": "#325928",
+"5": "#893b67",
+"6": "#005eb8",
+"F1": "#00adbb"
+},
+"china-guangzhou": {
+"F3": "#eca154",
+"6": "#80225f",
+"11": "#ffb40c",
+"5": "#c5003e",
+"3": "#eca154",
+"8": "#008c95",
+"7": "#97d700",
+"GF": "#c4d600",
+"2": "#00629b",
+"4": "#00843d",
+"8338723": "#81312f",
+"21": "#201747",
+"22": "#cd5228",
+"F2": "#00629b",
+"1": "#f3d03e",
+"13": "#8e8c13",
+"8338725": "#81312f",
+"10": "#7389b2",
+"9": "#71cc98",
+"6728311": "#81312f",
+"THZ1": "#43b02a",
+"12": "#505d12",
+"18": "#0047ba",
+"THP1": "#bd0000",
+"THP2": "#e4007f"
+},
+"china-guiyang": {
+"2": "#005bac",
+"3": "#ee2737",
+"1": "#259b24",
+"S1": "#982484"
+},
+"china-hangzhou": {
+"5": "#00aec7",
+"1": "#df4661",
+"2": "#f1803a",
+"6": "#0072ce",
+"3": "#ffcd00",
+"4": "#6cc24a",
+"7": "#87189d",
+"9": "#be4d00",
+"19": "#05c3dd",
+"16": "#ffb25b",
+"杭海城际": "#0077c8",
+"10": "#daaa00",
+"8": "#ac145a"
+},
+"china-harbin": {
+"3": "#fd8609",
+"1": "#9f0002",
+"2": "#008200"
+},
+"china-hefei": {
+"3": "#00863e",
+"2": "#0167b1",
+"4": "#f79826",
+"5": "#c0d92e",
+"1": "#e71f24",
+"6": "#c99fcd",
+"8": "#64aee3"
+},
+"china-hohhot": {
+"2": "#005bac",
+"1": "#e82311"
+},
+"china-hong-kong": {
+"TML": "#923011",
+"KTL": "#00ab4e",
+"ISL": "#007dc5",
+"TWL": "#ed1d24",
+"EAL": "#53b7e8",
+"TCL": "#f7943e",
+"TKL": "#7d499d",
+"AEL": "#00888a",
+"SIL": "#bac429",
+"DRL": "#f173ac"
+},
+"china-jinan": {
+"4": "#10883a",
+"云巴线": "#008ae6",
+"2": "#efa82b",
+"3": "#03347f",
+"6": "#41b6e6",
+"8": "#753bbd",
+"1": "#7a4599",
+"济阳线": "#60c1be"
+},
+"china-jinhua": {
+"13675604": "#ff0000"
+},
+"china-kunming": {
+"4": "#ee7c30",
+"5": "#2aa844",
+"3": "#d02e81",
+"1": "#bf3334",
+"2": "#235a99",
+"6": "#3d89a8"
+},
+"china-lanzhou": {
+"1": "#0080bc",
+"2": "#ff0000"
+},
+"china-luoyang": {
+"1": "#c4608c",
+"2": "#6fba2c"
+},
+"china-macau": {
+"Taipa": "#96c93c",
+"Seac Pai Van": "#8966c3",
+"Hengqin": "#b82a3c"
+},
+"china-nanchang": {
+"1": "#e60039",
+"4": "#00a560",
+"2": "#ffda01",
+"3": "#0079c3"
+},
+"china-nanjing": {
+"1": "#009ace",
+"3": "#009a44",
+"2": "#a6093d",
+"5": "#f2da51",
+"7": "#4a7729",
+"10": "#b9975b",
+"S8": "#ff8000",
+"S3": "#ba84ac",
+"4": "#7d55c7",
+"S2": "#93282c",
+"S6": "#c98bdb",
+"S1": "#4bbbb4",
+"S7": "#b46b7a",
+"S9": "#ffc600"
+},
+"china-nanning": {
+"1": "#00b04f",
+"2": "#eb3d1a",
+"3": "#571887",
+"4": "#dae600",
+"5": "#0057a3"
+},
+"china-nantong": {
+"1": "#e60012",
+"2": "#0072c8"
+},
+"china-ningbo": {
+"1": "#138fc9",
+"2": "#d60b17",
+"3": "#eaae1a",
+"4": "#80b82b",
+"5": "#091f8f",
+"6": "#197c39",
+"7": "#794f47",
+"8": "#e61477"
+},
+"china-qingdao": {
+"1": "#eaaa00",
+"2": "#af272f",
+"3": "#0057b8",
+"4": "#007a33",
+"6": "#6cace4",
+"8": "#df1995",
+"11": "#304299",
+"13": "#00ab84"
+},
+"china-shanghai": {
+"1": "#e3002b",
+"2": "#82bf25",
+"3": "#fcd600",
+"4": "#461d84",
+"5": "#944d9a",
+"6": "#d40068",
+"7": "#ed6f00",
+"8": "#0094d8",
+"9": "#87caed",
+"10": "#c6afd4",
+"11": "#871c2b",
+"12": "#007a60",
+"13": "#e999c0",
+"14": "#626020",
+"15": "#bca886",
+"16": "#98d1c0",
+"17": "#bc796f",
+"18": "#c4984f",
+"浦江": "#b5b5b6",
+"磁浮": "#008b9a"
+},
+"china-shaoxing": {
+"1": "#c5003e",
+"2": "#307fe2"
+},
+"china-shenyang": {
+"1": "#e5001c",
+"2": "#f08439",
+"3": "#ff007f",
+"4": "#4b0082",
+"9": "#0095d2",
+"10": "#8cbb48"
+},
+"china-shenzhen": {
+"1": "#00ab39",
+"2": "#db6d1c",
+"3": "#00a2e1",
+"4": "#dc241f",
+"5": "#9950b2",
+"6": "#3abca8",
+"6B": "#037776",
+"7": "#0035ad",
+"9": "#846e74",
+"10": "#f8779e",
+"11": "#6a1d44",
+"12": "#a192b2",
+"13": "#de7c00",
+"14": "#f2c75c",
+"16": "#1e22aa"
+},
+"china-shijiazhuang": {
+"1": "#e53e30",
+"2": "#fec30a",
+"3": "#00a1e0"
+},
+"china-suzhou": {
+"1": "#78ba25",
+"2": "#ed3240",
+"3": "#f88211",
+"4": "#196fb0",
+"5": "#e63a9a",
+"6": "#29baee",
+"7": "#a77bca",
+"8": "#a09200",
+"11": "#f1c6a7"
+},
+"china-taiyuan": {
+"1": "#1b5eab",
+"2": "#da2b30"
+},
+"china-tianjin": {
+"1": "#cb333b",
+"2": "#e1e000",
+"3": "#00acd0",
+"4": "#007a33",
+"5": "#de6d10",
+"6": "#994878",
+"7": "#c6893f",
+"8": "#714993",
+"9": "#0047bb",
+"10": "#c4d600",
+"11": "#002d72",
+"Z4": "#a57fb2",
+"津静线": "#f8b5c4"
+},
+"china-urumqi": {
+"1": "#10069f"
+},
+"china-wenzhou": {
+"S1": "#0061ae",
+"S2": "#e4002b"
+},
+"china-wuhan": {
+"1": "#0067a1",
+"2": "#ec9cbb",
+"3": "#d3b466",
+"4": "#a6d30b",
+"5": "#a43034",
+"6": "#007128",
+"7": "#eb7c16",
+"8": "#9dabaa",
+"11": "#f6d300",
+"12": "#00a3e9",
+"16": "#c24c6d",
+"19": "#469c7f",
+"21": "#b2007b"
+},
+"china-wuhu": {
+"1": "#e72718",
+"2": "#00a3e8"
+},
+"china-wuxi": {
+"1": "#ee3e41",
+"2": "#05aa44",
+"3": "#00bfff",
+"4": "#800080"
+},
+"china-xiamen": {
+"1": "#ff7300",
+"2": "#008900",
+"3": "#529fc9"
+},
+"china-xian": {
+"1": "#0077c8",
+"2": "#ef3340",
+"3": "#ce70cc",
+"4": "#2cccd3",
+"5": "#a6e35f",
+"6": "#485cc7",
+"8": "#deae39",
+"9": "#ff9e1b",
+"10": "#4aaa94",
+"14": "#00c1d4",
+"15": "#ce607e",
+"16": "#de8663"
+},
+"china-xuzhou": {
+"1": "#a23337",
+"2": "#ef8200",
+"3": "#008bd5",
+"6": "#541f7f"
+},
+"china-zhengzhou": {
+"1": "#e60012",
+"2": "#fff100",
+"3": "#f39939",
+"4": "#00a0e9",
+"5": "#006934",
+"6": "#920783",
+"7": "#d6a053",
+"8": "#e5e289",
+"9": "#a2ae73",
+"10": "#be6254",
+"12": "#1a60a5",
+"Zhengxu": "#0b4355"
+},
+"georgia-tbilisi": {
+"1": "#ff505b",
+"2": "#5ca330"
+},
+"india-agra": {
+"1": "#ffd700"
+},
+"india-ahmedabad": {
+"1": "#0983ce",
+"3": "#f2cb00",
+"4": "#9c27b0"
+},
+"india-bengaluru": {
+"Purple": "#8c2877",
+"Green": "#009933",
+"Yellow": "#ffdf00"
+},
+"india-bhopal": {
+"1": "#fb4f14"
+},
+"india-delhi": {
+"1": "#ff4040",
+"2": "#ffdf00",
+"3": "#4169e1",
+"4": "#4169e1",
+"5": "#20b2aa",
+"6": "#553592",
+"7": "#fc8eac",
+"8": "#cc338b",
+"9": "#838996",
+"AEx": "#ff8c00"
+},
+"india-hyderabad": {
+"1": "#d84a4e",
+"2": "#008d42",
+"3": "#0081bf"
+},
+"india-indore": {
+"Yellow": "#ffff00"
+},
+"india-jaipur": {
+"Pink Line": "#ffbbff"
+},
+"india-kanpur": {
+"1": "#ff6600"
+},
+"india-kochi": {
+"I": "#02b0af"
+},
+"india-kolkata": {
+"8033916": "#025eee",
+"Green": "#008100",
+"Orange": "#ff8f00",
+"Purple": "#800080",
+"Yellow": "#ffe802"
+},
+"india-lucknow": {
+"1": "#ff3333"
+},
+"india-meerut": {
+"Delhi–Meerut RapidX": "#274778",
+"1": "#00a4e2"
+},
+"india-mumbai": {
+"3": "#059db2",
+"2": "#ffc600",
+"7": "#d83431",
+"1": "#00aeef",
+"19233909": "#00ae5a",
+"9": "#d83431"
+},
+"india-nagpur": {
+"Aqua Line": "#00ffff",
+"Orange Line": "#ff8c00"
+},
+"india-noida": {
+"3": "#4169e1"
+},
+"india-patna": {
+"2": "#4169e1"
+},
+"india-pune": {
+"2": "#007cb0",
+"1": "#903373"
+},
+"indonesia-jabodebek-lrt": {
+"BK": "#006838",
+"M": "#ca2047",
+"CB": "#21409a",
+"TB": "#ebc535"
+},
+"indonesia-jakarta-lrt": {
+"BK": "#006838",
+"M": "#ca2047",
+"CB": "#21409a",
+"TB": "#ebc535"
+},
+"indonesia-jakarta": {
+"BK": "#006838",
+"M": "#ca2047",
+"CB": "#21409a",
+"TB": "#ebc535"
+},
+"iran-isfahan": {
+"1": "#1a988c"
+},
+"iran-karaj": {
+"2": "#58e558"
+},
+"iran-mashhad": {
+"3": "#d40000"
+},
+"iran-shiraz": {
+"1": "#ee3c3c",
+"2": "#295ea4"
+},
+"iran-tabriz": {
+"1": "#008b95"
+},
+"iran-tehran": {
+"1": "#ee2d24",
+"2": "#0b55a0",
+"3": "#2bbdee",
+"4": "#fcd204",
+"6": "#ed71a7",
+"7": "#882c81"
+},
+"japan-chiba-prefecture": {
+"1号線": "#2843ba",
+"2号線": "#2843ba",
+"TR": "#27bc54",
+"山万": "#2f9d66"
+},
+"japan-fukuoka": {
+"CK": "#e30075",
+"N": "#00936b",
+"K": "#ee5511",
+"Kokura": "#3333ff",
+"H": "#0077cc"
+},
+"japan-hiroshima": {
+"1": "#ffa500"
+},
+"japan-kanazawa-seaside-line": {
+"SL": "#f68b1e"
+},
+"japan-kobe-new-transit": {
+"R": "#9686bd"
+},
+"japan-kobe": {
+"S": "#00ae8e",
+"C": "#019a66",
+"K": "#267dce",
+"R": "#9686bd"
+},
+"japan-kyoto": {
+"T": "#ff4500",
+"K": "#3cb371"
+},
+"japan-minatomirai-line": {
+"MM": "#0067c0"
+},
+"japan-nagoya": {
+"M": "#b074d6",
+"H": "#fab123",
+"S": "#c92f44",
+"T": "#009bbf",
+"L": "#0067c0",
+"E": "#b074d6",
+"K": "#fc78b4"
+},
+"japan-nippori-toneri-liner": {
+"NT": "#e43081"
+},
+"japan-osaka": {
+"T": "#522886",
+"M": "#e5171f",
+"N": "#a9cc51",
+"C": "#019a66",
+"S": "#e44d93",
+"OM": "#111986",
+"I": "#ee7b1a",
+"Y": "#0078be",
+"K": "#814721",
+"P": "#00a0de"
+},
+"japan-rinkai-line": {
+"R": "#00b48d"
+},
+"japan-saitama-prefecture": {
+"NS": "#339999",
+"SR": "#0000cd"
+},
+"japan-saitama-rapid-railway-line": {
+"SR": "#0000cd"
+},
+"japan-sapporo": {
+"T": "#ff9100",
+"N": "#00947f",
+"H": "#0077dd"
+},
+"japan-sendai": {
+"仙台市南北線 (Sendai Namboku Line)": "#009678",
+"仙台市東西線 (Sendai Tozai Line)": "#00b7e5"
+},
+"japan-tokyo-yamanote-chuo": {
+"JC": "#dd6935",
+"JB": "#f2d01f",
+"E": "#ce045b",
+"JY": "#b1cb39",
+"I": "#006cb6",
+"M": "#f62e36",
+"Y": "#c1a470",
+"T": "#009bbf",
+"H": "#b5b5ac",
+"S": "#b0c124",
+"A": "#ec6e65",
+"G": "#ff9500",
+"C": "#00bb85",
+"N": "#00ac9b",
+"F": "#9c5e31",
+"Z": "#8f76d6",
+"NT": "#e43081"
+},
+"japan-tokyo": {
+"E": "#ce045b",
+"I": "#006cb6",
+"M": "#f62e36",
+"Y": "#c1a470",
+"T": "#009bbf",
+"H": "#b5b5ac",
+"S": "#b0c124",
+"A": "#ec6e65",
+"G": "#ff9500",
+"C": "#00bb85",
+"N": "#00ac9b",
+"F": "#9c5e31",
+"Z": "#8f76d6",
+"NT": "#e43081"
+},
+"japan-yokohama": {
+"B": "#2f56a5",
+"SL": "#004ea2",
+"G": "#28846e",
+"MM": "#003ea2"
+},
+"japan-yurikamome": {
+"U": "#0065a6"
+},
+"kazakhstan-almaty": {
+"1": "#cc0000"
+},
+"kazakhstan-astana": {
+"LRT": "#7ae7b4"
+},
+"malaysia-kuala-lumpur": {
+"KJ": "#e0115f",
+"12": "#faca05",
+"SP": "#721422",
+"9": "#11753a",
+"AG": "#fe8e10",
+"MR": "#7dba00"
+},
+"north-korea-pyongyang": {
+"2": "#008008",
+"1": "#ff0000"
+},
+"pakistan-lahore": {
+"O": "#ff8800"
+},
+"philippines-manila": {
+"1": "#007541",
+"3": "#ffd300",
+"2": "#6a0dad"
+},
+"qatar-doha": {
+"OR": "#f36c21",
+"Red": "#e2251c",
+"TQ": "#00afaa",
+"Green": "#81ba26",
+"PK": "#e2188f",
+"Purple Line": "#3c2c5f"
+},
+"saudi-arabia-mecca": {
+"S": "#c71585"
+},
+"saudi-arabia-riyadh": {
+"1": "#00aee6",
+"2": "#ef3434",
+"3": "#f68d38",
+"4": "#fed00b",
+"5": "#42b649",
+"6": "#984b9d"
+},
+"singapore-singapore": {
+"DTL": "#005ec4",
+"EWL": "#009645",
+"CCL": "#fa9e0d",
+"NSL": "#d42e12",
+"TEL": "#9d5b25",
+"NEL": "#9900aa",
+"BPLRT": "#748477",
+"SKLRT": "#748477",
+"PGLRT": "#748477"
+},
+"south-korea-busan": {
+"1": "#f06a00",
+"2": "#81bf48",
+"3": "#bb8c00",
+"4": "#217dcb",
+"BGL": "#8451a0"
+},
+"south-korea-daegu": {
+"1": "#d93f5c",
+"2": "#00aa80",
+"3": "#ffb100"
+},
+"south-korea-daejeon": {
+"1": "#007448"
+},
+"south-korea-gwangju": {
+"1": "#009088"
+},
+"south-korea-incheon": {
+"인천1": "#8cadcb",
+"I2": "#f06a00"
+},
+"south-korea-seoul": {
+"1": "#0052a4",
+"2": "#00a84d",
+"3": "#ef7c1c",
+"4": "#00a4e3",
+"5": "#996cac",
+"6": "#cd7c2f",
+"7": "#747f00",
+"8": "#e6186c",
+"9": "#bdb092",
+"인천1": "#8cadcb",
+"신분당": "#d31145",
+"W": "#b7c450",
+"경강": "#0054a6",
+"Silim": "#6789ca",
+"김포 골드라인": "#a17800",
+"13738410": "#fd8100"
+},
+"south-korea-shinbundang-line": {
+"신분당": "#d31145"
+},
+"taiwan-kaohsiung": {
+"R": "#e20b65",
+"O": "#faa73f",
+"6826886": "#7cbd52"
+},
+"taiwan-taichung": {
+"1": "#008659"
+},
+"taiwan-taipei": {
+"R": "#e3002c",
+"BR": "#c48c31",
+"BL": "#0070bd",
+"A": "#8246af",
+"O": "#f8b61c",
+"G": "#008659",
+"Y": "#fcda01",
+"捷運紅線 (新北投支線)": "#fd92a3"
+},
+"taiwan-taoyuan": {
+"A": "#8246af"
+},
+"thailand-bangkok": {
+"สุขุมวิท": "#76b729",
+"MRT-BL": "#1964b7",
+"MRT Pink": "#ce5981",
+"MRT Yellow": "#f4da01",
+"MRT Purple": "#660066",
+"สีลม": "#02817d",
+"APM Gold Line": "#d4af37",
+"IMPACT Link": "#ce5981"
+},
+"thailand-metropolitan-rapid-transit": {
+"6": "#006747"
+},
+"turkey-adana": {
+"M1": "#e7790f"
+},
+"turkey-ankara": {
+"M1": "#3497d6",
+"M2": "#3497d6",
+"M3": "#3497d6",
+"M4": "#ef805e",
+"A": "#0a6c1b"
+},
+"turkey-bursa": {
+"B1": "#15afaf",
+"B2": "#15afaf"
+},
+"turkey-istanbul": {
+"M5": "#683166",
+"M4": "#e81e77",
+"M3": "#0ca6df",
+"M1A": "#ee2229",
+"M2": "#059a4d",
+"M7": "#f490b3",
+"M11": "#a1609b",
+"M9": "#fcd10d",
+"M1B": "#ee2229",
+"M8": "#487abf",
+"M6": "#c9aa79",
+"F1": "#7a745a",
+"F3": "#7a745a",
+"F4": "#7a745a"
+},
+"turkey-izmir": {
+"M1": "#ff0000"
+},
+"united-arab-emirates-dubai": {
+"Red1": "#dc241f",
+"Green": "#009530"
+},
+"uzbekistan-tashkent": {
+"1": "#ff0000",
+"2": "#000099",
+"3": "#009900",
+"4": "#d5a72b"
+},
+"vietnam-hanoi": {
+"T2A": "#00c000",
+"T3": "#a5b635"
+},
+"vietnam-ho-chi-minh-city": {
+"L1": "#0079b8"
+},
+"austria-vienna": {
+"WLB": "#00589a",
+"U1": "#e3000f",
+"U6": "#9d6830",
+"U3": "#ef7c00",
+"U2": "#a862a4",
+"U4": "#00963f"
+},
+"belarus-minsk": {
+"1": "#167abc",
+"2": "#da1e4c",
+"3": "#168e44"
+},
+"belgium-brussels": {
+"5": "#fcb814",
+"6": "#0080b3",
+"1": "#b95192",
+"2": "#f78e1e"
+},
+"bulgaria-sofia": {
+"M4": "#fdd304",
+"M1": "#e92228",
+"M2": "#1c75bb",
+"M3": "#41b24b"
+},
+"czech-republic-prague": {
+"B": "#ffbd0e",
+"C": "#ff0917",
+"A": "#02a848"
+},
+"denmark-copenhagen": {
+"A": "#00a7e3",
+"C": "#f29400",
+"B": "#55ab26",
+"E": "#857ab3",
+"Bx": "#aecd6b",
+"M3": "#e40037",
+"M2": "#ffcc00",
+"M1": "#007756",
+"M4": "#009cd3",
+"F": "#fcc300",
+"H": "#e64215"
+},
+"finland-helsinki": {
+"15": "#007e79",
+"M1": "#ff6319",
+"M2": "#ff6319"
+},
+"france-lille": {
+"1": "#ffe700",
+"2": "#e10019"
+},
+"france-lyon": {
+"A": "#ee3897",
+"B": "#007dc6",
+"C": "#f99d1c",
+"D": "#00ac4f"
+},
+"france-marseille": {
+"M1": "#5f89b4",
+"M2": "#eb6652"
+},
+"france-paris": {
+"1": "#ffce00",
+"2": "#0064b0",
+"3": "#9f9825",
+"3bis": "#98d4e2",
+"4": "#c04191",
+"5": "#f28e42",
+"6": "#83c491",
+"7": "#f3a4ba",
+"7bis": "#83c491",
+"8": "#ceadd2",
+"9": "#d5c900",
+"10": "#e3b32a",
+"11": "#8d5e2a",
+"12": "#00814f",
+"13": "#98d4e2",
+"14": "#662483"
+},
+"france-rennes": {
+"a": "#db2b1c",
+"b": "#2d8e2d"
+},
+"france-toulouse": {
+"A": "#e51b24",
+"B": "#fddd04",
+"C": "#54b34b"
+},
+"germany-berlin": {
+"U1": "#7dad4c",
+"U2": "#da421e",
+"U3": "#16683d",
+"U4": "#f0d722",
+"U5": "#7e5330",
+"U6": "#8c6dab",
+"U7": "#009bd5",
+"U8": "#224f86",
+"U9": "#f3791d",
+"S1": "#da6ba2",
+"S2": "#007734",
+"S3": "#0066ad",
+"S5": "#eb7405",
+"S7": "#816da6",
+"S8": "#66aa22",
+"S9": "#992746",
+"S15": "#da6ba2",
+"S25": "#007734",
+"S26": "#007734",
+"S41": "#ad5937",
+"S46": "#cd9c53",
+"S47": "#cd9c53",
+"S75": "#816da6",
+"S85": "#66aa22"
+},
+"germany-hamburg": {
+"U1": "#0072bc",
+"U2": "#ed1c24",
+"U3": "#ffde00",
+"U4": "#00aaad",
+"S1": "#00962c",
+"S2": "#b41439",
+"S3": "#54216e",
+"S5": "#008abd",
+"S7": "#bb7d31"
+},
+"germany-munich": {
+"U1": "#52822f",
+"U2": "#c20831",
+"U3": "#ec6725",
+"U4": "#00a984",
+"U5": "#bc7a00",
+"U6": "#0065ae",
+"U7": "#52822f",
+"U8": "#c20831"
+},
+"germany-nuremberg": {
+"U1": "#005d9c",
+"U2": "#e1001a",
+"U3": "#38b5b7"
+},
+"greece-athens": {
+"Μ1": "#007a33",
+"Μ2": "#da291c",
+"Μ3": "#10069f"
+},
+"greece-thessaloniki": {
+"1": "#da291c"
+},
+"hungary-budapest": {
+"M1": "#feda04",
+"M2": "#ca161c",
+"M3": "#025694",
+"M4": "#44aa44",
+"H5": "#821066",
+"H6": "#824b00",
+"H7": "#ee7203",
+"H8": "#ed677e",
+"H9": "#ed677e"
+},
+"italy-brescia": {
+"Metropolitana": "#0078ad"
+},
+"italy-catania": {
+"1": "#e71e26"
+},
+"italy-genoa": {
+"Metropolitana": "#336699"
+},
+"italy-milan": {
+"M1": "#ee2e26",
+"M2": "#5e9632",
+"M3": "#ffba14",
+"M4": "#001588",
+"M5": "#8584bb"
+},
+"italy-naples": {
+"1": "#f3bc62",
+"6": "#004589",
+"11": "#f17238"
+},
+"italy-rome": {
+"A": "#e56633",
+"B": "#0972b4",
+"C": "#008751"
+},
+"italy-turin": {
+"M1": "#fff200"
+},
+"netherlands-amsterdam": {
+"50": "#3aa644",
+"51": "#f2922c",
+"52": "#43c2f4",
+"53": "#e20224",
+"54": "#ffee00"
+},
+"netherlands-rotterdam": {
+"A": "#00aa50",
+"B": "#ffd301",
+"C": "#ef1f1f",
+"D": "#1bc5e9",
+"E": "#1a389a"
+},
+"norway-oslo": {
+"1": "#00a9ee",
+"2": "#e74d14",
+"3": "#b800f1",
+"4": "#004296",
+"5": "#4aac30"
+},
+"poland-warsaw": {
+"M1": "#0057b8",
+"M2": "#c8102e"
+},
+"portugal-lisbon": {
+"Azul": "#4e84c4",
+"Amarela": "#fdb913",
+"Verde": "#00aaa6",
+"Vermelha": "#ee2b74"
+},
+"romania-bucharest": {
+"M1": "#fcdd00",
+"M2": "#4b5799",
+"M3": "#dc2017",
+"M4": "#46996c",
+"M5": "#ff8040"
+},
+"russia-kazan": {
+"1": "#cc0000"
+},
+"russia-moscow": {
+"1": "#d92b2c",
+"2": "#44b85c",
+"3": "#0078bf",
+"4": "#19c1f3",
+"4А": "#19c1f3",
+"5": "#894e35",
+"6": "#f58631",
+"7": "#8e479c",
+"8": "#ffcb31",
+"8А": "#ffcb31",
+"9": "#a1a2a3",
+"10": "#b3d445",
+"11": "#79cdcd",
+"12": "#b0bfe7",
+"15": "#de64a1",
+"16": "#03795f"
+},
+"russia-nizhny-novgorod": {
+"1": "#f11013",
+"2": "#137cb5"
+},
+"russia-novosibirsk": {
+"1": "#e53027",
+"2": "#35b55f"
+},
+"russia-saint-petersburg": {
+"1": "#d6083b",
+"2": "#0078c9",
+"3": "#009a49",
+"4": "#ea7125",
+"5": "#702785"
+},
+"russia-samara": {
+"1": "#ff0000"
+},
+"russia-yekaterinburg": {
+"1": "#009900"
+},
+"spain-barcelona": {
+"L1": "#e23a3c",
+"L2": "#9e469c",
+"L3": "#52ba54",
+"L4": "#febe14",
+"L5": "#327acc",
+"L6": "#867ec4",
+"L7": "#ae621c",
+"L8": "#e27ab4",
+"L9S": "#f6862c",
+"L9N": "#f6862c",
+"L10S": "#02aeec",
+"L10 Nord": "#02aeec",
+"L11": "#aad264",
+"L12": "#b6b3e1"
+},
+"spain-bilbao": {
+"L1": "#f1592a",
+"L2": "#19181b",
+"L3": "#e6007e",
+"L4": "#003399"
+},
+"spain-madrid": {
+"L1": "#30a3dc",
+"L2": "#cd031d",
+"L3": "#ffe114",
+"L4": "#944248",
+"L5": "#96bf0d",
+"L6": "#a0a5a7",
+"L7": "#faa64a",
+"L8": "#f27ca2",
+"L9": "#a93094",
+"L10": "#084594",
+"L11": "#008b43",
+"L12": "#a49a00",
+"R": "#0e4a97",
+"ML1": "#0066ff",
+"ML2": "#892ca0",
+"ML3": "#ff0000"
+},
+"sweden-stockholm": {
+"10": "#177bc0",
+"11": "#177bc0",
+"13": "#ee2d28",
+"14": "#ee2d28",
+"17": "#51ba5b",
+"18": "#51ba5b",
+"19": "#51ba5b"
+},
+"switzerland-lausanne": {
+"m1": "#e2007a",
+"m2": "#e2007a"
+},
+"ukraine-dnipro": {
+"1": "#ff0000"
+},
+"ukraine-kharkiv": {
+"1 Холодногірсько-заводська": "#ff0000",
+"2 Салтівська": "#0000ff",
+"20770354": "#008000"
+},
+"ukraine-kyiv": {
+"M1": "#dc241f",
+"M2": "#2581c4",
+"M3": "#35ab52"
+},
+"united-kingdom-docklands-light-railway": {
+"S-L": "#00b2a9",
+"TG-B": "#00b2a9",
+"B-L": "#00b2a9",
+"B-WA": "#00b2a9",
+"SI-WA": "#00b2a9"
+},
+"united-kingdom-glasgow": {
+"Subway": "#f57c14"
+},
+"united-kingdom-london": {
+"District": "#007a33",
+"Piccadilly": "#10069f",
+"Central": "#da291c",
+"Circle": "#ffcd00",
+"Northern": "#000000",
+"Hammersmith & City": "#e89cae",
+"Jubilee": "#7c878e",
+"Bakerloo": "#a45a2a",
+"Metropolitan": "#840b55",
+"Victoria": "#00a3e0",
+"Waterloo & City": "#6eceb2",
+"S-L": "#00b2a9",
+"TG-B": "#00b2a9",
+"B-L": "#00b2a9",
+"B-WA": "#00b2a9",
+"SI-WA": "#00b2a9"
+},
+"canada-montreal": {
+"2": "#e87722",
+"1": "#009739",
+"5": "#005eb8",
+"4": "#ffcd00"
+},
+"canada-toronto": {
+"1": "#f8c302",
+"2": "#16a753",
+"5": "#f87005",
+"6": "#8a999a",
+"4": "#b32078"
+},
+"canada-vancouver": {
+"Expo Line": "#005aaf",
+"Millennium Line": "#ffce36",
+"Canada Line": "#00a2ce"
+},
+"dominican-republic-santo-domingo": {
+"2": "#ff0101",
+"1": "#0000c0"
+},
+"mexico-guadalajara": {
+"TL-1": "#76222e",
+"TL-2": "#017256",
+"TL-3": "#d60280",
+"TL-4": "#f5af39"
+},
+"mexico-mexico-city": {
+"1": "#f04e98",
+"2": "#005eb8",
+"3": "#af9800",
+"4": "#6bbbae",
+"5": "#ffd100",
+"6": "#da291c",
+"7": "#e87722",
+"8": "#009a44",
+"9": "#512f2e",
+"12": "#b0a32a",
+"A": "#981d97",
+"B": "#b1b3b3"
+},
+"mexico-monterrey": {
+"1": "#ffbf00",
+"2": "#6bc069",
+"3": "#ff6309"
+},
+"panama-panama-city": {
+"L1": "#eb1c24",
+"L2": "#008f47",
+"15624911": "#008f47"
+},
+"united-states-atlanta": {
+"Red": "#cf232d",
+"Gold": "#d5a72b",
+"Blue": "#0476b3",
+"Green": "#009e4a"
+},
+"united-states-baltimore": {
+"LR": "#00749a",
+"M": "#008001"
+},
+"united-states-boston": {
+"Green-D": "#00843d",
+"Green-E": "#00843d",
+"Green-B": "#00843d",
+"Green-C": "#00843d",
+"Orange": "#ed8b00",
+"Red": "#da291c",
+"Blue": "#003da5",
+"Mattapan": "#da291c"
+},
+"united-states-chicago": {
+"Red": "#c60c30",
+"Blue": "#00a1de",
+"Green": "#009b3a",
+"Brown": "#62361b",
+"Purple": "#522398",
+"Pink": "#e27ea6",
+"Orange": "#f9461c",
+"Yellow": "#f9e300"
+},
+"united-states-cleveland": {
+"Green": "#8fb63b",
+"Blue": "#3272b3",
+"Red": "#fe2e18"
+},
+"united-states-honolulu": {
+"15979955": "#134574"
+},
+"united-states-los-angeles": {
+"A": "#0072bc",
+"E": "#f7b618",
+"B": "#e3131b",
+"K": "#e96bb0",
+"C": "#58a738",
+"D": "#a05da5"
+},
+"united-states-miami": {
+"Green": "#9dd165",
+"Orange": "#fe4d1a"
+},
+"united-states-path": {
+"JSQ–33 via HOB": "#000000",
+"HOB–33": "#0082c6",
+"NWK–WTC": "#ef3941",
+"HOB–WTC": "#009e58"
+},
+"united-states-philadelphia": {
+"L": "#1c9ad6",
+"B1": "#f26100",
+"B2": "#f26100",
+"B3": "#f26100",
+"M": "#613393",
+"PATCO": "#c81f3c"
+},
+"united-states-san-francisco": {
+"Yellow": "#ffe800",
+"N": "#004988",
+"M": "#008851",
+"Red": "#ed1c24",
+"T": "#d40843",
+"Green": "#4db848",
+"J": "#e18813",
+"Orange": "#faa61a",
+"K": "#549dbf",
+"L": "#932290",
+"Blue": "#00aeef",
+"S": "#ffcc00",
+"OAK": "#b0bdc6"
+},
+"united-states-san-juan": {
+"Tren Urbano": "#bf322f"
+},
+"united-states-staten-island-railway": {
+"SIR": "#006bb6"
+},
+"united-states-washington-dc": {
+"R": "#e51636",
+"B": "#1574c4",
+"O": "#f68712",
+"Y": "#fcd006",
+"G": "#0fab4b",
+"S": "#9d9f9c"
+},
+"australia-sydney": {
+"L1": "#be1622",
+"L2": "#dd1e25",
+"L3": "#781140",
+"L4": "#cd0d4d",
+"M1": "#168388"
+},
+"argentina-buenos-aires": {
+"A": "#00aeda",
+"B": "#ee4035",
+"C": "#0067b2",
+"D": "#008067",
+"E": "#6c2180",
+"H": "#ffde00"
+},
+"brazil-belo-horizonte": {
+"1": "#ff7500"
+},
+"brazil-brasilia": {
+"Verde": "#008800",
+"Laranja": "#ff7f00"
+},
+"brazil-fortaleza": {
+"Sul": "#ff0000",
+"Oeste": "#008000",
+"Parangaba-Mucuripe": "#6b297e",
+"5": "#ffcc00"
+},
+"brazil-porto-alegre": {
+"1": "#001969"
+},
+"brazil-recife": {
+"1": "#ff8c00",
+"2": "#ff0000",
+"Sul": "#1e90ff",
+"VLT Cabo - Cajueiro Seco": "#8b4513",
+"VLT Curado-Cajueiro Seco": "#696969"
+},
+"brazil-rio-de-janeiro": {
+"1": "#ff8500",
+"2": "#00ae27",
+"4": "#ffc400"
+},
+"brazil-salvador": {
+"1": "#ff0000",
+"2": "#000080"
+},
+"brazil-sao-paulo": {
+"1": "#171796",
+"2": "#007a5e",
+"3": "#ed2e38",
+"4": "#ffd525",
+"5": "#ba1fb5",
+"15": "#8f8f8c",
+"17": "#d48500",
+"20404887": "#03accb"
+},
+"chile-santiago": {
+"L1": "#e60011",
+"L2": "#ffc300",
+"L3": "#8b4513",
+"L4": "#11469b",
+"L5": "#00996b",
+"L6": "#800080",
+"L7": "#808080"
+},
+"colombia-medellin": {
+"A": "#1c5c9c",
+"B": "#e38835"
+},
+"ecuador-quito": {
+"1": "#e1393e"
+},
+"peru-lima": {
+"L1": "#4c9c47",
+"L2": "#ffb81c"
+},
+"venezuela-caracas": {
+"L1": "#ff3f00",
+"L2": "#228b22",
+"L3": "#0404b4",
+"L4": "#ffff00"
+},
+"venezuela-maracaibo": {
+"1": "#00ff00"
+},
+"venezuela-valencia": {
+"1": "#ea5e00"
+}
+}
