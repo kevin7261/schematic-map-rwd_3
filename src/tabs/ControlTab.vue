@@ -9807,8 +9807,8 @@
             </div>
           </div>
 
-          <!-- 目前路線／站點 + 各路線站點：整塊限高 640pt，內容過長可捲動 -->
-          <div style="max-height: 640pt; overflow-y: auto">
+          <!-- 目前路線／站點 + 各路線站點：整塊限高 320pt，內容過長可捲動 -->
+          <div style="max-height: 320pt; overflow-y: auto">
           <!-- 目前路線／站點統計 -->
           <div class="my-title-xs-gray pb-2">目前路線／站點</div>
           <div class="d-flex justify-content-between my-font-size-xs pb-1">
@@ -10032,8 +10032,8 @@
             加上交叉站點（cross）
           </button>
 
-          <!-- 目前路線／站點 + 明細：整塊限高 640pt，內容過長可捲動 -->
-          <div style="max-height: 640pt; overflow-y: auto">
+          <!-- 目前路線／站點 + 明細：整塊限高 320pt，內容過長可捲動 -->
+          <div style="max-height: 320pt; overflow-y: auto">
           <!-- 目前路線／站點統計 -->
           <div class="my-title-xs-gray pb-2">目前路線／站點</div>
           <div class="d-flex justify-content-between my-font-size-xs pb-1">

@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchMetroGeojsonByBbox } from '../src/utils/metroOsmFetch.js';
 import { overridesFor } from '../src/utils/metroOverrides.js';
-import { isMainlandChina, convertFcToTraditional, mergeSameNameStations, addExtraStations, mergeLoopLines } from './_toTraditional.mjs';
+import { isMainlandChina, convertFcToTraditional, mergeSameNameStations, addExtraStations, mergeLoopLines, dropOrphanNodes } from './_toTraditional.mjs';
 import { validateGeojson } from './validateMetroGeojson.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -58,6 +58,7 @@ for (const id of ids) {
     if (ov.mergeLoops) mergeLoopLines(fc, ov.mergeLoops); // 環線半環縫合
     if (!ov.noNameMerge) mergeSameNameStations(fc); // 同名車站合併（紐約等特例除外）
     if (ov.extraStations) addExtraStations(fc, ov.extraStations); // 手動補站（OSM 缺漏）
+    dropOrphanNodes(fc); // 收尾：清除孤立 node
     const v = validateGeojson(fc);
     const rel = fileFor(c);
     const full = path.join(DIR, rel);

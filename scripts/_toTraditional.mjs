@@ -100,6 +100,18 @@ export function mergeSameNameStations(fc) {
   return fc;
 }
 
+/** 移除孤立 node（座標不在任何 way 頂點上者）——後處理改動 way 後的收尾。 */
+export function dropOrphanNodes(fc) {
+  const k = (p) => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`;
+  const vset = new Set();
+  for (const f of fc.features || [])
+    if (f.properties?.element_type === 'way') for (const c of f.geometry.coordinates) vset.add(k(c));
+  fc.features = (fc.features || []).filter(
+    (f) => f.properties?.element_type !== 'node' || vset.has(k(f.geometry.coordinates))
+  );
+  return fc;
+}
+
 /**
  * 環線縫合：把同一條環線的多個半環/方向段（route_name 符合同一 pattern）縫成一條完整（盡量閉合）的線，
  * 解決 OSM 把環線拆成 CW/ACW 半環、各停在中段造成「假端點」的問題。
