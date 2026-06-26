@@ -7,12 +7,26 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchMetroGeojsonByBbox } from '../src/utils/metroOsmFetch.js';
 import { overridesFor } from '../src/utils/metroOverrides.js';
-import { isMainlandChina, convertFcToTraditional } from './_toTraditional.mjs';
+import { isMainlandChina, convertFcToTraditional, mergeSameNameStations } from './_toTraditional.mjs';
 import { validateGeojson } from './validateMetroGeojson.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIR = path.join(__dirname, '..', 'public', 'data', 'metro');
 const CATALOG = path.join(DIR, '_catalog.json');
+
+const CONT_SLUG = {
+  '亞洲 Asia': 'asia',
+  '歐洲 Europe': 'europe',
+  '北美 North America': 'north-america',
+  '南美 South America': 'south-america',
+  '大洋洲 Oceania': 'oceania',
+  '非洲 Africa': 'africa',
+  '其他 Other': 'other',
+};
+const slug = (s) =>
+  String(s).toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-') || 'x';
+const fileFor = (c) =>
+  c.file || `${CONT_SLUG[c.continent] || 'other'}/${slug(c.country)}/${slug(c.city)}.geojson`;
 
 const ids = process.argv.slice(2);
 const catalog = JSON.parse(fs.readFileSync(CATALOG, 'utf8'));
@@ -37,16 +51,15 @@ for (const id of ids) {
       clipToBbox: ov.clipToBbox,
     });
     if (isMainlandChina(c)) convertFcToTraditional(fc); // 大陸城市簡→繁
+    mergeSameNameStations(fc); // 同名車站合併（簡→繁後最終保險）
     const v = validateGeojson(fc);
-    const ways = fc.features.filter((f) => f.properties?.element_type === 'way');
-    const constr = ways.filter((f) => f.properties?.status === 'construction').length;
-    const prop = ways.filter((f) => f.properties?.status === 'proposed').length;
-    const full = path.join(DIR, c.file);
+    const rel = fileFor(c);
+    const full = path.join(DIR, rel);
     fs.mkdirSync(path.dirname(full), { recursive: true });
     fs.writeFileSync(full, JSON.stringify(fc));
-    console.log(
-      `${v.lines} 線（施工 ${constr}、計畫 ${prop}）、${v.nodes} 站 ${v.errors.length ? '⚠ ' + v.errors.join('；') : '✓'}`
-    );
+    c.file = rel; // 還原/設定 catalog file 參照
+    fs.writeFileSync(CATALOG, JSON.stringify(catalog));
+    console.log(`${v.lines} 線、${v.nodes} 站 ${v.errors.length ? '⚠ ' + v.errors.join('；') : '✓'}`);
   } catch (e) {
     console.log('失敗：', e.message || e);
   }

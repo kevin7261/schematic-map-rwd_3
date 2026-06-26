@@ -269,10 +269,11 @@ export function mountRouteMapAdjust(el, dataStore) {
       layer.routeMapAdjustLines,
       layer.routeMapAdjustBlackDots
     );
-    // 站名顏色與站點圓點一致：端點藍／交點紅／黑點黑；端點交點字較大，黑點字較小
+    // 站名顏色與站點圓點一致：交點紅 > 端點藍 > 黑點黑（順序＝圓點疊放優先序，
+    // 讓「同時是端點又是交點」的站，名稱取與最上層圓點相同的顏色＝紅）。
     const entries = [
-      ...terminals.map((p) => ({ p, fontSize: 13, color: '#1565c0' })),
       ...connects.map((p) => ({ p, fontSize: 13, color: '#ff0000' })),
+      ...terminals.map((p) => ({ p, fontSize: 13, color: '#1565c0' })),
       ...blacks.map((p) => ({ p, fontSize: 10, color: '#000000' })),
     ];
     const seen = new Set();

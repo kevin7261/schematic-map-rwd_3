@@ -269,20 +269,16 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   // 含營運中（subway/light_rail/monorail）＋施工中（route=construction）＋計畫中（route=proposed）的同類路線；
   // 施工／計畫的實際模式記在 construction:route／proposed:route。
   const modeRe = '^(subway|light_rail|monorail)$';
-  // 施工／計畫路線在 OSM 常以 way 層級（railway=construction/proposed + construction/proposed=模式）標記、
-  // 而無 route 關聯（如台北環狀線各環段、民生汐止線、三鶯線、五股泰山輕軌…）；故另抓這些 way。
+  // 只抓「營運中」路線（route=subway/light_rail/monorail）；未完工（construction/proposed）不畫。
+  // includeRail 可額外納入指定的 route=train 線（如東京 JR 山手線/中央線）。
   const query =
     `[out:json][timeout:120];(` +
     `relation["route"~"${modeRe}"](${s},${w},${n},${e});` +
-    `relation["route"="construction"]["construction:route"~"${modeRe}"](${s},${w},${n},${e});` +
-    `relation["route"="proposed"]["proposed:route"~"${modeRe}"](${s},${w},${n},${e});` +
     (opts.includeRail
       ? `relation["route"="train"]["name"~"${opts.includeRail}"](${s},${w},${n},${e});`
       : '') +
     `)->.r;.r out geom;node(r.r);out tags;` +
-    `node["railway"~"^(station|halt)$"](${s},${w},${n},${e});out;` +
-    `way["railway"="construction"]["construction"~"${modeRe}"](${s},${w},${n},${e});out geom;` +
-    `way["railway"="proposed"]["proposed"~"${modeRe}"](${s},${w},${n},${e});out geom;`;
+    `node["railway"~"^(station|halt)$"](${s},${w},${n},${e});out;`;
   const json = await overpass(query, onProgress);
   onProgress('處理路線資料…');
 

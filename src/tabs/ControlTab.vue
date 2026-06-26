@@ -9869,7 +9869,7 @@
                   :style="{ width: '8px', height: '8px', backgroundColor: srmStationColor(st.type) }"
                 ></span>
                 <span class="d-flex align-items-center">
-                  {{ srmStationLabel(st.type) }}
+                  {{ st.name || srmStationLabel(st.type) }}
                   <template v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length">
                     <span class="ms-1 me-1">· 交會</span>
                     <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
@@ -10120,7 +10120,7 @@
                   :style="{ width: '8px', height: '8px', backgroundColor: rmaStationColor(st.type) }"
                 ></span>
                 <span class="d-flex align-items-center">
-                  {{ rmaStationLabel(st.type) }}
+                  {{ st.name || rmaStationLabel(st.type) }}
                   <template v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length">
                     <span class="ms-1 me-1">· 交會</span>
                     <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">

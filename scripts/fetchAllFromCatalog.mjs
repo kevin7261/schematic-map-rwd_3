@@ -17,7 +17,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { fetchMetroGeojsonByBbox } from '../src/utils/metroOsmFetch.js';
 import { overridesFor } from '../src/utils/metroOverrides.js';
-import { isMainlandChina, convertFcToTraditional } from './_toTraditional.mjs';
+import { isMainlandChina, convertFcToTraditional, mergeSameNameStations } from './_toTraditional.mjs';
 import { validateGeojson } from './validateMetroGeojson.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,7 +37,7 @@ const CONT_SLUG = {
 const slug = (s) =>
   String(s).toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-') || 'x';
 
-const CONCURRENCY = 4; // 並行抓取數（搭配 3 個 Overpass 鏡像，對單一鏡像仍友善）
+const CONCURRENCY = 2; // 並行抓取數（降到 2 以降低 Overpass 504 機率）
 
 async function main() {
   const force = process.argv.includes('--force');
@@ -79,6 +79,7 @@ async function main() {
         clipToBbox: ov.clipToBbox,
       });
       if (isMainlandChina(c)) convertFcToTraditional(fc); // 大陸城市簡→繁
+      mergeSameNameStations(fc); // 同名車站合併（簡→繁後最終保險）
       const v = validateGeojson(fc);
       if (v.errors.length) {
         fail++;

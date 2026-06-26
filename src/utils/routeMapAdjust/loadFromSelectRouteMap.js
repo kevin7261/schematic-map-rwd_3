@@ -220,17 +220,32 @@ export function useRouteMapAdjust(dataStore) {
     };
   });
 
+  /** 站名查表鍵（與渲染端一致：lat,lng 取 6 位小數） */
+  const metaKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
+
   const routeMapAdjustRouteList = computed(() => {
     const lyr = adjustLayer.value;
     const lines = Array.isArray(lyr?.routeMapAdjustLines) ? lyr.routeMapAdjustLines : [];
     const blackDots = Array.isArray(lyr?.routeMapAdjustBlackDots) ? lyr.routeMapAdjustBlackDots : [];
-    return computeRouteMapAdjustRouteStations(lines, blackDots);
+    const meta = lyr?.routeMapAdjustStationMeta || {};
+    const nameAt = (latlng) =>
+      (latlng && meta[metaKey(latlng[0], latlng[1])]?.name) || '';
+    // 以實際 route_name／station_name 充實清單（取代僅以顏色／type 呈現）
+    return computeRouteMapAdjustRouteStations(lines, blackDots).map((r) => ({
+      ...r,
+      routeName: lines[r.routeIndex]?.routeName || `路線 ${r.routeIndex + 1}`,
+      stations: r.stations.map((st) => ({ ...st, name: nameAt(st.latlng) })),
+    }));
   });
 
   const routeMapAdjustStationColor = (type) =>
     type === 'terminal' ? '#1565c0' : type === 'connect' ? '#ff0000' : '#000000';
   const routeMapAdjustRouteColor = (index) => routeMapAdjustRouteList.value[index]?.color || '#000000';
-  const routeMapAdjustRouteName = (index) => routeMapAdjustColorNameForIndex(index);
+  /** 路線名稱：優先用實際 route_name，無則退回顏色名 */
+  const routeMapAdjustRouteName = (index) => {
+    const lines = adjustLayer.value?.routeMapAdjustLines || [];
+    return lines[index]?.routeName || routeMapAdjustColorNameForIndex(index);
+  };
   const routeMapAdjustStationLabel = (type) =>
     type === 'terminal'
       ? 'terminal（端點）'
