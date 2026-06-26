@@ -504,3 +504,25 @@ export const computeRouteMapAdjustSharedEndpointSegments = (lines) => {
   }
   return out;
 };
+
+/**
+ * 找出「頭尾同點」的路線（環線）：單一路線的頭端點與尾端點為同一座標。
+ *  - 判定：line.closed === true，或起點與終點座標相同（取整 6 位）。
+ *  - 回傳整條路線路徑，供地圖以綠色 highlight。
+ * @param {Array} lines 路線
+ * @returns {Array<{routeIndex:number, path:Array<[number,number]>, color:string|null}>}
+ */
+export const computeRouteMapAdjustLoopRoutes = (lines) => {
+  const safeLines = Array.isArray(lines)
+    ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
+    : [];
+  const round = (n) => Number(Number(n).toFixed(6));
+  const key = (p) => `${round(p[0])},${round(p[1])}`;
+  const out = [];
+  safeLines.forEach((line, li) => {
+    const pts = line.latlngs;
+    const isLoop = line.closed === true || key(pts[0]) === key(pts[pts.length - 1]);
+    if (isLoop) out.push({ routeIndex: li, path: pts, color: line.color || null });
+  });
+  return out;
+};

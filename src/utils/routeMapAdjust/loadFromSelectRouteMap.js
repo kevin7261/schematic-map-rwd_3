@@ -12,6 +12,7 @@ import {
   buildRouteMapAdjustMergedNetwork,
   computeRouteMapAdjustSharedSegments,
   computeRouteMapAdjustSharedEndpointSegments,
+  computeRouteMapAdjustLoopRoutes,
   routeMapAdjustColorNameForIndex,
 } from './routeStations.js';
 
@@ -188,6 +189,16 @@ export function useRouteMapAdjust(dataStore) {
     }));
   });
 
+  /** 🟢 頭尾同點（環線）清單：單一路線頭尾為同一點，供面板列出（地圖以綠色高亮） */
+  const loopRouteList = computed(() => {
+    const lyr = adjustLayer.value;
+    const lines = Array.isArray(lyr?.routeMapAdjustLines) ? lyr.routeMapAdjustLines : [];
+    return computeRouteMapAdjustLoopRoutes(lines).map((s, i) => ({
+      index: i,
+      routeName: lines[s.routeIndex]?.routeName || routeMapAdjustColorNameForIndex(s.routeIndex),
+    }));
+  });
+
   /** cross 站點清單（type 固定為 'cross'），供面板列出 */
   const routeMapAdjustCrossList = computed(() => {
     const lyr = adjustLayer.value;
@@ -262,6 +273,7 @@ export function useRouteMapAdjust(dataStore) {
     routeMapAdjustCrossList,
     sharedSegmentList,
     sharedEndpointList,
+    loopRouteList,
     buildMergedNetwork,
     mergedNetworkStats,
     mergedNetworkEdgeList,

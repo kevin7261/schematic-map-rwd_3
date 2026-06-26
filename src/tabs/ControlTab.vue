@@ -3458,6 +3458,7 @@
     routeMapAdjustCrossList: rmaCrossList,
     sharedSegmentList: rmaSharedList,
     sharedEndpointList: rmaEndpointList,
+    loopRouteList: rmaLoopList,
     buildMergedNetwork: rmaBuildMerged,
     mergedNetworkStats: rmaMergedStats,
     mergedNetworkEdgeList: rmaMergedEdges,
@@ -9982,6 +9983,34 @@
             <span>{{ e.routeName }}（紅點×{{ e.aRouteCount }} → 紅點×{{ e.bRouteCount }}）</span>
           </div>
           <div v-if="rmaEndpointList.length" class="pb-2"></div>
+
+          <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
+          <div class="my-title-xs-gray pb-2">
+            頭尾同點（環線）
+            <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block me-2"
+                style="width: 14px; height: 8px; background-color: #00c853"
+              ></span>
+              環線數
+            </span>
+            <span>{{ rmaLoopList.length }}</span>
+          </div>
+          <div v-if="rmaLoopList.length === 0" class="my-font-size-xs pb-3">
+            無環線（沒有頭尾為同一點的路線）。
+          </div>
+          <div
+            v-for="e in rmaLoopList"
+            :key="e.index"
+            class="d-flex align-items-center my-font-size-xs pb-1"
+          >
+            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+            <span>{{ e.routeName }}</span>
+          </div>
+          <div v-if="rmaLoopList.length" class="pb-2"></div>
 
           <!-- 🕸️ 把整個路網合併成單一結構（重疊路線→一條線，屬性以 list 全記） -->
           <div class="my-title-xs-gray pb-2">路網結構</div>

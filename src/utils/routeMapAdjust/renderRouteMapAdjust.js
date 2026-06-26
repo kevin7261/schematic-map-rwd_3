@@ -11,6 +11,7 @@ import { watch } from 'vue';
 import {
   computeRouteMapAdjustStations,
   computeRouteMapAdjustSharedEndpointSegments,
+  computeRouteMapAdjustLoopRoutes,
 } from './routeStations.js';
 import { ROUTE_MAP_ADJUST_LAYER_ID } from './loadFromSelectRouteMap.js';
 
@@ -60,6 +61,7 @@ export function mountRouteMapAdjust(el, dataStore) {
   // ⚠️ 群組加入順序＝由下而上的圖層順序：
   //    共線黃色底色（最底）→ 路線 → 合併結構 → 站點／交叉（最上）
   const sharedGroup = L.layerGroup().addTo(map); // 🔴 共線段底色高亮（墊在路線底下）
+  const loopGroup = L.layerGroup().addTo(map); // 🟢 頭尾同點（環線）綠色底色高亮（墊在路線底下）
   const endpointGroup = L.layerGroup().addTo(map); // 🔵 頭尾共點端點線段藍色底色高亮（墊在路線底下）
   const finishedGroup = L.layerGroup().addTo(map);
   const mergedGroup = L.layerGroup().addTo(map);
@@ -318,17 +320,36 @@ export function mountRouteMapAdjust(el, dataStore) {
     }
   };
 
+  // 🟢 頭尾同點（環線）：單一路線頭尾為同一點，以綠色粗線標示整條（底色，墊在路線底下）
+  const renderLoops = () => {
+    loopGroup.clearLayers();
+    const loops = computeRouteMapAdjustLoopRoutes(layer.routeMapAdjustLines);
+    for (const s of loops) {
+      if (!Array.isArray(s.path) || s.path.length < 2) continue;
+      L.polyline(s.path, {
+        color: '#00c853', // 綠色底色高亮，標示頭尾同點之環線
+        weight: 12,
+        opacity: 0.6,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false,
+      }).addTo(loopGroup);
+    }
+  };
+
   const renderAll = () => {
-    // 已合併：顯示單一結構（重疊→一條線）；否則顯示原始各路線 + 共線/頭尾共點高亮
+    // 已合併：顯示單一結構（重疊→一條線）；否則顯示原始各路線 + 共線/頭尾共點/環線高亮
     if (hasMerged()) {
       finishedGroup.clearLayers();
       sharedGroup.clearLayers();
       endpointGroup.clearLayers();
+      loopGroup.clearLayers();
       renderMerged();
     } else {
       mergedGroup.clearLayers();
       renderFinished();
       renderShared(); // 預設顯示共線（紅）
+      renderLoops(); // 預設顯示頭尾同點環線（綠）
       renderEndpoints(); // 預設顯示頭尾共點（藍線）
     }
     renderStations(); // 站點 + 交叉（cross）預設顯示
