@@ -731,18 +731,84 @@ export const buildRouteMapAdjustSkeleton = (lines) => {
     if (idxs.length >= 2) idxs.forEach((i) => htsEdgeIdx.add(i));
   }
 
+  // 各邊分類
+  const classified = edgesOut.map((e, i) => ({
+    ...e,
+    isMerged: (e.routes?.length || 0) >= 2, // 🔴 合併（共線）
+    isLoop: (e.routes || []).some((r) => loopRouteIdx.has(r.routeIndex)), // 🟢 環線
+    isHeadTailShared: htsEdgeIdx.has(i), // 🔵 頭尾共點（分歧邊）
+  }));
+
+  // 折線上「平均分佈的 n 個轉折點」之頂點索引（n+1 等分，各取最接近之彎折頂點）
+  const evenTurningIndices = (path, n) => {
+    if (!Array.isArray(path) || path.length < 3 || n < 1) return [];
+    const cum = [0];
+    for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + planarDist(path[i - 1], path[i]));
+    const total = cum[cum.length - 1];
+    const turns = [];
+    for (let i = 1; i < path.length - 1; i++) {
+      const ax = path[i][1] - path[i - 1][1];
+      const ay = path[i][0] - path[i - 1][0];
+      const bx = path[i + 1][1] - path[i][1];
+      const by = path[i + 1][0] - path[i][0];
+      const la = Math.hypot(ax, ay);
+      const lb = Math.hypot(bx, by);
+      if (la === 0 || lb === 0) continue;
+      if (Math.abs(ax * by - ay * bx) / (la * lb) > 1e-3) turns.push(i);
+    }
+    const cand = turns.length ? turns : path.map((_, i) => i).slice(1, -1);
+    if (!cand.length) return [];
+    const out = [];
+    const used = new Set();
+    for (let j = 1; j <= n; j++) {
+      const target = (total * j) / (n + 1);
+      let best = -1;
+      let bd = Infinity;
+      for (const i of cand) {
+        if (used.has(i)) continue;
+        const d = Math.abs(cum[i] - target);
+        if (d < bd) {
+          bd = d;
+          best = i;
+        }
+      }
+      if (best >= 0) {
+        used.add(best);
+        out.push(best);
+      }
+    }
+    return out.sort((a, b) => a - b);
+  };
+
+  // 🟣 在紫點（藍線 1 個、綠線 2 個轉折點）處「切斷」邊：紫點成為節點，邊一分為多段
+  const finalEdges = [];
+  const purpleNodes = [];
+  for (const e of classified) {
+    const purpleN = e.isMerged ? 0 : e.isHeadTailShared ? 1 : e.isLoop ? 2 : 0;
+    const path = Array.isArray(e.path) ? e.path : [];
+    const idxs = purpleN ? evenTurningIndices(path, purpleN) : [];
+    if (!idxs.length) {
+      finalEdges.push(e);
+      continue;
+    }
+    const bounds = [0, ...idxs, path.length - 1];
+    for (let s = 0; s < bounds.length - 1; s++) {
+      const sub = path.slice(bounds[s], bounds[s + 1] + 1);
+      if (sub.length >= 2) finalEdges.push({ ...e, path: sub });
+    }
+    for (const i of idxs) purpleNodes.push({ latlng: path[i], routes: e.routes, isPurple: true });
+  }
+
   return {
-    nodes: [...nodeRoutes.keys()].map((k) => ({
-      latlng: vert.get(k),
-      routes: [...nodeRoutes.get(k).values()],
-      isCross: crossKeys.has(k),
-    })),
-    edges: edgesOut.map((e, i) => ({
-      ...e,
-      isMerged: (e.routes?.length || 0) >= 2, // 🔴 合併（共線）
-      isLoop: (e.routes || []).some((r) => loopRouteIdx.has(r.routeIndex)), // 🟢 環線
-      isHeadTailShared: htsEdgeIdx.has(i), // 🔵 頭尾共點（分歧邊）
-    })),
+    nodes: [
+      ...[...nodeRoutes.keys()].map((k) => ({
+        latlng: vert.get(k),
+        routes: [...nodeRoutes.get(k).values()],
+        isCross: crossKeys.has(k),
+      })),
+      ...purpleNodes,
+    ],
+    edges: finalEdges,
     crossNodes,
   };
 };
