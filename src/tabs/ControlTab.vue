@@ -3438,6 +3438,7 @@
     quickLoadCity: srmQuickLoad,
     clearRouteMap: srmClear,
     routeMapSource: srmSource,
+    routeMapOfficialUrl: srmOfficialUrl,
     showStationNames: srmShowNames,
     routeMapStats: srmStats,
     routeMapRouteList: srmRouteList,
@@ -3454,14 +3455,10 @@
     isLoading: rmaLoading,
     loadFromSelectRouteMap: rmaLoadFromSelect,
     clearRouteMapAdjust: rmaClear,
-    addCrossStations: rmaAddCross,
     routeMapAdjustCrossList: rmaCrossList,
     sharedSegmentList: rmaSharedList,
     sharedEndpointList: rmaEndpointList,
     loopRouteList: rmaLoopList,
-    buildMergedNetwork: rmaBuildMerged,
-    mergedNetworkStats: rmaMergedStats,
-    mergedNetworkEdgeList: rmaMergedEdges,
     routeMapAdjustSource: rmaSource,
     showStationNames: rmaShowNames,
     routeMapAdjustStats: rmaStats,
@@ -9797,6 +9794,9 @@
           <div v-if="srmTracing && srmLoadMsg" class="text-muted my-font-size-xs pb-2">{{ srmLoadMsg }}</div>
           <div v-if="srmSource" class="text-muted my-font-size-xs pb-3" style="line-height: 1.45">
             資料來源：{{ srmSource }}
+            <div v-if="srmOfficialUrl">
+              <a :href="srmOfficialUrl" target="_blank" rel="noopener noreferrer">官方路線圖 ↗</a>
+            </div>
           </div>
 
           <!-- 🏷️ 顯示車站名開關 -->
@@ -9974,7 +9974,7 @@
             <span>{{ rmaCrossList.length }}</span>
           </div>
           <div v-if="rmaCrossList.length === 0" class="my-font-size-xs pb-3">
-            尚無交叉站點。按上方「加上交叉站點」計算。
+            無交叉站點（沒有路線幾何交叉但無站點之處）。
           </div>
           <div
             v-for="c in rmaCrossList"
@@ -10047,55 +10047,6 @@
           <div v-if="rmaEndpointList.length" class="pb-2"></div>
 
           </div>
-
-          <!-- 🕸️ 把整個路網合併成單一結構（重疊路線→一條線，屬性以 list 全記） -->
-          <div class="my-title-xs-gray pb-2">路網結構</div>
-          <button
-            type="button"
-            class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
-            :disabled="rmaStats.routes === 0"
-            title="把整個路網合併成單一結構：重疊的多條路線合併為一條線，屬性全部以 list 記下"
-            @click="rmaBuildMerged"
-          >
-            合併路網為單一結構
-          </button>
-          <template v-if="rmaMergedStats.built">
-            <div class="d-flex justify-content-between my-font-size-xs pb-1">
-              <span>節點</span><span>{{ rmaMergedStats.nodes }}</span>
-            </div>
-            <div class="d-flex justify-content-between my-font-size-xs pb-1">
-              <span>邊（合併後線段）</span><span>{{ rmaMergedStats.edges }}</span>
-            </div>
-            <div class="d-flex justify-content-between my-font-size-xs pb-2">
-              <span>重疊邊（≥2 路線共用）</span><span>{{ rmaMergedStats.sharedEdges }}</span>
-            </div>
-            <!-- 每條邊一列：列出經過此邊之所有路線屬性（list） -->
-            <div class="my-title-xs-gray pb-2">各邊路線屬性（list）</div>
-            <div
-              v-for="e in rmaMergedEdges"
-              :key="e.index"
-              class="pb-1"
-              :class="{ 'fw-bold': e.routeCount >= 2 }"
-            >
-              <div class="my-font-size-xs">
-                #{{ e.index + 1 }}（{{ e.routeCount }} 路線）：{{ e.routeNames.join('、') }}
-              </div>
-            </div>
-            <div class="pb-2"></div>
-          </template>
-
-          <!-- 🟡 在交叉但無站點處加上 cross 站點（黃色，不截斷路線） -->
-          <div class="my-title-xs-gray pb-2">交叉站點</div>
-          <button
-            type="button"
-            class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-3"
-            style="background-color: #ffd600; color: #000"
-            :disabled="rmaStats.routes === 0"
-            title="在路線幾何交叉但沒有站點的位置加上 cross 站點（黃色），不會截斷路線"
-            @click="rmaAddCross"
-          >
-            加上交叉站點（cross）
-          </button>
 
           <!-- 目前路線／站點 + 明細：整塊限高 320pt，內容過長可捲動 -->
           <div style="max-height: 320pt; overflow-y: auto">

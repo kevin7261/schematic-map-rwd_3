@@ -8,6 +8,8 @@
  * 以及目前路線／站點統計與各路線站點清單。
  */
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
+// 🔗 各城市地鐵「官方路線圖」連結（catalog id → url），與管線解耦獨立維護
+import OFFICIAL_MAP from '../metroOfficialMap.json';
 import {
   computeRouteMapStations,
   computeRouteMapRouteStations,
@@ -179,6 +181,8 @@ export function useSelectRouteMapCatalog(dataStore) {
       // 保存原始 GeoJSON（FeatureCollection），供 UpperView 之 GeoJSON 檢視分頁顯示
       lyr.selectRouteMapGeojson = fc;
       lyr.selectRouteMapSource = `${city.city}, ${city.country}・© OpenStreetMap contributors（ODbL）`;
+      // 🔗 該城市地鐵「官方路線圖」連結（存於 metroOfficialMap.json，依 catalog id 查）
+      lyr.selectRouteMapOfficialUrl = OFFICIAL_MAP[city.id] || '';
       dataStore.requestSelectRouteMapFit();
     } catch (e) {
       window.alert('讀取失敗：' + (e && e.message ? e.message : e));
@@ -220,11 +224,14 @@ export function useSelectRouteMapCatalog(dataStore) {
       lyr.selectRouteMapStationMeta = null;
       lyr.selectRouteMapSource = null;
       lyr.selectRouteMapGeojson = null;
+      lyr.selectRouteMapOfficialUrl = '';
     }
   };
 
   /** 目前資料來源標籤 */
   const routeMapSource = computed(() => routeMapLayer.value?.selectRouteMapSource || '');
+  /** 🔗 目前城市的官方路線圖連結（無則為空字串） */
+  const routeMapOfficialUrl = computed(() => routeMapLayer.value?.selectRouteMapOfficialUrl || '');
 
   /** 🏷️ 車站名顯示開關（讀寫圖層欄位，供 v-model 綁定） */
   const showStationNames = computed({
@@ -298,6 +305,7 @@ export function useSelectRouteMapCatalog(dataStore) {
     quickLoadCity,
     clearRouteMap,
     routeMapSource,
+    routeMapOfficialUrl,
     showStationNames,
     routeMapStats,
     routeMapRouteList,

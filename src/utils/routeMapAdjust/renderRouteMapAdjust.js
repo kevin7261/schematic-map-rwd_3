@@ -59,12 +59,11 @@ export function mountRouteMapAdjust(el, dataStore) {
   map.getPane('srmaDots').style.zIndex = 460;
 
   // ⚠️ 群組加入順序＝由下而上的圖層順序：
-  //    共線黃色底色（最底）→ 路線 → 合併結構 → 站點／交叉（最上）
+  //    共線/環線/頭尾共點底色（最底）→ 路線 → 站點／交叉（最上）
   const sharedGroup = L.layerGroup().addTo(map); // 🔴 共線段底色高亮（墊在路線底下）
   const loopGroup = L.layerGroup().addTo(map); // 🟢 頭尾同點（環線）綠色底色高亮（墊在路線底下）
   const endpointGroup = L.layerGroup().addTo(map); // 🔵 頭尾共點端點線段藍色底色高亮（墊在路線底下）
   const finishedGroup = L.layerGroup().addTo(map);
-  const mergedGroup = L.layerGroup().addTo(map);
   const stationGroup = L.layerGroup().addTo(map);
   const nameGroup = L.layerGroup().addTo(map); // 🏷️ 車站名常駐標籤（由開關控制）
 
@@ -207,51 +206,6 @@ export function mountRouteMapAdjust(el, dataStore) {
     });
   };
 
-  // 合併後路網結構：每條邊只畫一次（重疊之多條路線→一條線）；
-  // 共用邊（≥2 路線）以深色粗線強調，單一路線邊用該路線顏色；tooltip 列出所有經過之路線屬性。
-  const mergedEdgeTooltipHtml = (edge) => {
-    const routes = Array.isArray(edge.routes) ? edge.routes : [];
-    const rows = routes
-      .map(
-        (r) =>
-          `<div>` +
-          rowHtml('route_name', r.routeName) +
-          rowHtml('route_id', r.routeId) +
-          rowHtml('railway', r.railway) +
-          rowHtml('color', r.color) +
-          `</div>`
-      )
-      .join('<hr style="margin:3px 0;border:none;border-top:1px solid #eee">');
-    return (
-      `<div style="font-size:12px;line-height:1.5">` +
-      `<div><span style="color:#888">routes</span> ${routes.length}</div>` +
-      rows +
-      `</div>`
-    );
-  };
-  const renderMerged = () => {
-    mergedGroup.clearLayers();
-    const net = layer.routeMapAdjustMergedNetwork;
-    const edges = Array.isArray(net?.edges) ? net.edges : [];
-    for (const edge of edges) {
-      if (!edge || !Array.isArray(edge.a) || !Array.isArray(edge.b)) continue;
-      const shared = (edge.routes?.length || 0) >= 2;
-      const pl = L.polyline([edge.a, edge.b], {
-        color: shared ? '#222222' : edge.routes?.[0]?.color || '#888888',
-        weight: shared ? 5 : 3,
-        opacity: 0.9,
-        interactive: true,
-      });
-      pl.bindTooltip(mergedEdgeTooltipHtml(edge), { sticky: true });
-      pl.addTo(mergedGroup);
-    }
-  };
-
-  const hasMerged = () => {
-    const net = layer.routeMapAdjustMergedNetwork;
-    return !!net && Array.isArray(net.edges) && net.edges.length > 0;
-  };
-
   // 🟡 共線段（被 ≥2 路線共用之重疊段）高亮：預設顯示，以黃色粗線當「底色」墊在路線底下
   //    （像螢光筆），讓彩色路線疊在黃色高亮之上。
   const sharedTooltipHtml = (edge) => {
@@ -352,20 +306,11 @@ export function mountRouteMapAdjust(el, dataStore) {
   };
 
   const renderAll = () => {
-    // 已合併：顯示單一結構（重疊→一條線）；否則顯示原始各路線 + 共線/頭尾共點/環線高亮
-    if (hasMerged()) {
-      finishedGroup.clearLayers();
-      sharedGroup.clearLayers();
-      endpointGroup.clearLayers();
-      loopGroup.clearLayers();
-      renderMerged();
-    } else {
-      mergedGroup.clearLayers();
-      renderFinished();
-      renderShared(); // 預設顯示共線（紅）
-      renderLoops(); // 預設顯示頭尾同點環線（綠）
-      renderEndpoints(); // 預設顯示頭尾共點（藍線）
-    }
+    // 顯示原始各路線 + 共線（紅）/環線（綠）/頭尾共點（藍）高亮 + 站點/交叉（黃）
+    renderFinished();
+    renderShared(); // 預設顯示共線（紅）
+    renderLoops(); // 預設顯示頭尾同點環線（綠）
+    renderEndpoints(); // 預設顯示頭尾共點（藍線）
     renderStations(); // 站點 + 交叉（cross）預設顯示
     renderNames();
   };
@@ -378,7 +323,6 @@ export function mountRouteMapAdjust(el, dataStore) {
       layer.routeMapAdjustBlackDots,
       layer.routeMapAdjustCrossStations,
       layer.routeMapAdjustSharedSegments,
-      layer.routeMapAdjustMergedNetwork,
       layer.routeMapAdjustShowNames,
     ],
     renderAll,

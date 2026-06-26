@@ -321,8 +321,6 @@ export const useDataStore = defineStore(
             routeMapAdjustCrossStations: [],
             /** 🔶 共線段：被 ≥2 路線共用（重疊）之線段，[{a,b,routes:[屬性...]}...]（載入後預設計算） */
             routeMapAdjustSharedSegments: [],
-            /** 🕸️ 合併後路網結構：{ nodes:[[lat,lng]...], edges:[{a,b,routes:[屬性...]}...] }｜null */
-            routeMapAdjustMergedNetwork: null,
             /** 站點中繼資料：{ '${lat},${lng}': { id, name, osmId } } */
             routeMapAdjustStationMeta: null,
             /** 資料來源標籤 */
