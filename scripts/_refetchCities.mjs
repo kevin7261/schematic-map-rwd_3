@@ -43,7 +43,7 @@ for (const id of ids) {
     const LRT_OK = ['Japan', 'Taiwan', 'Singapore', 'China', 'United States'];
     const fc = await fetchMetroGeojsonByBbox(ov.bbox || c.bbox, {
       onProgress: () => {},
-      allowLightRail: LRT_OK.includes(c.country),
+      allowLightRail: ov.allowLightRail !== undefined ? ov.allowLightRail : LRT_OK.includes(c.country),
       keepOperators: ov.keepOperators,
       colorByName: ov.colorByName,
       dedupeByName: ov.dedupeByName,

@@ -64,6 +64,7 @@ export function mountRouteMapAdjust(el, dataStore) {
   const loopGroup = L.layerGroup().addTo(map); // 🟢 頭尾同點（環線）綠色底色高亮（墊在路線底下）
   const endpointGroup = L.layerGroup().addTo(map); // 🔵 頭尾共點端點線段藍色底色高亮（墊在路線底下）
   const finishedGroup = L.layerGroup().addTo(map);
+  const skeletonGroup = L.layerGroup().addTo(map); // 🦴 骨架圖（啟用時改顯示此層）
   const stationGroup = L.layerGroup().addTo(map);
   const nameGroup = L.layerGroup().addTo(map); // 🏷️ 車站名常駐標籤（由開關控制）
 
@@ -305,7 +306,63 @@ export function mountRouteMapAdjust(el, dataStore) {
     }
   };
 
+  // 🦴 骨架圖：重疊→一條邊（去重）；交叉無點處生成的節點以橘色標出
+  const hasSkeleton = () => {
+    const sk = layer.routeMapAdjustSkeleton;
+    return !!sk && Array.isArray(sk.edges) && sk.edges.length > 0;
+  };
+  const renderSkeleton = () => {
+    skeletonGroup.clearLayers();
+    const sk = layer.routeMapAdjustSkeleton;
+    if (!sk) return;
+    for (const e of sk.edges || []) {
+      if (!Array.isArray(e.a) || !Array.isArray(e.b)) continue;
+      L.polyline([e.a, e.b], {
+        color: e.routeCount >= 2 ? '#222222' : '#3949ab', // 重疊邊深色、單一路線邊藍紫
+        weight: e.routeCount >= 2 ? 4 : 3,
+        opacity: 0.9,
+        interactive: false,
+      }).addTo(skeletonGroup);
+    }
+    // 圖的節點（灰）
+    for (const n of sk.nodes || []) {
+      L.circleMarker(n, {
+        radius: 2.5,
+        color: '#555555',
+        weight: 0,
+        fillColor: '#555555',
+        fillOpacity: 0.9,
+        interactive: false,
+        pane: 'srmaDots',
+      }).addTo(skeletonGroup);
+    }
+    // 🟠 交叉處新生成之節點（橘色，較大）
+    for (const c of sk.crossNodes || []) {
+      L.circleMarker(c, {
+        radius: 5,
+        color: '#ff6d00',
+        weight: 1,
+        fillColor: '#ff6d00',
+        fillOpacity: 1,
+        interactive: false,
+        pane: 'srmaDots',
+      }).addTo(skeletonGroup);
+    }
+  };
+
   const renderAll = () => {
+    if (hasSkeleton()) {
+      // 骨架模式：只顯示骨架（清掉原始路線與各高亮、站點）
+      finishedGroup.clearLayers();
+      sharedGroup.clearLayers();
+      loopGroup.clearLayers();
+      endpointGroup.clearLayers();
+      stationGroup.clearLayers();
+      renderSkeleton();
+      renderNames();
+      return;
+    }
+    skeletonGroup.clearLayers();
     // 顯示原始各路線 + 共線（紅）/環線（綠）/頭尾共點（藍）高亮 + 站點/交叉（黃）
     renderFinished();
     renderShared(); // 預設顯示共線（紅）
@@ -323,6 +380,7 @@ export function mountRouteMapAdjust(el, dataStore) {
       layer.routeMapAdjustBlackDots,
       layer.routeMapAdjustCrossStations,
       layer.routeMapAdjustSharedSegments,
+      layer.routeMapAdjustSkeleton,
       layer.routeMapAdjustShowNames,
     ],
     renderAll,

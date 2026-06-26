@@ -71,7 +71,7 @@ async function main() {
       const ov = overridesFor(c.id);
       const LRT_OK = ['Japan', 'Taiwan', 'Singapore', 'China', 'United States'];
       const fc = await fetchMetroGeojsonByBbox(ov.bbox || c.bbox, {
-        allowLightRail: LRT_OK.includes(c.country),
+        allowLightRail: ov.allowLightRail !== undefined ? ov.allowLightRail : LRT_OK.includes(c.country),
         keepOperators: ov.keepOperators,
         colorByName: ov.colorByName,
         dedupeByName: ov.dedupeByName,

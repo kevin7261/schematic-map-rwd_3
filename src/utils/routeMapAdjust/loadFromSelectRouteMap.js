@@ -12,6 +12,7 @@ import {
   computeRouteMapAdjustSharedSegments,
   computeRouteMapAdjustSharedEndpointSegments,
   computeRouteMapAdjustLoopRoutes,
+  buildRouteMapAdjustSkeleton,
   routeMapAdjustColorNameForIndex,
 } from './routeStations.js';
 
@@ -73,6 +74,7 @@ export function useRouteMapAdjust(dataStore) {
         ...blacks,
       ]);
       dst.routeMapAdjustSharedSegments = computeRouteMapAdjustSharedSegments(clonedLines);
+      dst.routeMapAdjustSkeleton = null; // 骨架由按鈕觸發
       dst.routeMapAdjustSource = src.selectRouteMapSource
         ? `從選擇路線圖載入：${src.selectRouteMapSource}`
         : '從選擇路線圖載入';
@@ -92,8 +94,41 @@ export function useRouteMapAdjust(dataStore) {
       dst.routeMapAdjustSource = null;
       dst.routeMapAdjustCrossStations = [];
       dst.routeMapAdjustSharedSegments = [];
+      dst.routeMapAdjustSkeleton = null;
     }
   };
+
+  /** 是否已建立骨架 */
+  const hasSkeleton = computed(() => !!adjustLayer.value?.routeMapAdjustSkeleton);
+
+  /** 🦴 切換骨架：把目前路網變成骨架（重疊→一條線、交叉無點處生成點）；再按一次還原 */
+  const toggleSkeleton = () => {
+    const lyr = adjustLayer.value;
+    if (!lyr) return;
+    if (lyr.routeMapAdjustSkeleton) {
+      lyr.routeMapAdjustSkeleton = null; // 還原
+      return;
+    }
+    const lines = Array.isArray(lyr.routeMapAdjustLines) ? lyr.routeMapAdjustLines : [];
+    if (!lines.length) {
+      window.alert('尚未載入路線，請先「從選擇路線圖載入」。');
+      return;
+    }
+    lyr.routeMapAdjustSkeleton = buildRouteMapAdjustSkeleton(lines);
+    dataStore.requestRouteMapAdjustFit();
+  };
+
+  /** 骨架統計：節點數、邊數、生成之交叉節點數 */
+  const skeletonStats = computed(() => {
+    const sk = adjustLayer.value?.routeMapAdjustSkeleton;
+    if (!sk) return { built: false, nodes: 0, edges: 0, crossNodes: 0 };
+    return {
+      built: true,
+      nodes: Array.isArray(sk.nodes) ? sk.nodes.length : 0,
+      edges: Array.isArray(sk.edges) ? sk.edges.length : 0,
+      crossNodes: Array.isArray(sk.crossNodes) ? sk.crossNodes.length : 0,
+    };
+  });
 
 
   /** 🔶 共線段清單（被 ≥2 路線共用之重疊段），供面板列出（含路線屬性 list） */
@@ -207,6 +242,9 @@ export function useRouteMapAdjust(dataStore) {
     sharedSegmentList,
     sharedEndpointList,
     loopRouteList,
+    hasSkeleton,
+    toggleSkeleton,
+    skeletonStats,
     routeMapAdjustSource,
     showStationNames,
     routeMapAdjustStats,

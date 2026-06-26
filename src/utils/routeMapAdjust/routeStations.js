@@ -554,3 +554,95 @@ export const computeRouteMapAdjustLoopRoutes = (lines) => {
   });
   return out;
 };
+
+/**
+ * 把目前路網變成「骨架圖」：
+ *  - 重疊（共線）之路段合併為一條邊（無方向去重）。
+ *  - 不同路線之「真交叉」處若原本沒有節點，生成一個交叉節點，並把該點插入相關路線（切段）。
+ * @param {Array} lines 路線
+ * @returns {{nodes:Array<[number,number]>, edges:Array<{a:[number,number],b:[number,number],routeCount:number}>,
+ *           crossNodes:Array<[number,number]>}}
+ */
+export const buildRouteMapAdjustSkeleton = (lines) => {
+  const safeLines = Array.isArray(lines)
+    ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
+    : [];
+  const round = (n) => Number(Number(n).toFixed(6));
+  const key = (p) => `${round(p[0])},${round(p[1])}`;
+  const ON_TOL = 1e-6;
+
+  // 1) 所有「真交叉」點（不同路線之線段內部相交）
+  const rawCross = [];
+  for (let i = 0; i < safeLines.length; i++) {
+    for (let j = i + 1; j < safeLines.length; j++) {
+      const A = safeLines[i].latlngs;
+      const B = safeLines[j].latlngs;
+      for (let p = 0; p < A.length - 1; p++) {
+        for (let q = 0; q < B.length - 1; q++) {
+          const x = segSegIntersection(A[p], A[p + 1], B[q], B[q + 1]);
+          if (x) rawCross.push(x);
+        }
+      }
+    }
+  }
+  const crossings = dedupePoints(rawCross, 1e-7);
+
+  // 既有頂點集合 → 判斷哪些交叉是「新生成」的點
+  const existing = new Set();
+  for (const l of safeLines) for (const v of l.latlngs) existing.add(key(v));
+  const crossNodes = crossings.filter((c) => !existing.has(key(c)));
+
+  // 2) 把交叉點插入各路線（在所屬線段上、依序），使交叉成為圖的頂點（切段）
+  const insertOnLine = (latlngs) => {
+    const out = [latlngs[0]];
+    for (let i = 0; i < latlngs.length - 1; i++) {
+      const a = latlngs[i];
+      const b = latlngs[i + 1];
+      const ab = planarDist(a, b);
+      const on = [];
+      for (const c of crossings) {
+        const cp = closestPointOnSegment(c, a, b);
+        if (planarDist(c, cp) > ON_TOL) continue; // 不在此段
+        const ta = planarDist(a, c);
+        if (ta > 1e-9 && ta < ab - 1e-9) on.push({ c, t: ta }); // 嚴格落在 a-b 之間
+      }
+      on.sort((x, y) => x.t - y.t);
+      for (const o of on) out.push(o.c);
+      out.push(b);
+    }
+    const dd = [out[0]];
+    for (let i = 1; i < out.length; i++) {
+      if (key(out[i]) !== key(dd[dd.length - 1])) dd.push(out[i]);
+    }
+    return dd;
+  };
+
+  // 3) 建邊（無方向去重，重疊→一條）+ 收集節點
+  const nodes = new Map();
+  const edges = new Map();
+  safeLines.forEach((l, li) => {
+    const pts = insertOnLine(l.latlngs);
+    for (let k = 0; k < pts.length - 1; k++) {
+      const A = [round(pts[k][0]), round(pts[k][1])];
+      const Bp = [round(pts[k + 1][0]), round(pts[k + 1][1])];
+      const aK = key(A);
+      const bK = key(Bp);
+      if (aK === bK) continue;
+      if (!nodes.has(aK)) nodes.set(aK, A);
+      if (!nodes.has(bK)) nodes.set(bK, Bp);
+      const ek = aK < bK ? `${aK}|${bK}` : `${bK}|${aK}`;
+      let e = edges.get(ek);
+      if (!e) {
+        e = { a: A, b: Bp, routes: new Set() };
+        edges.set(ek, e);
+      }
+      e.routes.add(li);
+    }
+  });
+
+  return {
+    nodes: [...nodes.values()],
+    edges: [...edges.values()].map((e) => ({ a: e.a, b: e.b, routeCount: e.routes.size })),
+    crossNodes,
+  };
+};

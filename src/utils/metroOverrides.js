@@ -92,10 +92,9 @@ export const METRO_OVERRIDES = {
   'taiwan-taoyuan': { onlyLineName: '桃園|機場|Taoyuan|Airport' },
 
   // 單線/小系統城市，bbox 誤含鄰近大都會網 → 只留自有線
-  'united-kingdom-docklands-light-railway': { onlyLineName: 'DLR|Docklands' },
   'india-noida': { onlyLineName: 'Aqua|Noida|नोएडा' },
   'india-navi-mumbai': { bbox: [18.98, 73.0, 19.12, 73.15], keepOperators: 'CIDCO' },
-  'south-korea-gimpo': { bbox: [37.55, 126.58, 37.7, 126.85], onlyLineName: '김포|골드|Gimpo|Gold' },
+  'south-korea-gimpo': { bbox: [37.55, 126.58, 37.7, 126.85], allowLightRail: true, onlyLineName: '김포|골드|Gimpo|Gold' },
   // 橫濱：剔除東京/鎌倉鄰市線
   'japan-yokohama': { dropByName: 'ゆりかもめ|江ノ島|江ノ電|羽田|世田谷|湘南' },
   // 里昂：剔除 TER 區域火車與機場接駁（非地鐵）
@@ -111,6 +110,12 @@ export const METRO_OVERRIDES = {
     dropByName: '서울|首爾|首尔|Seoul|의정부|광명|Gwangmyeong|김포|Gimpo|신분당|新盆唐|Sinbundang',
   },
   'chile-santiago': { dedupeByName: ['Línea 1|Line 1', 'Línea 2', 'Línea 4', 'Línea 5'] },
+  // LRT-only 城市（非 5 國但唯一系統就是輕軌）：強制允許 LRT，否則整城空白
+  'indonesia-palembang': { allowLightRail: true },
+  'kazakhstan-astana': { allowLightRail: true },
+  'venezuela-maracaibo': { allowLightRail: true },
+  'venezuela-valencia': { allowLightRail: true },
+  'united-kingdom-docklands-light-railway': { allowLightRail: true, onlyLineName: 'DLR|Docklands' },
   // 🗽 紐約：不同線的同名站多為不同實體站，停用同名合併（特例）
   'united-states-new-york-city': { noNameMerge: true },
   // 🇸🇬 新加坡：LRT 環線（Sengkang/Punggol）在 OSM 是 CW/ACW 半環，各停中段→假端點。
