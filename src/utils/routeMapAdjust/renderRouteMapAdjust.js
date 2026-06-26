@@ -344,6 +344,50 @@ export function mountRouteMapAdjust(el, dataStore) {
       `</div>`
     );
   };
+    // 取折線上「平均分佈的 n 個轉折點」：把全長分成 n+1 等分，於每個分界處取最接近的彎折頂點
+    //  （無彎折則取最接近之頂點）。n=1 → 中點 1 個；n=2 → 1/3、2/3 兩個。
+    const evenTurningPoints = (path, n) => {
+      if (!Array.isArray(path) || path.length < 3 || n < 1) return [];
+      const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+      const cum = [0];
+      for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + dist(path[i - 1], path[i]));
+      const total = cum[cum.length - 1];
+      const turns = [];
+      for (let i = 1; i < path.length - 1; i++) {
+        const ax = path[i][1] - path[i - 1][1];
+        const ay = path[i][0] - path[i - 1][0];
+        const bx = path[i + 1][1] - path[i][1];
+        const by = path[i + 1][0] - path[i][0];
+        const la = Math.hypot(ax, ay);
+        const lb = Math.hypot(bx, by);
+        if (la === 0 || lb === 0) continue;
+        const sinA = Math.abs(ax * by - ay * bx) / (la * lb); // 與直線的偏離
+        if (sinA > 1e-3) turns.push(i);
+      }
+      const cand = turns.length ? turns : path.map((_, i) => i).slice(1, -1);
+      if (!cand.length) return [];
+      const out = [];
+      const used = new Set();
+      for (let j = 1; j <= n; j++) {
+        const target = (total * j) / (n + 1);
+        let best = -1;
+        let bd = Infinity;
+        for (const i of cand) {
+          if (used.has(i)) continue;
+          const d = Math.abs(cum[i] - target);
+          if (d < bd) {
+            bd = d;
+            best = i;
+          }
+        }
+        if (best >= 0) {
+          used.add(best);
+          out.push(path[best]);
+        }
+      }
+      return out;
+    };
+
   const renderSkeleton = () => {
     skeletonGroup.clearLayers();
     const sk = layer.routeMapAdjustSkeleton;
@@ -352,23 +396,41 @@ export function mountRouteMapAdjust(el, dataStore) {
       const path = Array.isArray(e.path) ? e.path : [];
       if (path.length < 2) continue;
       // 🔴 合併(共線)→紅；🔵 頭尾共點(分歧)→藍；🟢 環線→綠；其餘→該路線色。高亮者畫粗。
+      //  紫點：藍線取中間 1 個轉折點、綠線取平均 2 個轉折點。
       let color = e.routes?.[0]?.color || '#3949ab';
       let baseWeight = 4;
+      let purpleN = 0;
       if (e.isMerged) {
         color = '#ff1744';
         baseWeight = 8;
       } else if (e.isHeadTailShared) {
         color = '#1e88e5';
         baseWeight = 8;
+        purpleN = 1;
       } else if (e.isLoop) {
         color = '#00c853';
         baseWeight = 8;
+        purpleN = 2;
       }
       const pl = L.polyline(path, { color, weight: baseWeight, opacity: 0.9, interactive: true });
       pl.bindTooltip(skeletonEdgeTooltip(e), { sticky: true });
       pl.on('mouseover', () => pl.setStyle({ weight: baseWeight + 4 }));
       pl.on('mouseout', () => pl.setStyle({ weight: baseWeight }));
       pl.addTo(skeletonGroup);
+      // 🟣 在高亮邊的平均轉折點畫紫點
+      if (purpleN) {
+        for (const mid of evenTurningPoints(path, purpleN)) {
+          L.circleMarker(mid, {
+            radius: 6,
+            color: '#6a1b9a',
+            weight: 1,
+            fillColor: '#9c27b0',
+            fillOpacity: 1,
+            interactive: false,
+            pane: 'srmaDots',
+          }).addTo(skeletonGroup);
+        }
+      }
     }
     // 節點：🟡 新加交叉 → 黃、大；其餘 → 灰、一般
     for (const n of sk.nodes || []) {
