@@ -101,6 +101,31 @@ export function mergeSameNameStations(fc) {
 }
 
 /**
+ * 環線縫合：把同一條環線的多個半環/方向段（route_name 符合同一 pattern）縫成一條完整（盡量閉合）的線，
+ * 解決 OSM 把環線拆成 CW/ACW 半環、各停在中段造成「假端點」的問題。
+ * patterns: [regex字串]
+ */
+export function mergeLoopLines(fc, patterns) {
+  if (!Array.isArray(patterns) || !patterns.length) return fc;
+  const kk = (p) => `${(+p[0]).toFixed(5)},${(+p[1]).toFixed(5)}`;
+  for (const pat of patterns) {
+    const re = new RegExp(pat);
+    const group = fc.features.filter(
+      (f) => f.properties?.element_type === 'way' && re.test(f.properties.route_name || '')
+    );
+    if (!group.length) continue;
+    // 每個環取「最長的單向」（即完整一圈），頭尾相接閉合成 ring；其餘（反向等）刪除。
+    group.sort((a, b) => b.geometry.coordinates.length - a.geometry.coordinates.length);
+    const keep = group[0];
+    const cs = keep.geometry.coordinates;
+    if (cs.length >= 3 && kk(cs[0]) !== kk(cs[cs.length - 1])) cs.push(cs[0].slice()); // 閉合
+    const drop = new Set(group.slice(1));
+    if (drop.size) fc.features = fc.features.filter((f) => !drop.has(f));
+  }
+  return fc;
+}
+
+/**
  * 手動補站（OSM 缺漏時用）：把指定站點加入並接到某條線的最近端點延伸出去。
  * extras: [{ name, coord:[lon,lat], attachTo:'<route_name regex>' }]
  */

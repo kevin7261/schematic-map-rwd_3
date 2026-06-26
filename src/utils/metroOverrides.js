@@ -113,8 +113,11 @@ export const METRO_OVERRIDES = {
   'chile-santiago': { dedupeByName: ['Línea 1|Line 1', 'Línea 2', 'Línea 4', 'Línea 5'] },
   // 🗽 紐約：不同線的同名站多為不同實體站，停用同名合併（特例）
   'united-states-new-york-city': { noNameMerge: true },
-  // 🇸🇬 新加坡：LRT 環線（Sengkang/Punggol/Bukit Panjang）OSM 多方向變體重複 → 各只留最長者
-  'singapore-singapore': { dedupeByName: ['LRT Sengkang', 'LRT Punggol', 'LRT Bukit Panjang'] },
+  // 🇸🇬 新加坡：LRT 環線（Sengkang/Punggol）在 OSM 是 CW/ACW 半環，各停中段→假端點。
+  //    用 mergeLoops 把同名半環縫成完整閉環（勿用 dedupeByName，那會刪掉另一半）。
+  'singapore-singapore': {
+    mergeLoops: ['Sengkang.*West', 'Sengkang.*East', 'Punggol.*West', 'Punggol.*East'],
+  },
 };
 
 /** 取得某 city id 的覆寫設定（無則回空物件）；併入官方 colorById（route_id→hex） */

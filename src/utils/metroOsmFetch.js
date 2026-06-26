@@ -279,7 +279,8 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   onProgress('連線 OpenStreetMap（Overpass）…');
   // 含營運中（subway/light_rail/monorail）＋施工中（route=construction）＋計畫中（route=proposed）的同類路線；
   // 施工／計畫的實際模式記在 construction:route／proposed:route。
-  const modeRe = '^(subway|light_rail|monorail)$';
+  // 只有指定國家（日/台/新/中/美）抓 light_rail；其餘只抓 subway/monorail。
+  const modeRe = opts.allowLightRail === false ? '^(subway|monorail)$' : '^(subway|light_rail|monorail)$';
   // 只抓「營運中」路線（route=subway/light_rail/monorail）；未完工（construction/proposed）不畫。
   // includeRail 可額外納入指定的 route=train 線（如東京 JR 山手線/中央線）。
   const query =

@@ -9807,6 +9807,8 @@
             </div>
           </div>
 
+          <!-- 目前路線／站點 + 各路線站點：整塊限高 640pt，內容過長可捲動 -->
+          <div style="max-height: 640pt; overflow-y: auto">
           <!-- 目前路線／站點統計 -->
           <div class="my-title-xs-gray pb-2">目前路線／站點</div>
           <div class="d-flex justify-content-between my-font-size-xs pb-1">
@@ -9858,33 +9860,34 @@
               站）
             </div>
             <div class="ps-3">
-              <div
-                v-for="(st, si) in route.stations"
-                :key="si"
-                class="d-flex align-items-center my-font-size-xs pb-1"
-              >
-                <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
-                <span
-                  class="d-inline-block rounded-circle me-2"
-                  :style="{ width: '8px', height: '8px', backgroundColor: srmStationColor(st.type) }"
-                ></span>
-                <span class="d-flex align-items-center">
-                  {{ st.name || srmStationLabel(st.type) }}
-                  <template v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length">
-                    <span class="ms-1 me-1">· 交會</span>
-                    <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
-                      <span
-                        class="d-inline-block rounded-pill me-1"
-                        :style="{ width: '16px', height: '5px', backgroundColor: srmRouteColor(ri) }"
-                      ></span>
-                      {{ srmRouteName(ri) }}
-                    </span>
-                  </template>
-                </span>
+              <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
+                <div class="d-flex align-items-center">
+                  <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
+                  <span
+                    class="d-inline-block rounded-circle me-2"
+                    :style="{ width: '8px', height: '8px', backgroundColor: srmStationColor(st.type) }"
+                  ></span>
+                  <span>{{ st.name || srmStationLabel(st.type) }}</span>
+                </div>
+                <!-- 交會路線：第二行、縮排顯示 -->
+                <div
+                  v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
+                  class="d-flex align-items-center flex-wrap ps-4 pt-1"
+                >
+                  <span class="me-1">· 交會</span>
+                  <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
+                    <span
+                      class="d-inline-block rounded-pill me-1"
+                      :style="{ width: '16px', height: '5px', backgroundColor: srmRouteColor(ri) }"
+                    ></span>
+                    {{ srmRouteName(ri) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
           <div class="pb-2"></div>
+          </div>
         </div>
 
         <!-- 🗺️ 路線圖調整（route_map_adjust）：從選擇路線圖載入（獨立複製，與其他圖層不共用） -->
@@ -10029,6 +10032,8 @@
             加上交叉站點（cross）
           </button>
 
+          <!-- 目前路線／站點 + 明細：整塊限高 640pt，內容過長可捲動 -->
+          <div style="max-height: 640pt; overflow-y: auto">
           <!-- 目前路線／站點統計 -->
           <div class="my-title-xs-gray pb-2">目前路線／站點</div>
           <div class="d-flex justify-content-between my-font-size-xs pb-1">
@@ -10109,33 +10114,34 @@
               站）
             </div>
             <div class="ps-3">
-              <div
-                v-for="(st, si) in route.stations"
-                :key="si"
-                class="d-flex align-items-center my-font-size-xs pb-1"
-              >
-                <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
-                <span
-                  class="d-inline-block rounded-circle me-2"
-                  :style="{ width: '8px', height: '8px', backgroundColor: rmaStationColor(st.type) }"
-                ></span>
-                <span class="d-flex align-items-center">
-                  {{ st.name || rmaStationLabel(st.type) }}
-                  <template v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length">
-                    <span class="ms-1 me-1">· 交會</span>
-                    <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
-                      <span
-                        class="d-inline-block rounded-pill me-1"
-                        :style="{ width: '16px', height: '5px', backgroundColor: rmaRouteColor(ri) }"
-                      ></span>
-                      {{ rmaRouteName(ri) }}
-                    </span>
-                  </template>
-                </span>
+              <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
+                <div class="d-flex align-items-center">
+                  <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
+                  <span
+                    class="d-inline-block rounded-circle me-2"
+                    :style="{ width: '8px', height: '8px', backgroundColor: rmaStationColor(st.type) }"
+                  ></span>
+                  <span>{{ st.name || rmaStationLabel(st.type) }}</span>
+                </div>
+                <!-- 交會路線：第二行、縮排顯示 -->
+                <div
+                  v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
+                  class="d-flex align-items-center flex-wrap ps-4 pt-1"
+                >
+                  <span class="me-1">· 交會</span>
+                  <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
+                    <span
+                      class="d-inline-block rounded-pill me-1"
+                      :style="{ width: '16px', height: '5px', backgroundColor: rmaRouteColor(ri) }"
+                    ></span>
+                    {{ rmaRouteName(ri) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
           <div class="pb-2"></div>
+          </div>
         </div>
 
         <!-- Leaflet 自由畫線（JOSM 式）：工具切換、統計、說明、清除 -->

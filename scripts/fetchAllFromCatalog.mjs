@@ -17,7 +17,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { fetchMetroGeojsonByBbox } from '../src/utils/metroOsmFetch.js';
 import { overridesFor } from '../src/utils/metroOverrides.js';
-import { isMainlandChina, convertFcToTraditional, mergeSameNameStations, addExtraStations } from './_toTraditional.mjs';
+import { isMainlandChina, convertFcToTraditional, mergeSameNameStations, addExtraStations, mergeLoopLines } from './_toTraditional.mjs';
 import { validateGeojson } from './validateMetroGeojson.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -69,7 +69,9 @@ async function main() {
     }
     try {
       const ov = overridesFor(c.id);
+      const LRT_OK = ['Japan', 'Taiwan', 'Singapore', 'China', 'United States'];
       const fc = await fetchMetroGeojsonByBbox(ov.bbox || c.bbox, {
+        allowLightRail: LRT_OK.includes(c.country),
         keepOperators: ov.keepOperators,
         colorByName: ov.colorByName,
         dedupeByName: ov.dedupeByName,
@@ -81,6 +83,7 @@ async function main() {
         includeUnopened: ov.includeUnopened,
       });
       if (isMainlandChina(c)) convertFcToTraditional(fc); // 大陸城市簡→繁
+      if (ov.mergeLoops) mergeLoopLines(fc, ov.mergeLoops); // 環線半環縫合
       if (!ov.noNameMerge) mergeSameNameStations(fc); // 同名車站合併（紐約等特例除外）
       if (ov.extraStations) addExtraStations(fc, ov.extraStations); // 手動補站（OSM 缺漏）
       const v = validateGeojson(fc);
