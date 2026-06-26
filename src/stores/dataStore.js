@@ -130,6 +130,7 @@ import { executeStroke } from '../utils/layers/schematic_layout/stroke/executeSt
 import { executeStroke as executeStrokeRma } from '../utils/routeMapAdjust/schematic/stroke/executeStroke.js';
 import { executeHillClimb as executeHillClimbRma } from '../utils/routeMapAdjust/schematic/hillClimb/executeHillClimb.js';
 import { executeMilp as executeMilpRma } from '../utils/routeMapAdjust/schematic/milp/executeMilp.js';
+import { executeForce as executeForceRma } from '../utils/routeMapAdjust/schematic/forceDirected/executeForce.js';
 import { executeReadMilpResult as executeReadMilpResultRma } from '../utils/routeMapAdjust/schematic/milp/readMilpResult.js';
 import { assignOsm2LayerViewerFields } from '../utils/layers/osm_2_geojson_2_json/layerMerge.js';
 import {
@@ -451,6 +452,51 @@ export const useDataStore = defineStore(
             osmFileName: null,
             jsonFileName: null,
             executeFunction: executeMilpRma,
+            isDataLayer: true,
+            hideFromMap: true,
+            display: true,
+            highlightedSegmentIndex: null,
+            squareGridCellsTaipeiTest3: false,
+            dataOSM: null,
+            dataGeojson: null,
+            dataJson: null,
+            isRouteSchematicLayer: true,
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
+          },
+          {
+            /** 示意圖佈局 #4（從路線圖調整載入）：Hong et al. (2006) 力導向（Method 5：PrEd + 正交/45° 磁簧力）。 */
+            layerId: 'schematic_rma_force',
+            layerName: '④ 示意圖佈局（Force-directed）',
+            visible: false,
+            isLoading: false,
+            isLoaded: false,
+            colorName: 'green',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            spaceNetworkGridJsonData_SectionData: null,
+            spaceNetworkGridJsonData_ConnectData: null,
+            spaceNetworkGridJsonData_StationData: null,
+            showStationPlacement: true,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: executeForceRma,
+            /** 「拉直」步驟產出的 connect 直邊骨架 { skeletonFlat, sections, meta }，供「開始執行」取用 */
+            straightenedInput: null,
             isDataLayer: true,
             hideFromMap: true,
             display: true,

@@ -9,6 +9,7 @@
 import { buildSchematicGraph, splitHighDegreeNodes, initialCoords } from './graph.js';
 import { runStrokeOnGraph } from './stroke/strokeCore.js';
 import { runHillClimb } from './hillClimb/hillClimbCore.js';
+import { runForceDirected } from './forceDirected/forceCore.js';
 import { runOctilinearLayout, computePreferredDirs } from './milp/runOctilinearLayout.js';
 import { countViolations } from './repair.js';
 
@@ -16,11 +17,12 @@ const PROFILES = {
   stroke: { init: 'stroke', weights: { wBend: 2, wRpos: 1, wLen: 0.05 } },
   hillclimb: { init: 'hill', weights: { wBend: 1, wRpos: 2, wLen: 0.1 } },
   milp: { init: 'geo', weights: { wBend: 1.5, wRpos: 1.5, wLen: 0.1 } },
+  force: { init: 'force', weights: { wBend: 1, wRpos: 1.5, wLen: 0.15 } },
 };
 
 /**
  * @param {Array} skeletonFlat connect 骨架（已縮放整數格）
- * @param {string} profileId  stroke|hillclimb|milp
+ * @param {string} profileId  stroke|hillclimb|milp|force
  * @param {(msg:string)=>void} onProgress 進度回報（worker 轉發給主執行緒）
  * @returns {Promise<{ ok, coords?, violations?, h4Pairs?, sepPairs?, status?, message? }>}
  */
@@ -36,6 +38,7 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
   let preferredDirs = null;
   if (prof.init === 'stroke') preferredDirs = computePreferredDirs(graph, runStrokeOnGraph(graph, coords0, {}));
   else if (prof.init === 'hill') preferredDirs = computePreferredDirs(graph, runHillClimb(graph, coords0, {}).coords);
+  else if (prof.init === 'force') preferredDirs = computePreferredDirs(graph, runForceDirected(graph, coords0, {}));
 
   const layout = await runOctilinearLayout(graph, {
     weights: prof.weights,
