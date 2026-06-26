@@ -237,6 +237,15 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     for (const r of colorRules) if (r.re.test(name || '')) return r.color;
     return fallback;
   };
+  // 🎨 官方配色（per-city，依 route_id 精準套色；優先於 colorByName／OSM colour／fallback）：
+  //    route_id（線代號，如 R/BR/1/M5）比 route_name 穩定，避免重生成時官方色被調色盤蓋掉。
+  const colorByIdMap =
+    opts.colorById && typeof opts.colorById === 'object' ? opts.colorById : null;
+  const colorOf = (routeId, name, fallback) => {
+    if (colorByIdMap && routeId != null && colorByIdMap[String(routeId)])
+      return colorByIdMap[String(routeId)];
+    return colorFor(name, fallback);
+  };
   // 🧹 同名變體去重（per-city）：同一 regex family 只保留座標點最多者
   const dedupeRules = Array.isArray(opts.dedupeByName) ? opts.dedupeByName.map((s) => new RegExp(s)) : [];
   // 🚫 剔除符合者（per-city）：依 route_company 或 route_name 比對，剔除鄰市誤抓線（如佛山的廣州地鐵）。
@@ -576,7 +585,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
         route_company: l.routeCompany,
         route_id: l.routeId,
         element_type: 'way',
-        color: colorFor(l.routeName, l.color),
+        color: colorOf(l.routeId, l.routeName, l.color),
         route_name: l.routeName,
         osm_id: l.osmId,
         railway: l.railway,
@@ -659,7 +668,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
         route_company: '',
         route_id: g.ref || String(g.firstId),
         element_type: 'way',
-        color: colorFor(g.name, FALLBACK_PALETTE[pIdx % FALLBACK_PALETTE.length]),
+        color: colorOf(g.ref, g.name, FALLBACK_PALETTE[pIdx % FALLBACK_PALETTE.length]),
         route_name: g.name,
         osm_id: String(g.firstId),
         railway: g.railway,

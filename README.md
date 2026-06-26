@@ -29,6 +29,7 @@
 - [狀態管理（dataStore）](#-狀態管理datastore)
 - [資料格式與資料集](#-資料格式與資料集)
 - [離線批次預運算](#-離線批次預運算)
+- [Claude Code Skills（資料維護）](#-claude-code-skills資料維護)
 - [建置與部署](#-建置與部署)
 - [開發指南](#-開發指南)
 - [故障排除](#-故障排除)
@@ -401,6 +402,34 @@ const visible = dataStore.getAllLayers().filter((l) => l.visible);
 ```bash
 node --no-warnings scripts/generateSchematicLayouts.mjs
 ```
+
+---
+
+## 🤖 Claude Code Skills（資料維護）
+
+專案在 `.claude/skills/` 內含兩個 [Claude Code](https://claude.com/claude-code) skill，
+專責維護「選擇路線圖」分頁所載入的全球地鐵資料集 `public/data/metro/`。
+資料授權：© OpenStreetMap contributors（ODbL）。**fetch 負責產生、validate 負責驗收。**
+
+| Skill | 用途 | 何時使用 |
+|-------|------|---------|
+| **`fetch-metro-geojson`** | 從 OpenStreetMap（Overpass）把全球地鐵／都市軌道抓成統一的扁平 GeoJSON（每線一個 `way`、每站一個 `node`），輸出至 `public/data/metro/<洲>/<國>/<市>.geojson`，並逐檔結構驗證。內建清理規則：跨境過濾、日本直通運轉剔除、施工／計畫線縫合、同名車站合併、per-city 營運者白名單／配色／去重。 | 新增城市、規則改動後重抓、修正某城路線／配色／車站、對照 Wikipedia 補齊覆蓋率 |
+| **`validate-metro-lines`** | 逐城把抓到的線數／線名對照 Wikipedia [List of metro systems](https://en.wikipedia.org/wiki/List_of_metro_systems)，找出**缺漏**與**過度抓取**（誤含鄰市線、同線重複、單軌／AirTrain／depot 等非地鐵雜訊），以多代理 workflow 平行驗證並回報修正建議。與 `fetch-metro-geojson` 搭配。 | 抓取／重抓後做覆蓋率與正確性稽核 |
+
+### 關鍵檔案
+
+| 檔案 | 角色 |
+|------|------|
+| `src/utils/metroOsmFetch.js` | 通用抓取 pipeline（Overpass 查詢 → 處理 → 清理 → 輸出），瀏覽器／Node 共用 |
+| `src/utils/metroOverrides.js` | per-city 覆寫（`bbox` / `keepOperators` / `colorByName` / `dedupeByName` / `dropByName`） |
+| `scripts/discoverMetroSystems.mjs` | 全球探索 `route=subway` 系統 → 產生 `_catalog.json` |
+| `scripts/fetchAllFromCatalog.mjs` | 依 catalog 抓全部城市（可續跑；`--force` 重抓） |
+| `scripts/_refetchCities.mjs` | 重抓指定城市：`node scripts/_refetchCities.mjs <id> [<id>…]` |
+| `scripts/validateMetroGeojson.mjs` | 結構驗證（欄位、空值、重複線、孤立 node…） |
+| `scripts/_cityLines.mjs` | 讀某城目前線名（驗證 workflow 用） |
+| `public/data/metro/_catalog.json` | 城市清單（`id, city, country, continent, bbox, file, countryZh, cityZh`） |
+
+> 兩個 skill 由 Claude Code 觸發；在對話中描述需求（如「新增大阪」「重抓東京」「稽核全部城市」）即會載入對應 skill 執行。
 
 ---
 

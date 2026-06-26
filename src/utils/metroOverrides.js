@@ -11,6 +11,10 @@
  *   - dedupeByName: [string]    同一 regex family 的線只保留座標點最多者（清掉 OSM 同線多名稱的重複）
  */
 
+// 🎨 各城市官方線色（route_id → hex），與本檔分離存於 JSON 以便程式化產生／合併。
+//    由 overridesFor() 併入各城市的 colorById，讓重生成時依 route_id 套官方色、不被調色盤蓋掉。
+import COLOR_BY_ID from './metroColorOverrides.json' with { type: 'json' };
+
 export const METRO_OVERRIDES = {
   // 🇹🇼 台北（含新北、桃園捷運）：西延 bbox 納入機場捷運/桃園綠線；套台北捷運官方配色；去除萬大線等重複
   'taiwan-taipei': {
@@ -86,7 +90,8 @@ export const METRO_OVERRIDES = {
   // 單線/小系統城市，bbox 誤含鄰近大都會網 → 只留自有線
   'united-kingdom-docklands-light-railway': { onlyLineName: 'DLR|Docklands' },
   'india-noida': { onlyLineName: 'Aqua|Noida|नोएडा' },
-  'india-navi-mumbai': { onlyLineName: 'Navi Mumbai|नवी' },
+  'india-navi-mumbai': { bbox: [18.98, 73.0, 19.12, 73.15], keepOperators: 'CIDCO' },
+  'south-korea-gimpo': { bbox: [37.55, 126.58, 37.7, 126.85], onlyLineName: '김포|골드|Gimpo|Gold' },
   // 橫濱：剔除東京/鎌倉鄰市線
   'japan-yokohama': { dropByName: 'ゆりかもめ|江ノ島|江ノ電|羽田|世田谷|湘南' },
   // 里昂：剔除 TER 區域火車與機場接駁（非地鐵）
@@ -104,7 +109,10 @@ export const METRO_OVERRIDES = {
   'chile-santiago': { dedupeByName: ['Línea 1|Line 1', 'Línea 2', 'Línea 4', 'Línea 5'] },
 };
 
-/** 取得某 city id 的覆寫設定（無則回空物件） */
+/** 取得某 city id 的覆寫設定（無則回空物件）；併入官方 colorById（route_id→hex） */
 export function overridesFor(id) {
-  return METRO_OVERRIDES[id] || {};
+  const base = METRO_OVERRIDES[id] || {};
+  const cbi = COLOR_BY_ID[id];
+  if (!cbi) return base;
+  return { ...base, colorById: { ...(base.colorById || {}), ...cbi } };
 }
