@@ -58,6 +58,12 @@ export const METRO_OVERRIDES = {
     includeRail: '山手線|Yamanote|中央線|中央・総武|Chūō|Chuo',
     dedupeByName: ['山手|Yamanote', '中央線快速|中央線（', '中央・総武'],
   },
+  // 🇯🇵 大阪：只要地下鐵（Osaka Metro）。keepOperators 剔除大阪單軌(大阪モノレール)與近鐵直通段；
+  //    dropByName 再剔除南港ポートタウン線(新交通/AGT，雖屬 Osaka Metro 但非地下鐵)與任何單軌。
+  'japan-osaka': {
+    keepOperators: '大阪市高速電気軌道|Osaka Metro',
+    dropByName: '南港ポートタウン|ポートタウン|ニュートラム|New Tram|モノレール|Monorail',
+  },
 
   // 🇨🇳 長三角／珠三角緊鄰城市：discovery 的 bbox 過大，誤含鄰市整套地鐵 → 以營運者/線名剔除鄰市線。
   //    （共線如廣佛線由鄰市營運者經營，會一併被剔，屬可接受的取捨；驗證若標 missing 可再個別補。）

@@ -19,6 +19,9 @@ import {
   isLayoutVhDrawSecondCopyLayerId,
   isRmaLayoutNetworkGridFromVhDrawLayerId,
   buildLayoutVhDrawCopyBlackDotTrafficDataTableRows,
+  refreshRmaLayoutNetworkGridFromVhIfVisible,
+  SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID,
+  SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID,
 } from '@/utils/layers/json_grid_coord_normalized/index.js';
 import {
   layoutVhDrawAutoRandomWeightLayerId,
@@ -87,6 +90,33 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
       });
     }
     persistLayoutVhDrawGridRoutesDataJsonSnapshotCopy();
+  };
+
+  /** 是否為 RMA 版路網網格（主層或第二份）。 */
+  const isRmaLayer = (lyr) => isRmaLayoutNetworkGridFromVhDrawLayerId(lyr?.layerId);
+
+  /**
+   * 路網網格（RMA）：自指定「站點與路線往中心聚集」層（先直後橫／先橫後直）匯入路網（強制重建本層）。
+   * @param {object} lyr 本層
+   * @param {string} sourceLayerId schematic_rma_toward_center_vh／_hv
+   */
+  const importRmaLayoutNetworkGridFrom = async (lyr, sourceLayerId) => {
+    if (!isRmaLayer(lyr)) return;
+    const src = dataStore.findLayerById(sourceLayerId);
+    if (!src || !Array.isArray(src.spaceNetworkGridJsonData) || !src.spaceNetworkGridJsonData.length) {
+      window.alert(
+        `圖層「${src?.layerName || sourceLayerId}」尚無路網，請先完成該層的「往中心聚集」。`
+      );
+      return;
+    }
+    refreshRmaLayoutNetworkGridFromVhIfVisible(
+      dataStore.findLayerById.bind(dataStore),
+      dataStore.saveLayerState.bind(dataStore),
+      lyr.layerId,
+      { sourceLayerId }
+    );
+    await nextTick();
+    dataStore.requestSpaceNetworkGridFullRedraw();
   };
 
   const layoutVhDrawCopyRowsSortedByWeightDiffAsc = (lyr) => {
@@ -326,6 +356,12 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
     isMainCopyLayer,
     /** 第二份(純檢視)：OSM copy2 或 RMA_2 */
     isSecondCopyLayer,
+    /** 是否為 RMA 版路網網格 */
+    isRmaLayer,
+    /** RMA：自指定往中心聚集層匯入路網 */
+    importRmaLayoutNetworkGridFrom,
+    SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID,
+    SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID,
     LAYOUT_VH_DRAW_COPY_GRID_NEIGHBOR_HIDE_MIN_PT,
     /** 路網網格_2：layout-grid-viewer 目前滑鼠所在 pt 座標（{x,y}，無則為 null） */
     get layoutVhDrawViewerMousePt() {

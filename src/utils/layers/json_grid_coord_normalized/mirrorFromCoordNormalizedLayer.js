@@ -42,17 +42,24 @@ import { buildLayoutVhDrawCopyBlackDotTrafficDataTableRows } from './layoutTraff
 import { reinsertBlackStations } from '@/utils/layers/schematic_layout/assemble.js';
 
 /**
- * 路網網格（RMA）：自 RMA 示意圖管線最後一層「站點與路線往中心聚集（先直後橫）」
- * （只存 connect 骨架；黑點站在 schematicBlackSections metadata）取資料，把黑點站沿線放回後，
+ * 路網網格（RMA）：自 RMA「站點與路線往中心聚集」層（先直後橫／先橫後直；只存 connect 骨架，
+ * 黑點站在 schematicBlackSections metadata）取資料，把黑點站沿線放回後，
  * 轉成與 json-viewer 同源之匯出列陣列寫入本層 dataJson（交通流量 weight 則直接套用於本層 dataJson）。
  * @param {(id:string)=>*|null} findLayerById
  * @param {object|null} [layoutLayer]
+ * @param {string} [sourceLayerId] 來源層；預設本層記錄之 rmaSourceLayerId，否則「先直後橫」。
  */
-export function syncRmaLayoutNetworkGridFromTowardCenterVh(findLayerById, layoutLayer) {
-  const layout =
-    layoutLayer ?? findLayerById(LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA);
+export function syncRmaLayoutNetworkGridFromTowardCenterVh(
+  findLayerById,
+  layoutLayer,
+  sourceLayerId
+) {
+  const layout = layoutLayer ?? findLayerById(LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA);
   if (!layout || !isRmaLayoutNetworkGridFromVhDrawLayerId(layout.layerId)) return;
-  const src = findLayerById(SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID);
+  const srcId =
+    sourceLayerId || layout.rmaSourceLayerId || SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID;
+  layout.rmaSourceLayerId = srcId;
+  const src = findLayerById(srcId);
   const skel =
     src && Array.isArray(src.spaceNetworkGridJsonData) ? src.spaceNetworkGridJsonData : null;
   if (!skel || !skel.length) {
@@ -349,6 +356,11 @@ export function jsonGridFromCoordNormalizedPersistPayload(layer, opts = {}) {
     payload.layoutVhDrawFisheyeEnabled = layer.layoutVhDrawFisheyeEnabled === true;
     payload.layoutVhDrawPathSelectMode = layer.layoutVhDrawPathSelectMode === true;
   }
+  if (isRmaLayoutNetworkGridFromVhDrawLayerId(layer.layerId)) {
+    // RMA 路網網格：記錄匯入來源（先直後橫／先橫後直）與來源簽章，使重開分頁不被預設來源覆寫。
+    payload.rmaSourceLayerId = layer.rmaSourceLayerId ?? null;
+    payload.seededFromSig = layer.seededFromSig ?? null;
+  }
   if (!omitLoadingFlags) {
     payload.isLoading = layer.isLoading;
   }
@@ -370,8 +382,10 @@ export function refreshLayoutNetworkGridFromVhDrawIfVisibleCopy2(findLayerById, 
 }
 
 /**
- * RMA 路網網格（主層／第二份）：自 RMA「先直後橫」重建並 persist。
- * 已有資料且來源簽章未變者保留（不覆寫使用者套用之流量 weight）；force 時強制重建。
+ * RMA 路網網格（主層／第二份）：自其記錄之來源（rmaSourceLayerId，預設「先直後橫」）重建並 persist。
+ * 已有資料且來源簽章未變者保留（不覆寫使用者套用之流量 weight）；force 或指定 sourceLayerId 時強制重建。
+ * @param {string} [opts.sourceLayerId] 指定來源層（按鈕匯入用）；省略則沿用本層記錄之來源。
+ * @param {boolean} [opts.force] 強制重建（忽略簽章）。
  * @returns {boolean} 是否（重新）寫入了資料
  */
 export function refreshRmaLayoutNetworkGridFromVhIfVisible(
@@ -382,16 +396,21 @@ export function refreshRmaLayoutNetworkGridFromVhIfVisible(
 ) {
   const layout = findLayerById(layoutLayerId);
   if (!layout || !isRmaLayoutNetworkGridFromVhDrawLayerId(layout.layerId)) return false;
-  const src = findLayerById(SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID);
+  const srcId =
+    opts.sourceLayerId ||
+    layout.rmaSourceLayerId ||
+    SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID;
+  const src = findLayerById(srcId);
   const skel =
     src && Array.isArray(src.spaceNetworkGridJsonData) ? src.spaceNetworkGridJsonData : [];
-  // 來源廉價簽章：段數 + 總點數（供「上游是否變更」判斷）。
+  // 來源廉價簽章：來源層 + 段數 + 總點數（供「上游是否變更」判斷）。
   let pts = 0;
   for (const s of skel) pts += Array.isArray(s?.points) ? s.points.length : 0;
-  const sig = `${skel.length}:${pts}`;
+  const sig = `${srcId}:${skel.length}:${pts}`;
+  const force = opts.force || !!opts.sourceLayerId;
   const hasData = Array.isArray(layout.dataJson) && layout.dataJson.length > 0;
-  if (!opts.force && hasData && layout.seededFromSig === sig) return false;
-  syncRmaLayoutNetworkGridFromTowardCenterVh(findLayerById, layout);
+  if (!force && hasData && layout.seededFromSig === sig) return false;
+  syncRmaLayoutNetworkGridFromTowardCenterVh(findLayerById, layout, srcId);
   layout.seededFromSig = sig;
   if (typeof saveLayerState === 'function') {
     saveLayerState(

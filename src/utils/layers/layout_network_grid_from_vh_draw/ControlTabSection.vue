@@ -230,7 +230,32 @@
       <LayoutVhDrawBlackDotRatioTables :layer="layer" />
     </div>
 
-    <div class="pb-3 mb-3 border-bottom">
+    <!-- RMA 路網網格：自 RMA「站點與路線往中心聚集」匯入路網（先直後橫／先橫後直） -->
+    <div v-if="api.isRmaLayer(layer)" class="pb-3 mb-3 border-bottom">
+      <div class="my-title-xs-gray pb-2">匯入路網</div>
+      <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
+        自上面「站點與路線往中心聚集」(RMA) 之路網匯入本層（黑點站沿線放回）。匯入後沿用所選來源，
+        切換分頁不會被預設來源覆寫。
+      </div>
+      <button
+        type="button"
+        class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
+        :disabled="isExecuting || layer.isLoading"
+        @click="api.importRmaLayoutNetworkGridFrom(layer, api.SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID)"
+      >
+        從站點與路線往中心聚集（先直後橫）
+      </button>
+      <button
+        type="button"
+        class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
+        :disabled="isExecuting || layer.isLoading"
+        @click="api.importRmaLayoutNetworkGridFrom(layer, api.SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID)"
+      >
+        從站點與路線往中心聚集（先橫後直）
+      </button>
+    </div>
+
+    <div v-else class="pb-3 mb-3 border-bottom">
       <div class="my-title-xs-gray pb-2">匯入路網</div>
       <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
         自上游「站點與路線往中心聚集」記憶體中的路網，或本機 JSON 檔，寫入
@@ -264,21 +289,23 @@
     </div>
 
     <div class="pb-3 mb-3 border-bottom">
-      <div class="my-title-xs-gray pb-2">還原 VH 繪製（本機 JSON）</div>
-      <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
-        與「站點與路線（先直後橫）·dataJson 繪製」之<strong>選擇 JSON 檔讀入</strong>相同：寫入
-        <code class="small">orthogonal_toward_center_vh_draw</code>
-        的 dataJson／路網並同步路網網格。可先於該層<strong>下載 JSON</strong
-        >後在此讀入，省去重跑先前步驟。
-      </div>
-      <button
-        type="button"
-        class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-blue mb-3"
-        :disabled="isExecuting"
-        @click="api.pickOrthogonalVhDrawLocalJsonClick"
-      >
-        選擇 JSON 檔讀入…
-      </button>
+      <template v-if="!api.isRmaLayer(layer)">
+        <div class="my-title-xs-gray pb-2">還原 VH 繪製（本機 JSON）</div>
+        <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
+          與「站點與路線（先直後橫）·dataJson 繪製」之<strong>選擇 JSON 檔讀入</strong>相同：寫入
+          <code class="small">orthogonal_toward_center_vh_draw</code>
+          的 dataJson／路網並同步路網網格。可先於該層<strong>下載 JSON</strong
+          >後在此讀入，省去重跑先前步驟。
+        </div>
+        <button
+          type="button"
+          class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-blue mb-3"
+          :disabled="isExecuting"
+          @click="api.pickOrthogonalVhDrawLocalJsonClick"
+        >
+          選擇 JSON 檔讀入…
+        </button>
+      </template>
       <template v-if="api.isMainCopyLayer(layer)">
         <div class="my-title-xs-gray pb-2">路段交通流量（CSV）</div>
         <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
