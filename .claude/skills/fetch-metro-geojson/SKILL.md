@@ -64,7 +64,11 @@ node 屬性：`osm_id, station_name, station_id`。
 - `clipToBbox`：營運線多數頂點落在 bbox 外即剔除（緊鄰城市群，鄰市線名/營運者無城市標記時用；需搭配收緊 bbox）。
 - `noNameMerge`：停用同名車站合併（如紐約，不同線的同名站多為不同實體站）。
 
-其他內建行為：**分支保留**（同一條線的多個關聯，依站集合重疊 <70% 視為真實分支一併保留，如倫敦 Central 的 Ealing/Hainault、新加坡 EW 樟宜支線、台北新北投/小碧潭支線）；**站序投影排序**（以軌道幾何縫成路徑，依站在路徑上的位置排序，修正 OSM stop 成員順序錯置）；**未通車不畫**（construction/proposed/未來開通日一律剔除）。
+其他覆寫欄位：`includeUnopened`（強制納入指定未通車線，如台北三鶯線）、`extraStations`（手動補 OSM 缺漏的站並接到指定線，如台北廣慈/奉天宮）。
+
+其他內建行為：**分支保留**（同一條線的多個關聯，依站集合重疊 <70% 視為真實分支一併保留，如倫敦 Central 的 Ealing/Hainault、新加坡 EW 樟宜支線、台北新北投/小碧潭支線）；**站序投影排序**（以軌道幾何縫成路徑排序站點，修正 OSM stop 順序錯置）；**未通車不畫**（construction/proposed/未來開通日一律剔除，除非 includeUnopened）。
+
+⚠️ 路線中間不可有紅(交點)/藍(端點)點：站點分類（`src/utils/*/routeStations.js` 的 computeRouteMapStations）已改為——端點須是「未被其他線段共用的真線端」（分支接點不算端點）、交點須落在「不同 route_name 的線」上（同線分支接點不算交點）。此為渲染邏輯，重新整理即生效。
 
 - `onlyLineName`：只保留 route_name 符合 regex 的線。用於「單線城市」（discovery 把單一路線當城市，bbox 會誤含整個都會網），如 `japan-yurikamome`、`united-states-path`、`taiwan-taoyuan`、`united-kingdom-docklands-light-railway`。若該線為 route=train（如東京りんかい線）需同時設 `includeRail`。
 

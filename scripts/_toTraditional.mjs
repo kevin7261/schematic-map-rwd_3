@@ -99,3 +99,43 @@ export function mergeSameNameStations(fc) {
   fc.features = [...others, ...kept.values()];
   return fc;
 }
+
+/**
+ * 手動補站（OSM 缺漏時用）：把指定站點加入並接到某條線的最近端點延伸出去。
+ * extras: [{ name, coord:[lon,lat], attachTo:'<route_name regex>' }]
+ */
+export function addExtraStations(fc, extras) {
+  if (!Array.isArray(extras) || !extras.length) return fc;
+  const ways = (fc.features || []).filter((f) => f.properties?.element_type === 'way');
+  for (const ex of extras) {
+    const [lon, lat] = ex.coord;
+    fc.features.push({
+      type: 'Feature',
+      properties: { osm_id: '', station_name: ex.name, element_type: 'node', station_id: 'manual-' + ex.name },
+      geometry: { type: 'Point', coordinates: [lon, lat] },
+    });
+    if (!ex.attachTo) continue;
+    const re = new RegExp(ex.attachTo);
+    let best = null;
+    let bd = Infinity;
+    let bend = 0;
+    for (const w of ways) {
+      if (!re.test(w.properties.route_name || '')) continue;
+      const cs = w.geometry.coordinates;
+      for (const ei of [0, cs.length - 1]) {
+        const e = cs[ei];
+        const d = Math.hypot(e[0] - lon, e[1] - lat);
+        if (d < bd) {
+          bd = d;
+          best = w;
+          bend = ei;
+        }
+      }
+    }
+    if (best) {
+      if (bend === 0) best.geometry.coordinates.unshift([lon, lat]);
+      else best.geometry.coordinates.push([lon, lat]);
+    }
+  }
+  return fc;
+}

@@ -118,18 +118,37 @@ export const computeRouteMapAdjustStations = (lines, blackDots) => {
     ? blackDots.filter((p) => Array.isArray(p) && p.length >= 2)
     : [];
 
+  // 各頂點被幾條線段共用：判斷真端點 vs 分支接點
+  const vkey = (p) => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`;
+  const vertexSegs = new Map();
+  for (const l of safeLines) {
+    const seen = new Set();
+    for (const v of l.latlngs) {
+      const k = vkey(v);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      vertexSegs.set(k, (vertexSegs.get(k) || 0) + 1);
+    }
+  }
+  // 🔵 端點：首尾頂點且未被其他線段共用（分支接點不算端點）
   const terminals = [];
   for (const l of safeLines) {
     if (l.closed) continue;
-    terminals.push(l.latlngs[0], l.latlngs[l.latlngs.length - 1]);
+    for (const v of [l.latlngs[0], l.latlngs[l.latlngs.length - 1]]) {
+      if ((vertexSegs.get(vkey(v)) || 0) <= 1) terminals.push(v);
+    }
   }
 
+  // 🔴 交點：落在「不同路線」上才算；同線分支接點不算
   const connects = [];
   const ON_TOL = 1e-6;
+  const rid = (l, i) => l.routeName || l.routeId || `#${i}`;
   safeLines.forEach((lx, xi) => {
+    const xid = rid(lx, xi);
     lx.latlngs.forEach((v) => {
       for (let yi = 0; yi < safeLines.length; yi++) {
         if (yi === xi) continue;
+        if (rid(safeLines[yi], yi) === xid) continue;
         const pr = projectOnPolyline(safeLines[yi].latlngs, v);
         if (pr && pr.perpDist <= ON_TOL) {
           connects.push(v);

@@ -39,8 +39,10 @@ export const METRO_OVERRIDES = {
     ],
     // 去重：OSM 同一條線常有多個名稱變體；同 family 只留座標點最多者
     dedupeByName: ['萬大|樹林', '環狀.*東環|東環段', '三鶯'],
-    // 強制納入未通車線（使用者要求）：三鶯線、信義線東延（廣慈/博愛院）；OSM 為 construction
-    includeUnopened: '三鶯|信義線東延|廣慈|博愛',
+    // 強制納入未通車線（使用者要求）：三鶯線（OSM 為 construction）
+    includeUnopened: '三鶯',
+    // 手動補站：廣慈/奉天宮（信義線東延 R03，OSM 尚未建檔）→ 接到淡水信義線東端
+    extraStations: [{ name: '廣慈/奉天宮', coord: [121.5817, 25.0267], attachTo: '淡水|信義' }],
   },
 
   // 🇯🇵 東京：只保留兩家地鐵公司（東京メトロ＋都營）；直通/私鐵段由 pipeline 內建剔除
@@ -111,6 +113,8 @@ export const METRO_OVERRIDES = {
   'chile-santiago': { dedupeByName: ['Línea 1|Line 1', 'Línea 2', 'Línea 4', 'Línea 5'] },
   // 🗽 紐約：不同線的同名站多為不同實體站，停用同名合併（特例）
   'united-states-new-york-city': { noNameMerge: true },
+  // 🇸🇬 新加坡：LRT 環線（Sengkang/Punggol/Bukit Panjang）OSM 多方向變體重複 → 各只留最長者
+  'singapore-singapore': { dedupeByName: ['LRT Sengkang', 'LRT Punggol', 'LRT Bukit Panjang'] },
 };
 
 /** 取得某 city id 的覆寫設定（無則回空物件）；併入官方 colorById（route_id→hex） */

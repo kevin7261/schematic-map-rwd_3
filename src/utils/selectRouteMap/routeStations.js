@@ -118,18 +118,38 @@ export const computeRouteMapStations = (lines, blackDots) => {
     ? blackDots.filter((p) => Array.isArray(p) && p.length >= 2)
     : [];
 
+  // 各頂點被幾條線段（way）共用：用於判斷「真端點」與「分支接點」
+  const vkey = (p) => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`;
+  const vertexSegs = new Map(); // key → 經過此點的線段數
+  for (const l of safeLines) {
+    const seen = new Set();
+    for (const v of l.latlngs) {
+      const k = vkey(v);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      vertexSegs.set(k, (vertexSegs.get(k) || 0) + 1);
+    }
+  }
+  // 🔵 端點：只取「真正的線端」——首尾頂點且未被其他線段共用（分支接點被多段共用→非端點，
+  //    避免分支保留後在路線中間出現藍點）。
   const terminals = [];
   for (const l of safeLines) {
     if (l.closed) continue;
-    terminals.push(l.latlngs[0], l.latlngs[l.latlngs.length - 1]);
+    for (const v of [l.latlngs[0], l.latlngs[l.latlngs.length - 1]]) {
+      if ((vertexSegs.get(vkey(v)) || 0) <= 1) terminals.push(v);
+    }
   }
 
+  // 🔴 交點：頂點落在「不同路線(route_name 不同)」上才算轉乘；同一條線的分支接點不算紅點。
   const connects = [];
   const ON_TOL = 1e-6;
+  const rid = (l, i) => l.routeName || l.routeId || `#${i}`;
   safeLines.forEach((lx, xi) => {
+    const xid = rid(lx, xi);
     lx.latlngs.forEach((v) => {
       for (let yi = 0; yi < safeLines.length; yi++) {
         if (yi === xi) continue;
+        if (rid(safeLines[yi], yi) === xid) continue; // 同線分支，不算交點
         const pr = projectOnPolyline(safeLines[yi].latlngs, v);
         if (pr && pr.perpDist <= ON_TOL) {
           connects.push(v);
