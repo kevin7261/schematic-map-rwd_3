@@ -66,7 +66,7 @@ export const METRO_OVERRIDES = {
   // 🇮🇳 古爾岡：剔除德里地鐵（屬鄰市德里），只留 Rapid Metro
   'india-gurgaon': { dropByName: 'Delhi|DMRC' },
   // 🇭🇰 香港：剔除深圳殘留（簡體深圳線）；APM 由全域雜訊過濾處理
-  'china-hong-kong': { dropByName: '深圳|Shenzhen' },
+  'china-hong-kong': { dropByName: '深圳|Shenzhen|輕鐵|輕鉄|Light Rail' },
 
   // 🚇 單線「城市」：discovery 把單一路線當成城市，其 bbox 會誤含整個都會網 → 只保留該線本身。
   'japan-rinkai-line': { includeRail: 'りんかい|臨海|Rinkai', onlyLineName: 'りんかい|臨海|Rinkai' },

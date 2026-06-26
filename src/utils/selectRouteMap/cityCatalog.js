@@ -33,9 +33,14 @@ const QUICK_CITY_IDS = [
   'taiwan-kaohsiung',
   'japan-tokyo',
   'japan-osaka',
-  'united-kingdom-london',
+  'south-korea-seoul',
+  'china-beijing',
+  'china-shanghai',
   'china-hong-kong',
   'singapore-singapore',
+  'france-paris',
+  'germany-berlin',
+  'united-kingdom-london',
   'united-states-new-york-city',
 ];
 

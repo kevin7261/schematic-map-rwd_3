@@ -350,11 +350,42 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     return false;
   };
 
+  // 🚧 未通車（施工中／計畫中／停用）判定：OSM 常把「尚未通車」之線提早標成 route=subway，
+  //    僅靠 route 值擋不掉。改以生命週期狀態 / 開通日期 / 名稱字樣綜合判定，所有城市一律剔除。
+  const isUnopened = (tags) => {
+    const t = tags || {};
+    const lc = (v) => String(v == null ? '' : v).toLowerCase();
+    if (/^(construction|proposed|planned|disused|abandoned|razed|dismantled|razing)$/.test(lc(t.state)))
+      return true;
+    if (t.construction || t.proposed || t.planned) return true; // construction=yes / proposed=yes 等
+    if (/^(construction|proposed|disused|abandoned)$/.test(lc(t.railway))) return true;
+    if (lc(t.route) === 'construction' || lc(t.route) === 'proposed') return true;
+    if (t['construction:route'] || t['proposed:route'] || t['disused:route']) return true; // lifecycle 前綴
+    if (lc(t.subway) === 'construction' || lc(t.light_rail) === 'construction') return true;
+    // 名稱含未通車字樣（中／英／日）
+    if (
+      /(施工|建設中|建设中|興建|在建|未開業|未通車|未通车|計畫|計划|計画|規劃|规划|under\s*construction|proposed|planned|future|opening|u\/c)/i.test(
+        `${nameOf(t)} ${t.name || ''} ${t.description || ''}`
+      )
+    )
+      return true;
+    // 開通日期在未來（opening_date / start_date）
+    const futureDate = (v) => {
+      const m = String(v || '').match(/^(\d{4})(?:-(\d{1,2}))?/);
+      if (!m) return false;
+      const od = new Date(Number(m[1]), m[2] ? Number(m[2]) - 1 : 0, 1).getTime();
+      return Number.isFinite(od) && od > Date.now();
+    };
+    if (futureDate(t.opening_date) || futureDate(t['opening_date:subway'])) return true;
+    return false;
+  };
+
   const groups = new Map();
   for (const rel of rels) {
     const tags = rel.tags || {};
     // 指定 JR 線強制納入，但仍排除「直通運転」等延伸變體
     const forceInclude = includeRe ? includeRe.test(nameOf(tags)) && !/直通/.test(nameOf(tags)) : false;
+    if (isUnopened(tags)) continue; // 🚧 未通車路線：所有城市一律不畫（forceInclude 也不例外）
     if (!forceInclude && foreignNets.has(netKeyOf(tags))) continue; // 鄰境系統（如載香港時的深圳地鐵）
     if (!forceInclude && /[;,/]/.test((tags.ref || '').trim())) continue; // 多線直通合併關聯
     if (!forceInclude && isThroughRun(tags)) continue; // 與私鐵/JR 直通運轉之路段
