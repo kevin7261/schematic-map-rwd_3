@@ -12,6 +12,12 @@ export {
   LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
   LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY,
   LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2,
+  LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA,
+  LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA_2,
+  SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID,
+  isLayoutVhDrawMainCopyLayerId,
+  isLayoutVhDrawSecondCopyLayerId,
+  isRmaLayoutNetworkGridFromVhDrawLayerId,
   COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID,
   LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS,
   SCHEMATIC_TOWARD_CENTER_HV_LAYER_ID,
@@ -49,6 +55,8 @@ export {
   refreshLayoutNetworkGridFromVhDrawIfVisibleCopy2,
   syncLayoutNetworkGridRoutesDataJsonFromVhDrawCopy,
   syncLayoutNetworkGridRoutesDataJsonFromVhDrawCopy2,
+  syncRmaLayoutNetworkGridFromTowardCenterVh,
+  refreshRmaLayoutNetworkGridFromVhIfVisible,
   syncJsonGridFromCoordDataJsonFromPipeline,
 } from './mirrorFromCoordNormalizedLayer.js';
 export { minimalOsmXmlFromLonLatFeatureCollection } from './minimalOsmXmlFromGeoJson.js';

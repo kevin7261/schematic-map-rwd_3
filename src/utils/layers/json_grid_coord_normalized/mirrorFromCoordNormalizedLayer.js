@@ -31,10 +31,61 @@ import {
   LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
   LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY,
   LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2,
+  LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA,
+  SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID,
+  isLayoutNetworkGridFromVhDrawLayerId,
+  isRmaLayoutNetworkGridFromVhDrawLayerId,
   COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID,
 } from './layerIds.js';
 import { buildVhDrawStationRowsForLayoutMap } from './layoutVhDrawFineIntegerGrid.js';
 import { buildLayoutVhDrawCopyBlackDotTrafficDataTableRows } from './layoutTrafficWeightsSync.js';
+import { reinsertBlackStations } from '@/utils/layers/schematic_layout/assemble.js';
+
+/**
+ * 路網網格（RMA）：自 RMA 示意圖管線最後一層「站點與路線往中心聚集（先直後橫）」
+ * （只存 connect 骨架；黑點站在 schematicBlackSections metadata）取資料，把黑點站沿線放回後，
+ * 轉成與 json-viewer 同源之匯出列陣列寫入本層 dataJson（交通流量 weight 則直接套用於本層 dataJson）。
+ * @param {(id:string)=>*|null} findLayerById
+ * @param {object|null} [layoutLayer]
+ */
+export function syncRmaLayoutNetworkGridFromTowardCenterVh(findLayerById, layoutLayer) {
+  const layout =
+    layoutLayer ?? findLayerById(LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA);
+  if (!layout || !isRmaLayoutNetworkGridFromVhDrawLayerId(layout.layerId)) return;
+  const src = findLayerById(SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID);
+  const skel =
+    src && Array.isArray(src.spaceNetworkGridJsonData) ? src.spaceNetworkGridJsonData : null;
+  if (!skel || !skel.length) {
+    layout.jsonData = null;
+    layout.dataJson = null;
+    layout.geojsonData = null;
+    layout.dataTableData = null;
+    return;
+  }
+  const sections = Array.isArray(src.schematicBlackSections) ? src.schematicBlackSections : [];
+  const skelCopy = JSON.parse(JSON.stringify(skel));
+  // 黑點站平均沿線放回（與 RMA「connect 拉直」種子相同邏輯）。
+  const full =
+    sections.length === skelCopy.length ? reinsertBlackStations(skelCopy, sections) : skelCopy;
+  let rows = [];
+  try {
+    rows = flatSegmentsToGeojsonStyleExportRows(full);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('syncRmaLayoutNetworkGridFromTowardCenterVh：自路網匯出列失敗', e);
+    rows = [];
+  }
+  layout.jsonData = null;
+  layout.dataJson = Array.isArray(rows) && rows.length ? JSON.parse(JSON.stringify(rows)) : null;
+  layout.geojsonData = layout.dataJson
+    ? minimalLineStringFeatureCollectionFromRouteExportRows(layout.dataJson, {
+        stationPoints: 'endpoints',
+        routeLine: 'endpoints',
+      })
+    : null;
+  layout.dataTableData = buildLayoutVhDrawCopyBlackDotTrafficDataTableRows(layout.dataJson);
+  layout.isLoaded = true;
+}
 
 /**
  * 將本圖層路網匯出列寫入 dataJson／jsonData／geojsonData（與座標正規化父層語意一致）。
@@ -197,20 +248,14 @@ export function resetJsonGridFromCoordNormalizedPipelineFields(lyr) {
   lyr.lineOrthoTowardCrossFrozenCenter = null;
   lyr.layoutUniformGridGeoJson = null;
   lyr.layoutUniformGridMeta = null;
-  if (
-    lyr.layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY ||
-    lyr.layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2
-  ) {
+  if (isLayoutNetworkGridFromVhDrawLayerId(lyr.layerId)) {
     lyr.layoutVhDrawFineGridTurnRbMidDots = false;
     lyr.layoutVhDrawShowBlackDotRowColRatioOverlay = false;
   }
   lyr.layoutVhDrawFineGrid = null;
   lyr.layoutVhDrawBlackDotRowColRatioReport = null;
   lyr.showStationPlacement = true;
-  if (
-    lyr.layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY ||
-    lyr.layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2
-  ) {
+  if (isLayoutNetworkGridFromVhDrawLayerId(lyr.layerId)) {
     lyr.dataTableData = buildLayoutVhDrawCopyBlackDotTrafficDataTableRows(lyr.dataJson);
   }
 }
@@ -288,10 +333,7 @@ export function jsonGridFromCoordNormalizedPersistPayload(layer, opts = {}) {
     payload.vhDrawUserJsonOverride = !!layer.vhDrawUserJsonOverride;
     payload.jsonFileName = layer.jsonFileName ?? null;
   }
-  if (
-    layer.layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY ||
-    layer.layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2
-  ) {
+  if (isLayoutNetworkGridFromVhDrawLayerId(layer.layerId)) {
     payload.csvFileName_traffic = layer.csvFileName_traffic ?? null;
     payload.layoutVhDrawTrafficData = layer.layoutVhDrawTrafficData ?? null;
     payload.layoutVhDrawTrafficMissing = Array.isArray(layer.layoutVhDrawTrafficMissing)
@@ -325,6 +367,39 @@ export function refreshLayoutNetworkGridFromVhDrawIfVisibleCopy2(findLayerById, 
   const layout = findLayerById(LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2);
   if (!layout?.visible) return;
   mirrorResetAndPersistJsonGridFromCoordNormalized(findLayerById, saveLayerState, layout);
+}
+
+/**
+ * RMA 路網網格（主層／第二份）：自 RMA「先直後橫」重建並 persist。
+ * 已有資料且來源簽章未變者保留（不覆寫使用者套用之流量 weight）；force 時強制重建。
+ * @returns {boolean} 是否（重新）寫入了資料
+ */
+export function refreshRmaLayoutNetworkGridFromVhIfVisible(
+  findLayerById,
+  saveLayerState,
+  layoutLayerId,
+  opts = {}
+) {
+  const layout = findLayerById(layoutLayerId);
+  if (!layout || !isRmaLayoutNetworkGridFromVhDrawLayerId(layout.layerId)) return false;
+  const src = findLayerById(SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID);
+  const skel =
+    src && Array.isArray(src.spaceNetworkGridJsonData) ? src.spaceNetworkGridJsonData : [];
+  // 來源廉價簽章：段數 + 總點數（供「上游是否變更」判斷）。
+  let pts = 0;
+  for (const s of skel) pts += Array.isArray(s?.points) ? s.points.length : 0;
+  const sig = `${skel.length}:${pts}`;
+  const hasData = Array.isArray(layout.dataJson) && layout.dataJson.length > 0;
+  if (!opts.force && hasData && layout.seededFromSig === sig) return false;
+  syncRmaLayoutNetworkGridFromTowardCenterVh(findLayerById, layout);
+  layout.seededFromSig = sig;
+  if (typeof saveLayerState === 'function') {
+    saveLayerState(
+      layout.layerId,
+      jsonGridFromCoordNormalizedPersistPayload(layout, { omitLoadingFlags: true })
+    );
+  }
+  return true;
 }
 
 /**

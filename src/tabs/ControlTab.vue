@@ -67,6 +67,8 @@
     refreshOrthogonalVhMirrorDrawLayerIfVisible,
     refreshLayoutNetworkGridFromVhDrawIfVisibleCopy,
     refreshLayoutNetworkGridFromVhDrawIfVisibleCopy2,
+    refreshRmaLayoutNetworkGridFromVhIfVisible,
+    isRmaLayoutNetworkGridFromVhDrawLayerId,
     tryOrthoTowardCrossNudgeFromReportItem,
     applyLineOrthoHubBlueDiagonalPrepassSegments,
     shallowCloneOrthoSegmentsSynced,
@@ -2925,6 +2927,22 @@
   watch(
     () => activeLayerTab.value,
     async (tab) => {
+      // 路網網格（RMA）：切到該分頁時自 RMA「先直後橫」重抓（來源變更才重建，保留已套用之流量）
+      if (isRmaLayoutNetworkGridFromVhDrawLayerId(tab)) {
+        try {
+          refreshRmaLayoutNetworkGridFromVhIfVisible(
+            dataStore.findLayerById.bind(dataStore),
+            dataStore.saveLayerState.bind(dataStore),
+            tab
+          );
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('路網網格（RMA）：自上游抓取失敗', e);
+        }
+        await nextTick();
+        dataStore.requestSpaceNetworkGridFullRedraw();
+        return;
+      }
       if (!SCHEMATIC_CHAIN_UPSTREAM[tab]) return;
       try {
         ensureSchematicChainSeeded(tab);

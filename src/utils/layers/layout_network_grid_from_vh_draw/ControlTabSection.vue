@@ -14,7 +14,7 @@
 <template>
   <template v-if="api.isLayoutNetworkGridFromVhDrawControlLayer(layer)">
     <div
-      v-if="layer.layerId === api.LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2"
+      v-if="api.isSecondCopyLayer(layer)"
       class="pb-3 mb-3 border-bottom"
     >
       <div class="my-title-xs-gray pb-2">滑鼠所在座標</div>
@@ -152,7 +152,7 @@
         </div>
       </div>
       <div
-        v-if="layer.layerId === api.LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY"
+        v-if="api.isMainCopyLayer(layer)"
         class="d-flex flex-wrap align-items-center gap-2 mb-2"
       >
         <label
@@ -180,7 +180,7 @@
         >
       </div>
       <div
-        v-if="layer.layerId === api.LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY"
+        v-if="api.isMainCopyLayer(layer)"
         class="mt-3"
       >
         <div class="my-content-sm-black mb-1">weight_差值 由小到大（黑點清單）</div>
@@ -279,7 +279,7 @@
       >
         選擇 JSON 檔讀入…
       </button>
-      <template v-if="layer.layerId === api.LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY">
+      <template v-if="api.isMainCopyLayer(layer)">
         <div class="my-title-xs-gray pb-2">路段交通流量（CSV）</div>
         <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
           來源：<code class="small">{{ layer.csvFileName_traffic }}</code
@@ -332,7 +332,7 @@
         </div>
       </div>
       <div
-        v-if="layer.layerId === api.LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY"
+        v-if="api.isMainCopyLayer(layer)"
         class="d-grid gap-2"
       >
         <button

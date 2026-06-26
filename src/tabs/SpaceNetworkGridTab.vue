@@ -109,10 +109,9 @@
     LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
     isLineOrthogonalTowardCenterLayerId,
     isLayoutNetworkGridFromVhDrawLayerId,
+    isLayoutVhDrawSecondCopyLayerId,
     isSpaceGridVhDrawFamilyLayerId,
     LAYOUT_SEGMENT_TRAFFIC_WEIGHT_KEY,
-    LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY,
-    LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2,
     buildVhDrawStationRowsForLayoutMap,
     maxLayoutVhDrawBlackDotsOnLegInOpenXSlab,
     maxLayoutVhDrawBlackDotsOnLegInOpenYSlab,
@@ -4027,7 +4026,7 @@
     if (
       layoutVhDrawPixelAxisMode &&
       layoutViewerPxPtScale &&
-      layerTab === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2
+      isLayoutVhDrawSecondCopyLayerId(layerTab)
     ) {
       svg
         .on('mousemove.layoutVhDrawViewerPt', function (event) {
@@ -4394,7 +4393,7 @@
     const layoutVhDrawCopy2Pixel =
       layoutVhDrawPixelAxisMode &&
       !layoutVhDrawWeightedLayoutMode &&
-      layerTab === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2 &&
+      isLayoutVhDrawSecondCopyLayerId(layerTab) &&
       layoutFisheyeNx > 0 &&
       layoutFisheyeNy > 0;
     const layoutVhDrawPathSelectModeOn =
@@ -4714,7 +4713,7 @@
       layoutVhDrawPixelAxisMode ? margin.top + fisheyeWarpRelY(Number(tick)) : yScale(Number(tick));
 
     // 路網網格_2：把目前已畫的灰網格每格寬、高各切 layoutVhDrawSubgridDiv 份（於灰格內等分處加淺灰細虛線），子網格即這些細格。
-    if (layoutVhDrawPixelAxisMode && layerTab === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2) {
+    if (layoutVhDrawPixelAxisMode && isLayoutVhDrawSecondCopyLayerId(layerTab)) {
       const div = layoutVhDrawSubgridDiv;
       const subgridGroup = zoomGroup.append('g').attr('class', 'layout-vh-draw-subgrid-group');
       for (let i = 0; i < xTicks.length - 1; i++) {
@@ -6923,11 +6922,9 @@
       const layoutPxBandMaxColVals = [];
       const layoutPxBandMaxRowVals = [];
       const pendingWeightedMidDots = [];
-      const layoutVhDrawCopyWeightedLayerTab =
-        layerTab === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY ||
-        layerTab === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2
-          ? layerTab
-          : null;
+      const layoutVhDrawCopyWeightedLayerTab = isLayoutNetworkGridFromVhDrawLayerId(layerTab)
+        ? layerTab
+        : null;
       const layoutVhDrawCopyRouteLabelFn = layoutVhDrawCopyRouteLabelFromExportRow;
       const layoutVhDrawCopyRowMatchKeyFn = layoutVhDrawCopyBlackDotRowMatchKey;
       const layoutVhDrawCopyFindMidNeighborsFn = findLayoutSegmentMidNeighbors;
@@ -8746,7 +8743,7 @@
           (endpointNormForHover === 'terminal' || endpointNormForHover === 'intersection'));
       // 路網網格_2 最短路徑放大：選取模式開啟時，紅/藍點可點選（已選者加橘色外環、點選切換）。
       if (
-        layerTab === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2 &&
+        isLayoutVhDrawSecondCopyLayerId(layerTab) &&
         activeTabLayer?.layoutVhDrawPathSelectMode === true &&
         isRedBlueEndpoint
       ) {

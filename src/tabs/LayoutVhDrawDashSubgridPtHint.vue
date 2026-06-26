@@ -2,10 +2,7 @@
   import { computed } from 'vue';
   import { storeToRefs } from 'pinia';
   import { useDataStore } from '@/stores/dataStore.js';
-  import {
-    LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY,
-    LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2,
-  } from '@/utils/layers/json_grid_coord_normalized/index.js';
+  import { isLayoutNetworkGridFromVhDrawLayerId } from '@/utils/layers/json_grid_coord_normalized/index.js';
 
   const props = defineProps({
     layer: { type: Object, required: true },
@@ -14,13 +11,9 @@
   const dataStore = useDataStore();
   const { layoutVhDrawWeightedDashSubgridPtUi } = storeToRefs(dataStore);
 
-  const isLayoutVhDrawControlLayer = computed(() => {
-    const id = props.layer?.layerId;
-    return (
-      id === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY ||
-      id === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2
-    );
-  });
+  const isLayoutVhDrawControlLayer = computed(() =>
+    isLayoutNetworkGridFromVhDrawLayerId(props.layer?.layerId)
+  );
 
   const fmtPtRange = (a, b) => {
     if (a == null || b == null) return '—';

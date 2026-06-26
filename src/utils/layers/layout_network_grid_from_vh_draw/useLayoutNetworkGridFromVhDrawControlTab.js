@@ -7,11 +7,18 @@ import {
   LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
   LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY,
   LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2,
+  LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA,
+  LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA_2,
   LAYOUT_VH_DRAW_COPY_GRID_NEIGHBOR_HIDE_MIN_PT,
   jsonGridFromCoordNormalizedPersistPayload,
   syncLayoutNetworkGridRoutesDataJsonFromVhDrawCopy,
   applyLayoutTrafficCsvToVhDrawLayerRoots,
   applyRandomLayoutTrafficWeightsToVhDrawLayerRoots,
+  isLayoutNetworkGridFromVhDrawLayerId,
+  isLayoutVhDrawMainCopyLayerId,
+  isLayoutVhDrawSecondCopyLayerId,
+  isRmaLayoutNetworkGridFromVhDrawLayerId,
+  buildLayoutVhDrawCopyBlackDotTrafficDataTableRows,
 } from '@/utils/layers/json_grid_coord_normalized/index.js';
 import {
   layoutVhDrawAutoRandomWeightLayerId,
@@ -48,12 +55,42 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
   };
 
   const isLayoutNetworkGridFromVhDrawControlLayer = (lyr) =>
-    !!lyr &&
-    (lyr.layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY ||
-      lyr.layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2);
+    !!lyr && isLayoutNetworkGridFromVhDrawLayerId(lyr.layerId);
+
+  /** 是否為「主層」(含 CSV／隨機 weight／鄰線最小寬高)：OSM copy 或 RMA。 */
+  const isMainCopyLayer = (lyr) => !!lyr && isLayoutVhDrawMainCopyLayerId(lyr.layerId);
+  /** 是否為「第二份」純檢視複本(fisheye／最短路徑)：OSM copy2 或 RMA_2。 */
+  const isSecondCopyLayer = (lyr) => !!lyr && isLayoutVhDrawSecondCopyLayerId(lyr.layerId);
+
+  /** 交通流量 weight 作用的「根」圖層：RMA 版直接套用於本層 dataJson；OSM 版套用於 VH 繪製層。 */
+  const trafficRootLayerId = (lyr) =>
+    isRmaLayoutNetworkGridFromVhDrawLayerId(lyr?.layerId)
+      ? lyr.layerId
+      : LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID;
+
+  /** 套用流量後：RMA 直接重算本層黑點表並 persist；OSM 走 VH 繪製層 + 同步 copy。 */
+  const persistAfterTrafficChange = (lyr) => {
+    if (isRmaLayoutNetworkGridFromVhDrawLayerId(lyr?.layerId)) {
+      lyr.dataTableData = buildLayoutVhDrawCopyBlackDotTrafficDataTableRows(lyr.dataJson);
+      dataStore.saveLayerState(
+        lyr.layerId,
+        jsonGridFromCoordNormalizedPersistPayload(lyr, { omitLoadingFlags: true })
+      );
+      return;
+    }
+    const vhDraw = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
+    if (vhDraw) {
+      dataStore.saveLayerState(vhDraw.layerId, {
+        jsonData: vhDraw.jsonData,
+        dataJson: vhDraw.dataJson,
+        processedJsonData: vhDraw.processedJsonData,
+      });
+    }
+    persistLayoutVhDrawGridRoutesDataJsonSnapshotCopy();
+  };
 
   const layoutVhDrawCopyRowsSortedByWeightDiffAsc = (lyr) => {
-    if (!lyr || lyr.layerId !== LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY) return [];
+    if (!isMainCopyLayer(lyr)) return [];
     const rows = lyr.dataTableData;
     if (!Array.isArray(rows) || rows.length === 0) return [];
     return [...rows].sort((a, b) => {
@@ -102,20 +139,8 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
       }
       lyr.layoutVhDrawTrafficData = data;
       lyr.layoutVhDrawTrafficMissing = [];
-      applyLayoutTrafficCsvToVhDrawLayerRoots(
-        dataStore,
-        LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
-        data
-      );
-      const vhDraw = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
-      if (vhDraw) {
-        dataStore.saveLayerState(vhDraw.layerId, {
-          jsonData: vhDraw.jsonData,
-          dataJson: vhDraw.dataJson,
-          processedJsonData: vhDraw.processedJsonData,
-        });
-      }
-      persistLayoutVhDrawGridRoutesDataJsonSnapshotCopy();
+      applyLayoutTrafficCsvToVhDrawLayerRoots(dataStore, trafficRootLayerId(lyr), data);
+      persistAfterTrafficChange(lyr);
       await nextTick();
       dataStore.requestSpaceNetworkGridFullRedraw();
     } catch (err) {
@@ -128,20 +153,8 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
     if (!isLayoutNetworkGridFromVhDrawControlLayer(lyr)) return;
     lyr.layoutVhDrawTrafficData = null;
     lyr.layoutVhDrawTrafficMissing = [];
-    applyLayoutTrafficCsvToVhDrawLayerRoots(
-      dataStore,
-      LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
-      null
-    );
-    const vhDrawClear = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
-    if (vhDrawClear) {
-      dataStore.saveLayerState(vhDrawClear.layerId, {
-        jsonData: vhDrawClear.jsonData,
-        dataJson: vhDrawClear.dataJson,
-        processedJsonData: vhDrawClear.processedJsonData,
-      });
-    }
-    persistLayoutVhDrawGridRoutesDataJsonSnapshotCopy();
+    applyLayoutTrafficCsvToVhDrawLayerRoots(dataStore, trafficRootLayerId(lyr), null);
+    persistAfterTrafficChange(lyr);
     await nextTick();
     dataStore.requestSpaceNetworkGridFullRedraw();
   };
@@ -237,7 +250,7 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
   };
 
   const onLayoutVhDrawCopyWeightedNeighborHideMinPtChange = async (lyr, ev) => {
-    if (!lyr || lyr.layerId !== LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY) return;
+    if (!isMainCopyLayer(lyr)) return;
     let v = Number(ev?.target?.value);
     if (!Number.isFinite(v)) v = LAYOUT_VH_DRAW_COPY_GRID_NEIGHBOR_HIDE_MIN_PT;
     v = Math.min(99, Math.max(0.25, v));
@@ -269,9 +282,9 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
 
   const applyLayoutNetworkRandomizeTrafficWeights = async (lyr) => {
     if (!isLayoutNetworkGridFromVhDrawControlLayer(lyr)) return;
-    const vhDraw = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
-    if (!vhDraw) {
-      window.alert('找不到 VH 繪製層（orthogonal_toward_center_vh_draw）。');
+    const rootId = trafficRootLayerId(lyr);
+    if (!dataStore.findLayerById(rootId)) {
+      window.alert('找不到路網來源圖層。');
       stopLayoutVhDrawAutoRandomWeight();
       return;
     }
@@ -279,30 +292,17 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
     dataStore.requestLayoutVhDrawRouteWeightAnim(lyr.layerId);
 
     const sampleFn = () => sampleLayoutTrafficWeight1to9InverseGeometric(2);
-    const dataRows = applyRandomLayoutTrafficWeightsToVhDrawLayerRoots(
-      dataStore,
-      LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
-      sampleFn
-    );
+    const dataRows = applyRandomLayoutTrafficWeightsToVhDrawLayerRoots(dataStore, rootId, sampleFn);
     if (!dataRows.length) {
       window.alert(
-        '尚無可產生 weight 的相鄰路段。請確認 VH 繪製層已有路網（站名、station_id 或格點座標），或改用載入 CSV。'
+        '尚無可產生 weight 的相鄰路段。請確認路網來源已有路網（站名、station_id 或格點座標），或改用載入 CSV。'
       );
       stopLayoutVhDrawAutoRandomWeight();
       return;
     }
     lyr.layoutVhDrawTrafficData = dataRows;
-
     lyr.layoutVhDrawTrafficMissing = [];
-    const vhDrawRand = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
-    if (vhDrawRand) {
-      dataStore.saveLayerState(vhDrawRand.layerId, {
-        jsonData: vhDrawRand.jsonData,
-        dataJson: vhDrawRand.dataJson,
-        processedJsonData: vhDrawRand.processedJsonData,
-      });
-    }
-    persistLayoutVhDrawGridRoutesDataJsonSnapshotCopy();
+    persistAfterTrafficChange(lyr);
     await nextTick();
     dataStore.requestSpaceNetworkGridFullRedraw();
   };
@@ -320,6 +320,12 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
   return reactive({
     LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY,
     LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2,
+    LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA,
+    LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA_2,
+    /** 主層(完整功能)：OSM copy 或 RMA */
+    isMainCopyLayer,
+    /** 第二份(純檢視)：OSM copy2 或 RMA_2 */
+    isSecondCopyLayer,
     LAYOUT_VH_DRAW_COPY_GRID_NEIGHBOR_HIDE_MIN_PT,
     /** 路網網格_2：layout-grid-viewer 目前滑鼠所在 pt 座標（{x,y}，無則為 null） */
     get layoutVhDrawViewerMousePt() {

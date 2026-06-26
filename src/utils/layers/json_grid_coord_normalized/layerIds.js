@@ -35,16 +35,52 @@ export const LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY = 'layout_network_gr
 export const LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2 =
   'layout_network_grid_from_vh_draw_copy2';
 
+/**
+ * 路線圖處理（RMA）版「路網網格」：與版面網絡網格家族同檢視／繪製／UI，
+ * 但資料來源為 RMA 示意圖管線最後一層「站點與路線往中心聚集（先直後橫）」schematic_rma_toward_center_vh。
+ */
+export const LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA = 'layout_network_grid_from_vh_draw_rma';
+export const LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA_2 =
+  'layout_network_grid_from_vh_draw_rma2';
+/** RMA 路網網格之資料來源（RMA 先直後橫往中心聚集層）。 */
+export const SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID = 'schematic_rma_toward_center_vh';
+
 /** @param {string|undefined|null} layerId */
 export function isOrthogonalVhDataJsonDrawMirrorLayerId(layerId) {
   return layerId === LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID;
+}
+
+/** 「路網網格」主層（含 CSV／隨機 weight／鄰線最小寬高等完整功能）：OSM copy 或 RMA。 */
+export function isLayoutVhDrawMainCopyLayerId(layerId) {
+  return (
+    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY ||
+    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA
+  );
+}
+
+/** 「路網網格_2」純檢視複本（fisheye／最短路徑選取）：OSM copy2 或 RMA_2。 */
+export function isLayoutVhDrawSecondCopyLayerId(layerId) {
+  return (
+    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2 ||
+    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA_2
+  );
+}
+
+/** RMA 版路網網格（主層或第二份）。 */
+export function isRmaLayoutNetworkGridFromVhDrawLayerId(layerId) {
+  return (
+    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA ||
+    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA_2
+  );
 }
 
 /** @param {string|undefined|null} layerId */
 export function isLayoutNetworkGridFromVhDrawLayerId(layerId) {
   return (
     layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY ||
-    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2
+    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY_2 ||
+    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA ||
+    layerId === LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_RMA_2
   );
 }
 
@@ -104,14 +140,15 @@ export function isVertFirstTowardCenterLayerId(layerId) {
   );
 }
 
-/** 自 {@link JSON_GRID_COORD_NORMALIZED_LAYER_ID} 鏡像 dataJson 之衍生層（站點垂直化、紅藍點表、線網往中心、VH 繪製鏡像）。僅 OSM 端原兩層，不含示意圖版。 */
+/** 自 {@link JSON_GRID_COORD_NORMALIZED_LAYER_ID} 鏡像 dataJson 之衍生層（站點垂直化、紅藍點表、線網往中心、VH 繪製鏡像）。僅 OSM 端原兩層，不含示意圖版／RMA 路網網格（RMA 自有資料鏈）。 */
 export function isCoordNormalizedDataJsonMirrorFollowonLayerId(layerId) {
   return (
     layerId === POINT_ORTHOGONAL_LAYER_ID ||
     layerId === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
     LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS.includes(layerId) ||
     isOrthogonalVhDataJsonDrawMirrorLayerId(layerId) ||
-    isLayoutNetworkGridFromVhDrawLayerId(layerId)
+    (isLayoutNetworkGridFromVhDrawLayerId(layerId) &&
+      !isRmaLayoutNetworkGridFromVhDrawLayerId(layerId))
   );
 }
 
