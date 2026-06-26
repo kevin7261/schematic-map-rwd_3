@@ -64,10 +64,13 @@ export function validateGeojson(fc) {
   const multi = ways.filter((w) => /[;,/]/.test(w.properties.route_id));
   if (multi.length) errors.push(`多線合併關聯 ${multi.length}`);
 
+  // 重複線只比「同一條線(route_id)」之間（交點截斷後不同路線會共用相同路段，屬正常、不算重複）
   const keysets = ways.map((w) => new Set(w.geometry.coordinates.map((c) => k(c[0], c[1]))));
+  const ridOf = (w) => w.properties.route_id || w.properties.route_name || '';
   let dup = 0;
   for (let i = 0; i < ways.length; i++)
     for (let j = i + 1; j < ways.length; j++) {
+      if (ridOf(ways[i]) !== ridOf(ways[j])) continue; // 不同路線共用路段不算重複
       let hit = 0;
       for (const x of keysets[i]) if (keysets[j].has(x)) hit++;
       if (keysets[i].size && keysets[j].size && hit / keysets[i].size >= 0.8 && hit / keysets[j].size >= 0.8) dup++;

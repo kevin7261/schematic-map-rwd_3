@@ -100,6 +100,45 @@ export function mergeSameNameStations(fc) {
   return fc;
 }
 
+/**
+ * 在「交點」把路線截斷成段：交點＝座標同時屬於 ≥2 條不同路線(route_name)的頂點。
+ * 截斷後交點一律落在線段端點，不會出現「路線中間有紅點」。
+ */
+export function splitAtConnects(fc) {
+  const k = (p) => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`;
+  const ways = (fc.features || []).filter((f) => f.properties?.element_type === 'way');
+  const rid = (w) => w.properties.route_name || w.properties.route_id || '';
+  const coordRoutes = new Map(); // 座標 → 經過的不同路線集合
+  for (const w of ways) {
+    const r = rid(w);
+    const seen = new Set();
+    for (const c of w.geometry.coordinates) {
+      const kk = k(c);
+      if (seen.has(kk)) continue;
+      seen.add(kk);
+      if (!coordRoutes.has(kk)) coordRoutes.set(kk, new Set());
+      coordRoutes.get(kk).add(r);
+    }
+  }
+  const isConnect = (kk) => (coordRoutes.get(kk)?.size || 0) >= 2;
+  const others = (fc.features || []).filter((f) => f.properties?.element_type !== 'way');
+  const out = [];
+  for (const w of ways) {
+    const cs = w.geometry.coordinates;
+    let seg = [cs[0]];
+    for (let i = 1; i < cs.length; i++) {
+      seg.push(cs[i]);
+      if (i < cs.length - 1 && isConnect(k(cs[i]))) {
+        out.push({ type: 'Feature', properties: { ...w.properties }, geometry: { type: 'LineString', coordinates: seg } });
+        seg = [cs[i]];
+      }
+    }
+    if (seg.length >= 2) out.push({ type: 'Feature', properties: { ...w.properties }, geometry: { type: 'LineString', coordinates: seg } });
+  }
+  fc.features = [...others, ...out];
+  return fc;
+}
+
 /** 移除孤立 node（座標不在任何 way 頂點上者）——後處理改動 way 後的收尾。 */
 export function dropOrphanNodes(fc) {
   const k = (p) => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`;
