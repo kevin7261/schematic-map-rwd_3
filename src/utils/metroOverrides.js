@@ -42,7 +42,7 @@ export const METRO_OVERRIDES = {
     // 強制納入未通車線（使用者要求）：三鶯線（OSM 為 construction）
     includeUnopened: '三鶯',
     // 手動補站：廣慈/奉天宮（信義線東延 R03，OSM 尚未建檔）→ 接到淡水信義線東端
-    extraStations: [{ name: '廣慈/奉天宮', coord: [121.5817, 25.0267], attachTo: '淡水|信義' }],
+    extraStations: [{ name: '廣慈/奉天宮', coord: [121.582311, 25.037468], attachTo: '淡水|信義' }],
   },
 
   // 🇯🇵 東京：只保留兩家地鐵公司（東京メトロ＋都營）；直通/私鐵段由 pipeline 內建剔除

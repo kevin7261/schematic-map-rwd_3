@@ -18,5 +18,12 @@ if (!c || !c.file) {
 const fc = JSON.parse(fs.readFileSync(path.join(DIR, c.file), 'utf8'));
 const lines = fc.features
   .filter((x) => x.properties.element_type === 'way')
-  .map((x) => ({ name: x.properties.route_name || '(無名)', status: x.properties.status || 'open' }));
-console.log(JSON.stringify({ id, city: c.city, country: c.country, cityZh: c.cityZh || '', lines }));
+  .map((x) => ({
+    name: x.properties.route_name || '(無名)',
+    color: x.properties.color || '',
+    status: x.properties.status || 'open',
+  }));
+const stationCount = fc.features.filter((x) => x.properties.element_type === 'node').length;
+console.log(
+  JSON.stringify({ id, city: c.city, country: c.country, cityZh: c.cityZh || '', stationCount, lines })
+);
