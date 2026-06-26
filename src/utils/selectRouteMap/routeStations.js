@@ -118,25 +118,21 @@ export const computeRouteMapStations = (lines, blackDots) => {
     ? blackDots.filter((p) => Array.isArray(p) && p.length >= 2)
     : [];
 
-  // 各頂點被幾條線段（way）共用：用於判斷「真端點」與「分支接點」
+  // 各頂點的「總出現次數」（跨所有線、含同線重複經過）：用於判斷「真端點」。
+  //    真線端只出現 1 次；分支接點/轉乘/環線接點會出現 ≥2 次 → 不算端點，避免路線中間出現藍點。
   const vkey = (p) => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`;
-  const vertexSegs = new Map(); // key → 經過此點的線段數
-  for (const l of safeLines) {
-    const seen = new Set();
+  const vertexCount = new Map();
+  for (const l of safeLines)
     for (const v of l.latlngs) {
       const k = vkey(v);
-      if (seen.has(k)) continue;
-      seen.add(k);
-      vertexSegs.set(k, (vertexSegs.get(k) || 0) + 1);
+      vertexCount.set(k, (vertexCount.get(k) || 0) + 1);
     }
-  }
-  // 🔵 端點：只取「真正的線端」——首尾頂點且未被其他線段共用（分支接點被多段共用→非端點，
-  //    避免分支保留後在路線中間出現藍點）。
+  // 🔵 端點：首尾頂點且總出現次數 ≤1（環線起=終→出現 2 次故非端點；分支/轉乘接點同理）
   const terminals = [];
   for (const l of safeLines) {
     if (l.closed) continue;
     for (const v of [l.latlngs[0], l.latlngs[l.latlngs.length - 1]]) {
-      if ((vertexSegs.get(vkey(v)) || 0) <= 1) terminals.push(v);
+      if ((vertexCount.get(vkey(v)) || 0) <= 1) terminals.push(v);
     }
   }
 

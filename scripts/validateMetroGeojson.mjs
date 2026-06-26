@@ -78,6 +78,18 @@ export function validateGeojson(fc) {
   const orphan = nodes.filter((n) => !vset.has(k(n.geometry.coordinates[0], n.geometry.coordinates[1]))).length;
   if (orphan) errors.push(`孤立 node ${orphan}`);
 
+  // 路線中間不可有端點(藍點)：真端點之線端頂點總出現次數應為 1；若該點同時是某線之內部頂點＝中段藍點
+  const coords = ways.map((w) => w.geometry.coordinates);
+  const vcount = new Map();
+  for (const c of coords) for (const p of c) vcount.set(k(p[0], p[1]), (vcount.get(k(p[0], p[1])) || 0) + 1);
+  const interior = new Set();
+  for (const c of coords) for (let i = 1; i < c.length - 1; i++) interior.add(k(c[i][0], c[i][1]));
+  let midTerm = 0;
+  for (const c of coords)
+    for (const v of [c[0], c[c.length - 1]])
+      if ((vcount.get(k(v[0], v[1])) || 0) <= 1 && interior.has(k(v[0], v[1]))) midTerm++;
+  if (midTerm) errors.push(`中段端點(藍點) ${midTerm}`);
+
   return { errors, warns, lines: ways.length, nodes: nodes.length };
 }
 

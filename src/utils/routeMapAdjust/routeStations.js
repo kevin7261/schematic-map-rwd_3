@@ -118,24 +118,20 @@ export const computeRouteMapAdjustStations = (lines, blackDots) => {
     ? blackDots.filter((p) => Array.isArray(p) && p.length >= 2)
     : [];
 
-  // 各頂點被幾條線段共用：判斷真端點 vs 分支接點
+  // 各頂點「總出現次數」（跨所有線、含同線重複）：真線端只出現 1 次；環線/分支/轉乘接點 ≥2 次
   const vkey = (p) => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`;
-  const vertexSegs = new Map();
-  for (const l of safeLines) {
-    const seen = new Set();
+  const vertexCount = new Map();
+  for (const l of safeLines)
     for (const v of l.latlngs) {
       const k = vkey(v);
-      if (seen.has(k)) continue;
-      seen.add(k);
-      vertexSegs.set(k, (vertexSegs.get(k) || 0) + 1);
+      vertexCount.set(k, (vertexCount.get(k) || 0) + 1);
     }
-  }
-  // 🔵 端點：首尾頂點且未被其他線段共用（分支接點不算端點）
+  // 🔵 端點：首尾頂點且總出現次數 ≤1（環線/分支/轉乘接點非端點）
   const terminals = [];
   for (const l of safeLines) {
     if (l.closed) continue;
     for (const v of [l.latlngs[0], l.latlngs[l.latlngs.length - 1]]) {
-      if ((vertexSegs.get(vkey(v)) || 0) <= 1) terminals.push(v);
+      if ((vertexCount.get(vkey(v)) || 0) <= 1) terminals.push(v);
     }
   }
 
