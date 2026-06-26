@@ -77,9 +77,10 @@ async function main() {
         includeRail: ov.includeRail,
         onlyLineName: ov.onlyLineName,
         clipToBbox: ov.clipToBbox,
+        noNameMerge: ov.noNameMerge,
       });
       if (isMainlandChina(c)) convertFcToTraditional(fc); // 大陸城市簡→繁
-      mergeSameNameStations(fc); // 同名車站合併（簡→繁後最終保險）
+      if (!ov.noNameMerge) mergeSameNameStations(fc); // 同名車站合併（紐約等特例除外）
       const v = validateGeojson(fc);
       if (v.errors.length) {
         fail++;

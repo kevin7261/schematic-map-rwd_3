@@ -6,7 +6,7 @@
      掛載／銷毀地圖。為唯讀顯示（畫出載入的城市路線與站點，hover 顯示屬性）。
 -->
 <template>
-  <div class="h-100 w-100 position-relative">
+  <div class="h-100 w-100 position-relative srm-map-tab">
     <div ref="mapEl" class="h-100 w-100"></div>
   </div>
 </template>
@@ -69,3 +69,13 @@
     },
   };
 </script>
+
+<style>
+  /* 點擊路線／站點時不顯示瀏覽器 focus 藍方框 */
+  .srm-map-tab .leaflet-interactive:focus,
+  .srm-map-tab .leaflet-container:focus,
+  .srm-map-tab svg:focus,
+  .srm-map-tab path:focus {
+    outline: none;
+  }
+</style>

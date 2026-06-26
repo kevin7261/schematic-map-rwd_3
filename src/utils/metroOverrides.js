@@ -107,6 +107,8 @@ export const METRO_OVERRIDES = {
     dropByName: '서울|首爾|首尔|Seoul|의정부|광명|Gwangmyeong|김포|Gimpo|신분당|新盆唐|Sinbundang',
   },
   'chile-santiago': { dedupeByName: ['Línea 1|Line 1', 'Línea 2', 'Línea 4', 'Línea 5'] },
+  // 🗽 紐約：不同線的同名站多為不同實體站，停用同名合併（特例）
+  'united-states-new-york-city': { noNameMerge: true },
 };
 
 /** 取得某 city id 的覆寫設定（無則回空物件）；併入官方 colorById（route_id→hex） */

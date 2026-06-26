@@ -251,7 +251,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   // 🚫 剔除符合者（per-city）：依 route_company 或 route_name 比對，剔除鄰市誤抓線（如佛山的廣州地鐵）。
   const dropRe = opts.dropByName ? new RegExp(opts.dropByName) : null;
   // 🗑️ 全域雜訊過濾：depot/車輛段、機場旅客捷運(APM)、纜車/索道、動物園單軌、空白或單字名。
-  const NOISE_RE = /機廠|车辆段|車輛段|車庫|车库|depot|旅客捷運|旅客自動|Automated People Mover|People Mover|纜車|缆车|索道|cable car|funicular|動物園|动物园|Wild Asia|APM|Capitol Subway|Dirksen|Russell Line|Rayburn|華為|华为|松山湖/i;
+  const NOISE_RE = /機廠|车辆段|車輛段|車庫|车库|depot|旅客捷運|旅客自動|Automated People Mover|People Mover|纜車|缆车|索道|cable car|funicular|動物園|动物园|Wild Asia|APM|Capitol Subway|Dirksen|Russell Line|Rayburn|華為|华为|松山湖|Landside|Airside|Inter-?Terminal|Plane Train|Track Transit/i;
   const isDrop = (company, name) => {
     const c = company || '';
     const nm = (name || '').trim();
@@ -452,24 +452,28 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   const picked = [];
   let colorIdx = 0;
   for (const g of groups.values()) {
-    let bestStops = null;
-    let bestWays = null;
-    for (const r of g.rels)
-      if (r.stops.length >= 2 && (!bestStops || r.stops.length > bestStops.length)) {
-        bestStops = r.stops;
-        bestWays = r.ways; // 同一關聯的軌道幾何，供站序依路徑投影排序
+    const color = normColor(g.colorRaw) || FALLBACK_PALETTE[colorIdx % FALLBACK_PALETTE.length];
+    colorIdx += 1;
+    // 保留分支：同一條線（group）可能有多個關聯（不同方向/分支）。依站數由多到少處理，
+    // 與「已保留站集合」重疊 ≥70% 者視為方向/重複變體略過；重疊低者為真實分支（如倫敦 Central
+    // 的 Ealing/Hainault、新加坡 EW 的樟宜支線）→ 一併保留，共用同色與線名。
+    const relsWithStops = g.rels.filter((r) => r.stops.length >= 2).sort((a, b) => b.stops.length - a.stops.length);
+    if (relsWithStops.length) {
+      const emitted = new Set();
+      for (const r of relsWithStops) {
+        const ks = r.stops.map((s2) => keyOf(s2.coord));
+        const ov = emitted.size ? ks.filter((k) => emitted.has(k)).length / ks.length : 0;
+        if (ov >= 0.7) continue; // 方向/重複變體
+        picked.push({ ...g, color, stops: r.stops, stopsWays: r.ways, geom: null });
+        ks.forEach((k) => emitted.add(k));
       }
-    let geomFallback = null;
-    if (!bestStops) {
+    } else {
       let best = null;
       let bl = -1;
       for (const r of g.rels) for (const c of stitchWays(r.ways)) if (lineLenDeg(c) > bl) ((bl = lineLenDeg(c)), (best = c));
-      geomFallback = best ? simplify(best, 0.0006) : null;
+      const geomFallback = best ? simplify(best, 0.0006) : null;
+      if (geomFallback && geomFallback.length >= 2) picked.push({ ...g, color, stops: null, stopsWays: null, geom: geomFallback });
     }
-    if (!bestStops && (!geomFallback || geomFallback.length < 2)) continue;
-    const color = normColor(g.colorRaw) || FALLBACK_PALETTE[colorIdx % FALLBACK_PALETTE.length];
-    colorIdx += 1;
-    picked.push({ ...g, color, stops: bestStops, stopsWays: bestWays, geom: geomFallback });
   }
 
   const allStops = [];
@@ -522,32 +526,35 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
 
   // 🔗 同名車站合併：同一 station_name 視為同一站，只保留一個點。把各線上同名站的座標一律改為
   //    「最佳位置」＝所有同名出現點的重心（centroid），讓多線在此相接於單一交點、且僅產生一個站點。
-  const byName = new Map();
-  for (const l of built) {
-    if (!l.canon) continue;
-    for (const st of l.canon) {
-      const nm = (st.name || '').trim();
-      if (!nm) continue;
-      let arr = byName.get(nm);
-      if (!arr) {
-        arr = [];
-        byName.set(nm, arr);
+  //    ⚠️ noNameMerge（如紐約）：同名不同站之特例，停用此合併。
+  if (!opts.noNameMerge) {
+    const byName = new Map();
+    for (const l of built) {
+      if (!l.canon) continue;
+      for (const st of l.canon) {
+        const nm = (st.name || '').trim();
+        if (!nm) continue;
+        let arr = byName.get(nm);
+        if (!arr) {
+          arr = [];
+          byName.set(nm, arr);
+        }
+        arr.push(st.c);
       }
-      arr.push(st.c);
     }
-  }
-  const nameToCoord = new Map();
-  for (const [nm, coords] of byName) {
-    const cen = coords.reduce((a, c) => [a[0] + c[0], a[1] + c[1]], [0, 0]);
-    nameToCoord.set(nm, [round6(cen[0] / coords.length), round6(cen[1] / coords.length)]);
-  }
-  for (const l of built) {
-    if (!l.canon) continue;
-    for (const st of l.canon) {
-      const nm = (st.name || '').trim();
-      if (nm && nameToCoord.has(nm)) st.c = nameToCoord.get(nm);
+    const nameToCoord = new Map();
+    for (const [nm, coords] of byName) {
+      const cen = coords.reduce((a, c) => [a[0] + c[0], a[1] + c[1]], [0, 0]);
+      nameToCoord.set(nm, [round6(cen[0] / coords.length), round6(cen[1] / coords.length)]);
     }
-    l.latlngs = dedupeConsecutive(l.canon.map((s2) => s2.c));
+    for (const l of built) {
+      if (!l.canon) continue;
+      for (const st of l.canon) {
+        const nm = (st.name || '').trim();
+        if (nm && nameToCoord.has(nm)) st.c = nameToCoord.get(nm);
+      }
+      l.latlngs = dedupeConsecutive(l.canon.map((s2) => s2.c));
+    }
   }
 
   // 去除互相高度重疊的線（同線雙向/變體未合併）

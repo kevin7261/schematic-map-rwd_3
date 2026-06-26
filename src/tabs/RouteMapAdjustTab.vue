@@ -6,7 +6,7 @@
      src/utils/routeMapAdjust/renderRouteMapAdjust.js 掛載／銷毀地圖。現階段為唯讀顯示。
 -->
 <template>
-  <div class="h-100 w-100 position-relative">
+  <div class="h-100 w-100 position-relative rma-map-tab">
     <div ref="mapEl" class="h-100 w-100"></div>
   </div>
 </template>
@@ -67,3 +67,13 @@
     },
   };
 </script>
+
+<style>
+  /* 點擊路線／站點時不顯示瀏覽器 focus 藍方框 */
+  .rma-map-tab .leaflet-interactive:focus,
+  .rma-map-tab .leaflet-container:focus,
+  .rma-map-tab svg:focus,
+  .rma-map-tab path:focus {
+    outline: none;
+  }
+</style>
