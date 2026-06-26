@@ -29,26 +29,47 @@ export function convertFcToTraditional(fc) {
  */
 export function mergeSameNameStations(fc) {
   const key = (lon, lat) => `${(+lon).toFixed(6)},${(+lat).toFixed(6)}`;
+  // 正規化分組鍵：把常見異體字視為同字（臺=台、塩=鹽…），避免「臺北車站/台北車站」沒合併
+  const normName = (s) =>
+    String(s || '')
+      .trim()
+      .replace(/臺/g, '台')
+      .replace(/塩/g, '鹽')
+      .replace(/\s+/g, '');
   const nodes = (fc.features || []).filter((f) => f.properties?.element_type === 'node');
-  const byName = new Map();
+  const byKey = new Map(); // 正規化鍵 → { coords:[], names:Map(原名→次數) }
   for (const n of nodes) {
     const nm = (n.properties.station_name || '').trim();
     if (!nm) continue;
-    if (!byName.has(nm)) byName.set(nm, []);
-    byName.get(nm).push(n.geometry.coordinates);
+    const nk = normName(nm);
+    let g = byKey.get(nk);
+    if (!g) {
+      g = { coords: [], names: new Map() };
+      byKey.set(nk, g);
+    }
+    g.coords.push(n.geometry.coordinates);
+    g.names.set(nm, (g.names.get(nm) || 0) + 1);
   }
   const remap = new Map(); // 舊座標 key → 新（重心）座標
-  const nameCoord = new Map(); // 站名 → 新座標
-  for (const [nm, coords] of byName) {
+  const nameCoord = new Map(); // 正規化鍵 → 新座標
+  const keyToName = new Map(); // 正規化鍵 → 顯示用站名（取最常見之原名）
+  for (const [nk, g] of byKey) {
     let lon = 0;
     let lat = 0;
-    for (const c of coords) {
+    for (const c of g.coords) {
       lon += c[0];
       lat += c[1];
     }
-    const nc = [Math.round((lon / coords.length) * 1e6) / 1e6, Math.round((lat / coords.length) * 1e6) / 1e6];
-    nameCoord.set(nm, nc);
-    for (const c of coords) remap.set(key(c[0], c[1]), nc);
+    const nc = [
+      Math.round((lon / g.coords.length) * 1e6) / 1e6,
+      Math.round((lat / g.coords.length) * 1e6) / 1e6,
+    ];
+    nameCoord.set(nk, nc);
+    let best = '';
+    let bc = -1;
+    for (const [nm, c] of g.names) if (c > bc) ((bc = c), (best = nm));
+    keyToName.set(nk, best);
+    for (const c of g.coords) remap.set(key(c[0], c[1]), nc);
   }
   // 改寫各線座標：經過同名站處一律改為該站重心，並去除連續重複點
   for (const f of fc.features || []) {
@@ -61,15 +82,18 @@ export function mergeSameNameStations(fc) {
     }
     f.geometry.coordinates = out;
   }
-  // 每個站名只留一個 node（置於重心）
+  // 每個（正規化）站名只留一個 node（置於重心），並統一顯示名為最常見之原名
   const kept = new Map();
   const others = [];
   for (const f of fc.features || []) {
     if (f.properties?.element_type === 'node') {
       const nm = (f.properties.station_name || '').trim();
-      if (!nm || kept.has(nm)) continue;
-      f.geometry.coordinates = nameCoord.get(nm);
-      kept.set(nm, f);
+      if (!nm) continue;
+      const nk = normName(nm);
+      if (kept.has(nk)) continue;
+      f.geometry.coordinates = nameCoord.get(nk);
+      f.properties.station_name = keyToName.get(nk) || nm;
+      kept.set(nk, f);
     } else others.push(f);
   }
   fc.features = [...others, ...kept.values()];

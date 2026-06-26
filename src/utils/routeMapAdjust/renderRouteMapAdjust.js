@@ -131,13 +131,17 @@ export function mountRouteMapAdjust(el, dataStore) {
     finishedGroup.clearLayers();
     for (const ln of layer.routeMapAdjustLines) {
       if (!ln || !Array.isArray(ln.latlngs) || ln.latlngs.length < 2) continue;
+      const baseWeight = 4;
       const pl = L.polyline(ln.latlngs, {
         color: ln.color || '#e6194b',
-        weight: 4,
+        weight: baseWeight,
         opacity: 0.9,
         interactive: true,
       });
       pl.bindTooltip(lineTooltipHtml(ln), { sticky: true });
+      // hover：線加粗
+      pl.on('mouseover', () => pl.setStyle({ weight: baseWeight + 4 }));
+      pl.on('mouseout', () => pl.setStyle({ weight: baseWeight }));
       pl.addTo(finishedGroup);
     }
   };
@@ -160,6 +164,9 @@ export function mountRouteMapAdjust(el, dataStore) {
         pane: 'srmaDots', // 圓點置於最上層 pane，永遠不被站名遮住
       });
       m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
+      // hover：圓點放大
+      m.on('mouseover', () => m.setRadius(radius + 3));
+      m.on('mouseout', () => m.setRadius(radius));
       m.addTo(stationGroup);
     };
     // 繪製順序：黑點 → 端點(藍) → 交點(紅) → 交叉(黃)，讓 cross 顯示在最上層

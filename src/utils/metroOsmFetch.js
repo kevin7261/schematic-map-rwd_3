@@ -453,7 +453,12 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   let colorIdx = 0;
   for (const g of groups.values()) {
     let bestStops = null;
-    for (const r of g.rels) if (r.stops.length >= 2 && (!bestStops || r.stops.length > bestStops.length)) bestStops = r.stops;
+    let bestWays = null;
+    for (const r of g.rels)
+      if (r.stops.length >= 2 && (!bestStops || r.stops.length > bestStops.length)) {
+        bestStops = r.stops;
+        bestWays = r.ways; // 同一關聯的軌道幾何，供站序依路徑投影排序
+      }
     let geomFallback = null;
     if (!bestStops) {
       let best = null;
@@ -464,7 +469,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     if (!bestStops && (!geomFallback || geomFallback.length < 2)) continue;
     const color = normColor(g.colorRaw) || FALLBACK_PALETTE[colorIdx % FALLBACK_PALETTE.length];
     colorIdx += 1;
-    picked.push({ ...g, color, stops: bestStops, geom: geomFallback });
+    picked.push({ ...g, color, stops: bestStops, stopsWays: bestWays, geom: geomFallback });
   }
 
   const allStops = [];
@@ -476,7 +481,22 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     let canon = null;
     let latlngs;
     if (p.stops && snap) {
-      canon = p.stops.map((st) => ({ c: snap(st.coord), id: st.id, name: st.name, ref: st.ref }));
+      let stops = p.stops;
+      // 站序修正：用同關聯的軌道幾何縫成路徑，依各站在路徑上的位置重新排序，修正 OSM stop 成員順序錯置
+      const path = p.stopsWays ? stitchWays(p.stopsWays).sort((a, b) => b.length - a.length)[0] : null;
+      if (path && path.length >= 2) {
+        const proj = stops.map((st) => {
+          const pr = projectPolyline(path, st.coord);
+          return { st, pos: pr ? pr.pos : Infinity, perp: pr ? pr.perp : Infinity };
+        });
+        // 僅當多數站都能良好投影到路徑（垂距小）才採用投影排序，避免路徑不全時打亂正確順序
+        const good = proj.filter((x) => x.perp < 0.003).length;
+        if (good >= stops.length * 0.8) {
+          proj.sort((a, b) => a.pos - b.pos);
+          stops = proj.map((x) => x.st);
+        }
+      }
+      canon = stops.map((st) => ({ c: snap(st.coord), id: st.id, name: st.name, ref: st.ref }));
       latlngs = dedupeConsecutive(canon.map((s2) => s2.c));
     } else if (p.geom) {
       // 關聯沒有 stop 成員：把落在此線上的鄰近車站節點當站點（依沿線位置排序）
