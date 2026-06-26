@@ -135,9 +135,14 @@ export function mountRouteMap(el, dataStore) {
 
   const renderStations = () => {
     stationGroup.clearLayers();
+    // 站點座標（來自 stationMeta 的 key "lat,lng"）→ 讓分類「只」在真實車站，不在共軌/交叉非站點冒紅點
+    const stationCoords = Object.keys(layer.selectRouteMapStationMeta || {}).map((k) =>
+      k.split(',').map(Number)
+    );
     const { terminals, connects, blacks } = computeRouteMapStations(
       layer.selectRouteMapLines,
-      layer.selectRouteMapBlackDots
+      layer.selectRouteMapBlackDots,
+      stationCoords
     );
     const routesAtCoord = buildRoutesAtCoord();
     const addStationDot = (latlng, fillColor, radius, type) => {

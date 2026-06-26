@@ -110,13 +110,42 @@ const routesThroughPoint = (safeLines, point, tol) => {
  * 由路線與黑點推導三類站點。
  * @returns {{terminals:Array<[number,number]>, connects:Array<[number,number]>, blacks:Array<[number,number]>}}
  */
-export const computeRouteMapStations = (lines, blackDots) => {
+export const computeRouteMapStations = (lines, blackDots, stationCoords) => {
   const safeLines = Array.isArray(lines)
     ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
     : [];
   const blacks = Array.isArray(blackDots)
     ? blackDots.filter((p) => Array.isArray(p) && p.length >= 2)
     : [];
+
+  // 🎯 站點為基礎的分類（有提供站點座標時）：紅/藍/黑「只」出現在真實車站(node)，不會在共軌/
+  //    交叉的非站點頂點冒出紅點。紅=該站有 ≥2 條不同路線經過；藍=該站位於某線端點(且非紅)；黑=其餘。
+  if (Array.isArray(stationCoords) && stationCoords.length) {
+    const ON = 1e-6;
+    const rid = (l, i) => l.routeName || l.routeId || `#${i}`;
+    const vk = (p) => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`;
+    const endpointKeys = new Set();
+    for (const l of safeLines) {
+      if (l.closed) continue;
+      endpointKeys.add(vk(l.latlngs[0]));
+      endpointKeys.add(vk(l.latlngs[l.latlngs.length - 1]));
+    }
+    const t = [];
+    const c = [];
+    const b = [];
+    for (const s of stationCoords) {
+      if (!Array.isArray(s) || s.length < 2) continue;
+      const routes = new Set();
+      safeLines.forEach((l, i) => {
+        const pr = projectOnPolyline(l.latlngs, s);
+        if (pr && pr.perpDist <= ON) routes.add(rid(l, i));
+      });
+      if (routes.size >= 2) c.push(s);
+      else if (endpointKeys.has(vk(s))) t.push(s);
+      else b.push(s);
+    }
+    return { terminals: dedupePoints(t), connects: dedupePoints(c), blacks: dedupePoints(b) };
+  }
 
   // 各頂點的「總出現次數」（跨所有線、含同線重複經過）：用於判斷「真端點」。
   //    真線端只出現 1 次；分支接點/轉乘/環線接點會出現 ≥2 次 → 不算端點，避免路線中間出現藍點。

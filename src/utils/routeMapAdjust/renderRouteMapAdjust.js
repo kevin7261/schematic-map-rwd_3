@@ -152,7 +152,8 @@ export function mountRouteMapAdjust(el, dataStore) {
     stationGroup.clearLayers();
     const { terminals, connects, blacks } = computeRouteMapAdjustStations(
       layer.routeMapAdjustLines,
-      layer.routeMapAdjustBlackDots
+      layer.routeMapAdjustBlackDots,
+      Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) => k.split(',').map(Number))
     );
     const routesAtCoord = buildRoutesAtCoord();
     const addStationDot = (latlng, fillColor, radius, type) => {
@@ -276,7 +277,8 @@ export function mountRouteMapAdjust(el, dataStore) {
     if (!layer.routeMapAdjustShowNames) return;
     const { terminals, connects, blacks } = computeRouteMapAdjustStations(
       layer.routeMapAdjustLines,
-      layer.routeMapAdjustBlackDots
+      layer.routeMapAdjustBlackDots,
+      Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) => k.split(',').map(Number))
     );
     // 站名顏色與站點圓點一致：交點紅 > 端點藍 > 黑點黑（順序＝圓點疊放優先序，
     // 讓「同時是端點又是交點」的站，名稱取與最上層圓點相同的顏色＝紅）。

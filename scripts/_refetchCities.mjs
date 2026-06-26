@@ -58,6 +58,7 @@ for (const id of ids) {
     if (ov.mergeLoops) mergeLoopLines(fc, ov.mergeLoops); // 環線半環縫合
     if (!ov.noNameMerge) mergeSameNameStations(fc); // 同名車站合併（紐約等特例除外）
     if (ov.extraStations) addExtraStations(fc, ov.extraStations); // 手動補站（OSM 缺漏）
+    splitAtConnects(fc); // 在轉乘站截斷（路線中間絕不可有紅點）
     dropOrphanNodes(fc); // 收尾：清除孤立 node
     const v = validateGeojson(fc);
     if (!v.lines) {
