@@ -59,7 +59,12 @@ node 屬性：`osm_id, station_name, station_id`。
 },
 ```
 
-可用覆寫欄位：`bbox`、`keepOperators`、`colorByName`、`dedupeByName`、`dropByName`、`includeRail`、`onlyLineName`。
+可用覆寫欄位：`bbox`、`keepOperators`、`colorByName`、`dedupeByName`、`dropByName`、`includeRail`、`onlyLineName`、`clipToBbox`、`noNameMerge`。
+
+- `clipToBbox`：營運線多數頂點落在 bbox 外即剔除（緊鄰城市群，鄰市線名/營運者無城市標記時用；需搭配收緊 bbox）。
+- `noNameMerge`：停用同名車站合併（如紐約，不同線的同名站多為不同實體站）。
+
+其他內建行為：**分支保留**（同一條線的多個關聯，依站集合重疊 <70% 視為真實分支一併保留，如倫敦 Central 的 Ealing/Hainault、新加坡 EW 樟宜支線、台北新北投/小碧潭支線）；**站序投影排序**（以軌道幾何縫成路徑，依站在路徑上的位置排序，修正 OSM stop 成員順序錯置）；**未通車不畫**（construction/proposed/未來開通日一律剔除）。
 
 - `onlyLineName`：只保留 route_name 符合 regex 的線。用於「單線城市」（discovery 把單一路線當城市，bbox 會誤含整個都會網），如 `japan-yurikamome`、`united-states-path`、`taiwan-taoyuan`、`united-kingdom-docklands-light-railway`。若該線為 route=train（如東京りんかい線）需同時設 `includeRail`。
 
