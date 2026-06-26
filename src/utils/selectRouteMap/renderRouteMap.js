@@ -160,7 +160,7 @@ export function mountRouteMap(el, dataStore) {
       }
       const m = L.circleMarker(latlng, {
         radius,
-        color: fillColor,
+        color: '#ffffff', // 白色 1px border
         weight: 1,
         fillColor,
         fillOpacity: 1,

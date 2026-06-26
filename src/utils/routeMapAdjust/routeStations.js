@@ -936,3 +936,86 @@ export const routeMapAdjustToOsmRouteGeoJson = (lines, blackDots, stationMeta = 
 
   return { type: 'FeatureCollection', features };
 };
+
+/**
+ * 把「路線圖轉換骨架」的骨架（buildRouteMapAdjustSkeleton 的結果）轉成 OSM 風格路網 GeoJSON，
+ * 供示意圖佈局輸入。每條骨架邊 → 一條 way（不掉任何邊），way 顏色＝**骨架邊分類色**：
+ *   🔴 合併(共線) / 🔵 頭尾共點 / 🟢 環線 / 否則該路線原色。
+ * 節點 → node Point（帶分類色 node_class_color：🟡 交叉生成 / 🟣 切斷點）。
+ * @param {{nodes:Array, edges:Array, crossNodes:Array}} skeleton
+ * @returns {{type:'FeatureCollection', features:object[]}}
+ */
+export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stationMeta) => {
+  const edges = Array.isArray(skeleton?.edges) ? skeleton.edges : [];
+  const nodes = Array.isArray(skeleton?.nodes) ? skeleton.nodes : [];
+  // 邊色：與骨架渲染器完全一致（🔴 合併／🔵 頭尾共點／🟢 環線／路線色）
+  const edgeColor = (e) =>
+    e.isMerged
+      ? '#ff1744'
+      : e.isHeadTailShared
+        ? '#1e88e5'
+        : e.isLoop
+          ? '#00c853'
+          : e.routes?.[0]?.color || '#3949ab';
+  // 點色：與骨架渲染器完全一致（🟣 切斷／🟡 交叉／🔴 connect／🔵 terminal／⚫ 其餘灰）
+  const llKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
+  const { terminals, connects } = computeRouteMapAdjustStations(
+    lines,
+    blackDots,
+    Object.keys(stationMeta || {}).map((k) => k.split(',').map(Number))
+  );
+  const terminalKeys = new Set((terminals || []).map((p) => llKey(p[0], p[1])));
+  const connectKeys = new Set((connects || []).map((p) => llKey(p[0], p[1])));
+  const nodeColor = (n) => {
+    if (n.isPurple) return '#9c27b0';
+    if (n.isCross) return '#ffd600';
+    const k = llKey(n.latlng[0], n.latlng[1]);
+    if (connectKeys.has(k)) return '#ff0000';
+    if (terminalKeys.has(k)) return '#1565c0';
+    return '#555555';
+  };
+  const nodeRadius = (n) => (n.isCross ? 8 : n.isPurple ? 6 : 4);
+  const features = [];
+  edges.forEach((e, i) => {
+    const path = Array.isArray(e.path) ? e.path : [];
+    if (path.length < 2) return;
+    const coords = path.map(([lat, lng]) => [lng, lat]);
+    features.push({
+      type: 'Feature',
+      properties: {
+        type: 'way',
+        id: i + 1,
+        tags: {
+          route_id: String(i + 1),
+          route_name: e.routes?.[0]?.routeName || `骨架邊 ${i + 1}`,
+          color: edgeColor(e),
+          railway: 'subway',
+        },
+      },
+      geometry: { type: 'LineString', coordinates: coords },
+    });
+  });
+  let nid = 1;
+  nodes.forEach((n) => {
+    if (!n || !Array.isArray(n.latlng)) return;
+    const [lat, lng] = n.latlng;
+    features.push({
+      type: 'Feature',
+      properties: {
+        type: 'node',
+        id: nid,
+        tags: {
+          station_id: `n${nid}`,
+          station_name: '',
+          type: n.isCross ? 'intersection' : 'normal',
+          node_class_color: nodeColor(n),
+          node_class_r: nodeRadius(n),
+          route_name_list: (n.routes || []).map((r) => r.routeName).filter(Boolean),
+        },
+      },
+      geometry: { type: 'Point', coordinates: [lng, lat] },
+    });
+    nid += 1;
+  });
+  return { type: 'FeatureCollection', features };
+};

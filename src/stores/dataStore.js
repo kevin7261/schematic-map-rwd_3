@@ -127,11 +127,10 @@ import {
   executeMilpStraightenSeed,
 } from '../utils/layers/schematic_layout/milp/readMilpResult.js';
 import { executeStroke } from '../utils/layers/schematic_layout/stroke/executeStroke.js';
-import {
-  executeStrokeFromRoute,
-  executeHillClimbFromRoute,
-  executeMilpFromRoute,
-} from '../utils/routeMapAdjust/schematicFromRoute.js';
+import { executeStroke as executeStrokeRma } from '../utils/routeMapAdjust/schematic/stroke/executeStroke.js';
+import { executeHillClimb as executeHillClimbRma } from '../utils/routeMapAdjust/schematic/hillClimb/executeHillClimb.js';
+import { executeMilp as executeMilpRma } from '../utils/routeMapAdjust/schematic/milp/executeMilp.js';
+import { executeReadMilpResult as executeReadMilpResultRma } from '../utils/routeMapAdjust/schematic/milp/readMilpResult.js';
 import { assignOsm2LayerViewerFields } from '../utils/layers/osm_2_geojson_2_json/layerMerge.js';
 import {
   LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
@@ -292,7 +291,7 @@ export const useDataStore = defineStore(
             /** 🗺️ 路線圖調整（route_map_adjust）— 從「選擇路線圖」載入路線後（之後可）調整。
              *  與 select_route_map 完全獨立（程式集中於 src/utils/routeMapAdjust/）。 */
             layerId: 'route_map_adjust',
-            layerName: '路線圖調整',
+            layerName: '路線圖轉換骨架',
             visible: false,
             isLoading: false,
             isLoaded: true,
@@ -362,7 +361,7 @@ export const useDataStore = defineStore(
             geojsonFileName: null,
             osmFileName: null,
             jsonFileName: null,
-            executeFunction: executeStrokeFromRoute,
+            executeFunction: executeStrokeRma,
             isDataLayer: true,
             hideFromMap: true,
             display: true,
@@ -373,7 +372,12 @@ export const useDataStore = defineStore(
             dataJson: null,
             /** 🏷️ 標記為「路線圖調整 → 示意圖佈局」圖層（ControlTab 顯示專屬載入/執行面板） */
             isRouteSchematicLayer: true,
-            upperViewTabs: ['space-layout-grid-viewer', 'space-network-grid-json-data', 'dashboard'],
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
           },
           {
             /** 示意圖佈局 #2（從路線圖調整載入）：Hill Climbing，程式同 schematic_hillclimb。 */
@@ -401,7 +405,7 @@ export const useDataStore = defineStore(
             geojsonFileName: null,
             osmFileName: null,
             jsonFileName: null,
-            executeFunction: executeHillClimbFromRoute,
+            executeFunction: executeHillClimbRma,
             isDataLayer: true,
             hideFromMap: true,
             display: true,
@@ -411,7 +415,12 @@ export const useDataStore = defineStore(
             dataGeojson: null,
             dataJson: null,
             isRouteSchematicLayer: true,
-            upperViewTabs: ['space-layout-grid-viewer', 'space-network-grid-json-data', 'dashboard'],
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
           },
           {
             /** 示意圖佈局 #3（從路線圖調整載入）：MILP，程式同 schematic_milp。 */
@@ -439,7 +448,7 @@ export const useDataStore = defineStore(
             geojsonFileName: null,
             osmFileName: null,
             jsonFileName: null,
-            executeFunction: executeMilpFromRoute,
+            executeFunction: executeMilpRma,
             isDataLayer: true,
             hideFromMap: true,
             display: true,
@@ -449,7 +458,157 @@ export const useDataStore = defineStore(
             dataGeojson: null,
             dataJson: null,
             isRouteSchematicLayer: true,
-            upperViewTabs: ['space-layout-grid-viewer', 'space-network-grid-json-data', 'dashboard'],
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
+          },
+          {
+            /** MILP結果正規化（RMA）：讀 ③ MILP（schematic_rma_milp）結果（或匯入下載 JSON）並做保拓樸座標正規化。 */
+            layerId: 'schematic_rma_milp_read',
+            layerName: 'MILP結果正規化',
+            visible: false,
+            isLoading: false,
+            isLoaded: false,
+            colorName: 'pink',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            spaceNetworkGridJsonData_SectionData: null,
+            spaceNetworkGridJsonData_ConnectData: null,
+            spaceNetworkGridJsonData_StationData: null,
+            showStationPlacement: true,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: executeReadMilpResultRma,
+            isDataLayer: true,
+            hideFromMap: true,
+            display: true,
+            highlightedSegmentIndex: null,
+            squareGridCellsTaipeiTest3: false,
+            dataOSM: null,
+            dataGeojson: null,
+            dataJson: null,
+            isRouteSchematicLayer: true,
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
+          },
+          {
+            /** 站點與路線往中心聚集（RMA·先橫後直）：自「MILP結果正規化（RMA）」抓資料，演算法同 OSM 版。 */
+            layerId: 'schematic_rma_toward_center_hv',
+            layerName: '站點與路線往中心聚集（先橫後直）',
+            visible: false,
+            isLoading: false,
+            isLoaded: false,
+            colorName: 'pink',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            spaceNetworkGridJsonData_SectionData: null,
+            spaceNetworkGridJsonData_ConnectData: null,
+            spaceNetworkGridJsonData_StationData: null,
+            showStationPlacement: true,
+            layoutGridJsonData: null,
+            layoutGridJsonData_Test: null,
+            layoutGridJsonData_Test2: null,
+            layoutGridJsonData_Test3: null,
+            layoutGridJsonData_Test4: null,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: null,
+            isDataLayer: true,
+            hideFromMap: true,
+            display: true,
+            highlightedSegmentIndex: null,
+            jsonGridFromCoordSuggestTargetGrid: null,
+            squareGridCellsTaipeiTest3: false,
+            dataOSM: null,
+            dataGeojson: null,
+            dataJson: null,
+            layoutUniformGridGeoJson: null,
+            layoutUniformGridMeta: null,
+            isRouteSchematicLayer: true,
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
+          },
+          {
+            /** 站點與路線往中心聚集（RMA·先直後橫）：自「先橫後直（RMA）」抓資料，演算法同 OSM 版。 */
+            layerId: 'schematic_rma_toward_center_vh',
+            layerName: '站點與路線往中心聚集（先直後橫）',
+            visible: false,
+            isLoading: false,
+            isLoaded: false,
+            colorName: 'pink',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            spaceNetworkGridJsonData_SectionData: null,
+            spaceNetworkGridJsonData_ConnectData: null,
+            spaceNetworkGridJsonData_StationData: null,
+            showStationPlacement: true,
+            layoutGridJsonData: null,
+            layoutGridJsonData_Test: null,
+            layoutGridJsonData_Test2: null,
+            layoutGridJsonData_Test3: null,
+            layoutGridJsonData_Test4: null,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: null,
+            isDataLayer: true,
+            hideFromMap: true,
+            display: true,
+            highlightedSegmentIndex: null,
+            jsonGridFromCoordSuggestTargetGrid: null,
+            squareGridCellsTaipeiTest3: false,
+            dataOSM: null,
+            dataGeojson: null,
+            dataJson: null,
+            layoutUniformGridGeoJson: null,
+            layoutUniformGridMeta: null,
+            isRouteSchematicLayer: true,
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
           },
         ],
       },
@@ -2516,6 +2675,14 @@ export const useDataStore = defineStore(
       routeMapAdjustFitTrigger.value += 1;
     };
 
+    /** 🗺️ 三個示意圖佈局圖層（schematic_rma_*）獨立顯示：目前要畫的圖層 id + 重繪 tick */
+    const routeSchematicActiveLayerId = ref(null);
+    const routeSchematicTick = ref(0);
+    const setRouteSchematicActiveLayer = (id) => {
+      routeSchematicActiveLayerId.value = id || null;
+      routeSchematicTick.value += 1;
+    };
+
     /**
      * layout-grid-viewer 加權版面：「全部隨機 weight」後 3 秒路線／比例條內插動畫。
      * snapshot：{ routes, remap }；anim：{ layerId, from, to, progress, active, pendingTo, startTime }
@@ -3067,6 +3234,9 @@ export const useDataStore = defineStore(
       requestSelectRouteMapFit,
       routeMapAdjustFitTrigger,
       requestRouteMapAdjustFit,
+      routeSchematicActiveLayerId,
+      routeSchematicTick,
+      setRouteSchematicActiveLayer,
       layoutVhDrawRouteAnimSnapshot,
       layoutVhDrawRouteAnim,
       layoutVhDrawRouteAnimTrigger,

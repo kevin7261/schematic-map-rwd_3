@@ -4132,6 +4132,7 @@
       layerTab === POINT_ORTHOGONAL_LAYER_ID ||
       layerTab === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
       layerTab === 'schematic_milp_read' || // MILP結果正規化：整數座標系，每格一線
+      layerTab === 'schematic_rma_milp_read' || // MILP結果正規化（RMA）：整數座標系，每格一線
       layerTab === 'schematic_milp_straighten' || // connect 拉直：整數座標系，每格一線
       isLineOrthogonalTowardCenterLayerId(layerTab) ||
       isSpaceGridVhDrawFamilyLayerId(layerTab) ||
@@ -8705,6 +8706,14 @@
               ? hbL3.color.trim()
               : hlStroke
             : fillColor;
+      }
+
+      // 🎨「路線圖處理」示意圖佈局骨架：點用骨架分類色（黃交叉/紫切斷/紅 connect/藍 terminal/灰）+ 白色 1px border
+      if (tags.node_class_color && typeof tags.node_class_color === 'string') {
+        fillColor = tags.node_class_color;
+        radius = Number(tags.node_class_r) || radius;
+        strokeColor = '#ffffff';
+        strokeWidth = 1;
       }
 
       const circleElement = zoomGroup

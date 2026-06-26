@@ -74,6 +74,8 @@ node 屬性：`osm_id, station_name, station_id`。
 3. **轉乘截斷**：抓取後 `splitAtConnects`（_toTraditional.mjs）在轉乘站把線切段；渲染時 `addStationDot` 對 connect/terminal **先畫白色底圈(radius+3)** → 線被白色缺口切斷、紅/藍點落在切口。
 兩套渲染（selectRouteMap、routeMapAdjust）皆須同步。
 
+⚠️ **環線（環狀/Circle/Loop/環状/名城/Ring/Cityringen…）必須閉合**：OSM 把環線的 stop 成員排成「線性」順序，若只連相鄰站會缺最後一站接回第一站的「收尾弧」，環就斷一段（如高雄環狀輕軌 聖功醫院↔凱旋公園）。`metroOsmFetch.js` 以 `waysClosedLoop(ways)`（way 端點皆 degree≥2＝無自由端＝閉環）判定，閉環者用 `closeRing()` 把末站接回首站（收尾弧 >6km 不強接，避免誤判）。只有 OSM 幾何「真的是閉環」才會閉合，馬蹄/直線（如 Delhi Pink、yurikamome）不受影響。**驗證**：掃 geojson，若某 route_name 恰有 2 個 degree-1 自由端、距離 <6km 且 gap/全長 <0.35 → 環線被畫開，須重抓。
+
 - `onlyLineName`：只保留 route_name 符合 regex 的線。用於「單線城市」（discovery 把單一路線當城市，bbox 會誤含整個都會網），如 `japan-yurikamome`、`united-states-path`、`taiwan-taoyuan`、`united-kingdom-docklands-light-railway`。若該線為 route=train（如東京りんかい線）需同時設 `includeRail`。
 
 ## 常見任務

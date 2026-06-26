@@ -39,6 +39,35 @@ async function overpass(query, onProgress) {
 const round6 = (v) => Math.round(v * 1e6) / 1e6;
 const keyOf = (c) => `${(+c[0]).toFixed(6)},${(+c[1]).toFixed(6)}`;
 
+// 🔁 環線判定：一組 way 的所有端點皆共用（無 degree==1 的自由端）→ 幾何構成閉環。
+//    用於環狀線：以 stops 連線時，需把最後一站接回第一站，否則環會缺收尾弧（如高雄環狀輕軌）。
+function waysClosedLoop(ways) {
+  if (!Array.isArray(ways) || !ways.length) return false;
+  const deg = new Map();
+  let endpoints = 0;
+  for (const w of ways) {
+    if (!Array.isArray(w) || w.length < 2) continue;
+    for (const e of [w[0], w[w.length - 1]]) {
+      const k = keyOf(e);
+      deg.set(k, (deg.get(k) || 0) + 1);
+      endpoints += 1;
+    }
+  }
+  if (!endpoints) return false;
+  for (const d of deg.values()) if (d < 2) return false; // 有自由端 → 非閉環
+  return true;
+}
+
+// 把站序座標閉合成環：首尾不同且收尾弧不過長（避免誤判時硬接出巨大弦）時，補一段回到起點。
+const closeRing = (coords) => {
+  if (!Array.isArray(coords) || coords.length < 3) return coords;
+  const a = coords[0];
+  const b = coords[coords.length - 1];
+  if (keyOf(a) === keyOf(b)) return coords;
+  if (Math.hypot(a[0] - b[0], a[1] - b[1]) > 0.06) return coords; // 收尾弧 > ~6km：不強接
+  return [...coords, a];
+};
+
 const normColor = (c) => {
   if (!c || typeof c !== 'string') return null;
   const s = c.trim();
@@ -480,7 +509,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
           skipped.push(r); // 站點是子集→暫存，稍後檢查是否新增軌道幾何
           continue;
         }
-        picked.push({ ...g, color, stops: r.stops, stopsWays: r.ways, geom: null });
+        picked.push({ ...g, color, stops: r.stops, stopsWays: r.ways, geom: null, closed: waysClosedLoop(r.ways) });
         ks.forEach((k) => emitted.add(k));
         for (const w of r.ways || []) for (const c of w) keptGeom.add(gkey(c));
       }
@@ -490,7 +519,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
         if (!chain || chain.length < 2) continue;
         const newN = chain.filter((c) => !keptGeom.has(gkey(c))).length;
         if (newN / chain.length >= 0.3) {
-          picked.push({ ...g, color, stops: null, stopsWays: null, geom: simplify(chain, 0.0006) });
+          picked.push({ ...g, color, stops: null, stopsWays: null, geom: simplify(chain, 0.0006), closed: waysClosedLoop(r.ways) });
           for (const c of chain) keptGeom.add(gkey(c));
         }
       }
@@ -499,7 +528,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       let bl = -1;
       for (const r of g.rels) for (const c of stitchWays(r.ways)) if (lineLenDeg(c) > bl) ((bl = lineLenDeg(c)), (best = c));
       const geomFallback = best ? simplify(best, 0.0006) : null;
-      if (geomFallback && geomFallback.length >= 2) picked.push({ ...g, color, stops: null, stopsWays: null, geom: geomFallback });
+      if (geomFallback && geomFallback.length >= 2) picked.push({ ...g, color, stops: null, stopsWays: null, geom: geomFallback, closed: g.rels.some((r) => waysClosedLoop(r.ways)) });
     }
   }
 
@@ -529,6 +558,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       }
       canon = stops.map((st) => ({ c: snap(st.coord), id: st.id, name: st.name, ref: st.ref }));
       latlngs = dedupeConsecutive(canon.map((s2) => s2.c));
+      if (p.closed) latlngs = closeRing(latlngs); // 環線：把末站接回首站，補上收尾弧
     } else if (p.geom) {
       // 關聯沒有 stop 成員：把落在此線上的鄰近車站節點當站點（依沿線位置排序）
       const on = [];
@@ -540,6 +570,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       if (on.length >= 2) {
         canon = on.map((st) => ({ c: st.coord, id: st.id, name: st.name, ref: st.ref }));
         latlngs = dedupeConsecutive(canon.map((s2) => s2.c));
+        if (p.closed) latlngs = closeRing(latlngs); // 環線：補收尾弧
       } else {
         latlngs = p.geom;
       }
@@ -581,6 +612,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
         if (nm && nameToCoord.has(nm)) st.c = nameToCoord.get(nm);
       }
       l.latlngs = dedupeConsecutive(l.canon.map((s2) => s2.c));
+      if (l.closed) l.latlngs = closeRing(l.latlngs); // 環線：合併同名站後重建仍需閉合
     }
   }
 

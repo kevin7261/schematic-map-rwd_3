@@ -27,7 +27,7 @@
   } from '@/utils/leafletDrawStations.js';
   import { useSelectRouteMapCatalog } from '@/utils/selectRouteMap/cityCatalog.js';
   import { useRouteMapAdjust } from '@/utils/routeMapAdjust/loadFromSelectRouteMap.js';
-  import { routeMapAdjustToOsmRouteGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
+  import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
   import {
     LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
     mergeOsm2GeojsonLoaderResultIntoLayer,
@@ -37,6 +37,7 @@
     setOsm2GeojsonSessionOsmXml,
   } from '@/utils/layers/osm_2_geojson_2_json/index.js';
   import { loadMilpJsonRaw } from '@/utils/layers/schematic_layout/milp/readMilpResult.js';
+  import { loadMilpJsonRaw as loadMilpJsonRawRma } from '@/utils/routeMapAdjust/schematic/milp/readMilpResult.js';
   import { reinsertBlackStations } from '@/utils/layers/schematic_layout/assemble.js';
   import { showSolveOverlay } from '@/utils/layers/schematic_layout/solveOverlay.js';
   import {
@@ -58,6 +59,8 @@
     SCHEMATIC_TOWARD_CENTER_LAYER_IDS,
     SCHEMATIC_TOWARD_CENTER_HV_LAYER_ID,
     SCHEMATIC_TOWARD_CENTER_VH_LAYER_ID,
+    SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID,
+    SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID,
     isVertFirstTowardCenterLayerId,
     COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID,
     refreshLineOrthogonalFromPointOrthogonalIfVisible,
@@ -2856,6 +2859,9 @@
     schematic_toward_center_hv: 'schematic_milp_read',
     schematic_toward_center_vh: 'schematic_toward_center_hv',
     schematic_milp_straighten: 'schematic_toward_center_vh',
+    // 路線圖調整（RMA）示意圖管線：MILP結果正規化（RMA）→ 先橫後直 → 先直後橫
+    schematic_rma_toward_center_hv: 'schematic_rma_milp_read',
+    schematic_rma_toward_center_vh: 'schematic_rma_toward_center_hv',
   };
   /** 路網內容廉價簽章：段數:總點數:座標雜湊（供「上游是否變更」判斷）。 */
   const cheapSegSig = (segs) => {
@@ -2891,13 +2897,13 @@
     const has = Array.isArray(lyr.spaceNetworkGridJsonData) && lyr.spaceNetworkGridJsonData.length > 0;
     if (has && lyr.seededFromSig === sig) return; // 上游未變、已有資料 → 保留本層（含已操作結果）
 
-    if (layerId === 'schematic_toward_center_hv') {
+    if (layerId === 'schematic_toward_center_hv' || layerId === 'schematic_rma_toward_center_hv') {
       // 上游＝MILP結果正規化（含黑點）：抽離黑點 → 只存骨架；黑點 sections 存 metadata 隨鏈傳遞。
       const full = normalizeSpaceNetworkDataToFlatSegments(JSON.parse(JSON.stringify(srcData)));
       const { skeleton, sections } = milpReadFlatToSkeleton(full);
       lyr.schematicBlackSections = sections;
       applyConnectStraightenSegmentsToLayer(lyr, skeleton);
-    } else if (layerId === 'schematic_toward_center_vh') {
+    } else if (layerId === 'schematic_toward_center_vh' || layerId === 'schematic_rma_toward_center_vh') {
       // 上游＝先橫後直（已是骨架）：複製骨架；沿用其黑點 sections metadata。
       lyr.schematicBlackSections = src.schematicBlackSections || [];
       applyConnectStraightenSegmentsToLayer(lyr, JSON.parse(JSON.stringify(srcData)));
@@ -3473,23 +3479,27 @@
     routeMapAdjustStationLabel: rmaStationLabel,
   } = useRouteMapAdjust(dataStore);
 
-  /** 📥「示意圖佈局（從路線圖調整）」：把 route_map_adjust 路線轉成 geojson 寫入該圖層之 geojsonData */
+  /** 📥「示意圖佈局」：把「路線圖轉換骨架」的**骨架**轉成 geojson（way 顏色＝骨架分類色）寫入此圖層之 geojsonData */
   const loadRouteAdjustIntoSchematic = (layer) => {
     if (!layer) return;
     const adj = dataStore.findLayerById('route_map_adjust');
-    const lines = Array.isArray(adj?.routeMapAdjustLines) ? adj.routeMapAdjustLines : [];
-    if (!lines.length) {
-      window.alert('「路線圖調整」尚無路線，請先到「路線圖調整」從選擇路線圖載入。');
+    const sk = adj?.routeMapAdjustSkeleton;
+    const edges = Array.isArray(sk?.edges) ? sk.edges : [];
+    if (!edges.length) {
+      window.alert('「路線圖轉換骨架」尚未建立骨架，請先到「路線圖轉換骨架」按「變成骨架」。');
       return;
     }
-    const fc = routeMapAdjustToOsmRouteGeoJson(
-      lines,
+    const fc = routeMapAdjustSkeletonToGeoJson(
+      sk,
+      Array.isArray(adj.routeMapAdjustLines) ? adj.routeMapAdjustLines : [],
       Array.isArray(adj.routeMapAdjustBlackDots) ? adj.routeMapAdjustBlackDots : [],
       adj.routeMapAdjustStationMeta || null
     );
     layer.geojsonData = fc;
     layer.isLoaded = true;
-    window.alert(`已從路線圖調整載入 ${lines.length} 條路線。可按「開始執行」。`);
+    if (!layer.visible) layer.visible = true;
+    dataStore.setRouteSchematicActiveLayer(layer.layerId); // 獨立顯示：畫此圖層的骨架
+    window.alert(`已載入骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`);
   };
 
   /** 🗺️ Leaflet 畫線圖層物件 */
@@ -3899,6 +3909,38 @@
       return;
     }
     loadMilpJsonRaw(JSON.parse(JSON.stringify(segs)));
+  };
+
+  /** MILP結果正規化（RMA）：匯入下載的 MILP 結果 JSON 檔（寫入 schematic_rma_milp_read）。 */
+  const onLoadMilpJsonFileRma = async (event) => {
+    const file = event?.target?.files?.[0];
+    if (event?.target) event.target.value = '';
+    if (!file) return;
+    try {
+      let parsed = JSON.parse(await file.text());
+      if (!Array.isArray(parsed)) {
+        parsed = parsed?.fullFlat || parsed?.spaceNetworkGridJsonData || parsed?.flatSegs || null;
+      }
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        window.alert('JSON 格式不符（需為路段陣列，或含 fullFlat／spaceNetworkGridJsonData）。');
+        return;
+      }
+      loadMilpJsonRawRma(parsed); // 只顯示原始；正規化要按「座標正規化」
+    } catch (e) {
+      window.alert('匯入失敗：' + (e?.message || e));
+    }
+  };
+
+  /** MILP結果正規化（RMA）：自「示意圖佈局①②③（RMA）」其一匯入其排版結果（寫入 schematic_rma_milp_read）。 */
+  const importLayoutResultIntoMilpReadRma = (sourceLayerId) => {
+    const src = dataStore.findLayerById(sourceLayerId);
+    if (!src) return;
+    const segs = Array.isArray(src.spaceNetworkGridJsonData) ? src.spaceNetworkGridJsonData : null;
+    if (!segs || segs.length === 0) {
+      window.alert(`圖層「${src.layerName || sourceLayerId}」尚無排版結果，請先執行該佈局。`);
+      return;
+    }
+    loadMilpJsonRawRma(JSON.parse(JSON.stringify(segs)));
   };
 
   const executeLayerFunction = async () => {
@@ -9583,9 +9625,13 @@
       ? 'schematic_toward_center_vh_routes.json'
       : layerId === SCHEMATIC_TOWARD_CENTER_HV_LAYER_ID
         ? 'schematic_toward_center_hv_routes.json'
-        : layerId === LINE_ORTHOGONAL_VERT_FIRST_LAYER_ID
-          ? 'orthogonal_toward_center_vh_routes.json'
-          : 'orthogonal_toward_center_hv_routes.json';
+        : layerId === SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID
+          ? 'schematic_rma_toward_center_vh_routes.json'
+          : layerId === SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID
+            ? 'schematic_rma_toward_center_hv_routes.json'
+            : layerId === LINE_ORTHOGONAL_VERT_FIRST_LAYER_ID
+              ? 'orthogonal_toward_center_vh_routes.json'
+              : 'orthogonal_toward_center_hv_routes.json';
 
   /**
    * `orthogonal_toward_center_hv`／`vh`：與 Upper「json-viewer」同一來源（SpaceNetworkGridJsonDataTab
@@ -9753,18 +9799,21 @@
         :key="layer.layerId"
         v-show="activeLayerTab === layer.layerId"
       >
-        <!-- 🗺️ 示意圖佈局（從路線圖調整）：載入 + 執行 -->
-        <div v-if="layer.isRouteSchematicLayer" class="pb-3 mb-3 border-bottom">
+        <!-- 🗺️ 示意圖佈局（從路線圖調整）：載入 + 執行（僅①②③演算法層） -->
+        <div
+          v-if="layer.isRouteSchematicLayer && ['schematic_rma_stroke', 'schematic_rma_hillclimb', 'schematic_rma_milp'].includes(layer.layerId)"
+          class="pb-3 mb-3 border-bottom"
+        >
           <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
           <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
-            從「路線圖調整」載入目前路網作為輸入，再按「開始執行」計算示意圖佈局。
+            從「路線圖轉換骨架」載入骨架作為輸入，再按「開始執行」計算示意圖佈局。
           </div>
           <button
             type="button"
             class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
             @click="loadRouteAdjustIntoSchematic(layer)"
           >
-            從路線圖調整載入
+            從路線圖轉換骨架載入
           </button>
           <div v-if="layer.geojsonData && layer.geojsonData.features" class="my-font-size-xs text-muted pb-2">
             已載入輸入：{{ layer.geojsonData.features.length }} 個 features
@@ -11395,6 +11444,58 @@
           </button>
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
             匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP 結果。後續步驟（往中心聚集 先橫後直／先直後橫、connect 拉直）在下方各圖層。
+          </div>
+        </div>
+
+        <!-- MILP結果正規化（RMA）：座標正規化 + 匯入下載的 MILP 結果 JSON / 從①②③（RMA）匯入 -->
+        <div
+          v-if="layer.layerId === 'schematic_rma_milp_read'"
+          class="pb-3 mb-3 border-bottom"
+        >
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            :disabled="isExecuting"
+            @click="executeLayerFunction"
+          >
+            {{ isExecuting ? '計算中…' : '座標正規化' }}
+          </button>
+          <div class="my-title-xs-gray pb-2">匯入 JSON（下載的 MILP 結果）</div>
+          <label
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-0"
+          >
+            匯入 JSON 檔
+            <input
+              type="file"
+              accept=".json,application/json"
+              class="d-none"
+              @change="onLoadMilpJsonFileRma($event)"
+            />
+          </label>
+          <div class="my-title-xs-gray pt-2 pb-1">從示意圖佈局（RMA）匯入排版結果</div>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            @click="importLayoutResultIntoMilpReadRma('schematic_rma_stroke')"
+          >
+            從①（Stroke-based）匯入
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-teal my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            @click="importLayoutResultIntoMilpReadRma('schematic_rma_hillclimb')"
+          >
+            從②（Hill Climbing）匯入
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-orange my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            @click="importLayoutResultIntoMilpReadRma('schematic_rma_milp')"
+          >
+            從③（MILP）匯入
+          </button>
+          <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
+            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP（RMA）結果。後續步驟（往中心聚集 先橫後直／先直後橫）在下方各圖層。
           </div>
         </div>
 

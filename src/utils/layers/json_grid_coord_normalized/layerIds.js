@@ -73,9 +73,17 @@ export const LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS = Object.freeze([
  */
 export const SCHEMATIC_TOWARD_CENTER_HV_LAYER_ID = 'schematic_toward_center_hv';
 export const SCHEMATIC_TOWARD_CENTER_VH_LAYER_ID = 'schematic_toward_center_vh';
+/**
+ * 路線圖調整（RMA）示意圖管線之「往中心聚集」兩層：演算法/UI/繪製與 OSM 版完全相同，
+ * 僅資料鏈不同（自「MILP結果正規化（RMA）」schematic_rma_milp_read → 先橫後直 → 先直後橫）。
+ */
+export const SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID = 'schematic_rma_toward_center_hv';
+export const SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID = 'schematic_rma_toward_center_vh';
 export const SCHEMATIC_TOWARD_CENTER_LAYER_IDS = Object.freeze([
   SCHEMATIC_TOWARD_CENTER_HV_LAYER_ID,
   SCHEMATIC_TOWARD_CENTER_VH_LAYER_ID,
+  SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID,
+  SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID,
 ]);
 
 /** @param {string|undefined|null} layerId */
@@ -91,7 +99,8 @@ export function isLineOrthogonalTowardCenterLayerId(layerId) {
 export function isVertFirstTowardCenterLayerId(layerId) {
   return (
     layerId === LINE_ORTHOGONAL_VERT_FIRST_LAYER_ID ||
-    layerId === SCHEMATIC_TOWARD_CENTER_VH_LAYER_ID
+    layerId === SCHEMATIC_TOWARD_CENTER_VH_LAYER_ID ||
+    layerId === SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID
   );
 }
 

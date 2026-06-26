@@ -171,12 +171,12 @@ export function mountRouteMapAdjust(el, dataStore) {
       }
       const m = L.circleMarker(latlng, {
         radius,
-        color: fillColor,
+        color: '#ffffff', // 白色 1px border
         weight: 1,
         fillColor,
         fillOpacity: 1,
         interactive: true,
-        pane: 'srmaDots', // 圓點置於最上層 pane，永遠不被站名遮住
+        pane: 'srmaDots', // 圓點置於最上層 pane，永遠不被線/站名遮住
       });
       m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
       // hover：圓點放大
@@ -384,29 +384,22 @@ export function mountRouteMapAdjust(el, dataStore) {
     for (const n of sk.nodes || []) {
       if (!n || !Array.isArray(n.latlng)) continue;
       let fill = '#555555';
-      let stroke = '#555555';
       let baseR = 4;
       const nk = llKey(n.latlng[0], n.latlng[1]);
       if (n.isPurple) {
         fill = '#9c27b0';
-        stroke = '#6a1b9a';
         baseR = 6;
       } else if (n.isCross) {
         fill = '#ffd600';
-        stroke = '#caa700';
         baseR = 8;
       } else if (connectKeys.has(nk)) {
-        // 🔴 交點（connect）：照原色畫紅點
-        fill = '#ff0000';
-        stroke = '#ff0000';
+        fill = '#ff0000'; // 🔴 交點（connect）
       } else if (terminalKeys.has(nk)) {
-        // 🔵 端點（terminal）：照原色畫藍點
-        fill = '#1565c0';
-        stroke = '#1565c0';
+        fill = '#1565c0'; // 🔵 端點（terminal）
       }
       const m = L.circleMarker(n.latlng, {
         radius: baseR,
-        color: stroke,
+        color: '#ffffff', // 白色 1px border
         weight: 1,
         fillColor: fill,
         fillOpacity: 1,
