@@ -269,6 +269,8 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   // 🚆 特別納入指定的鐵道(route=train)路線（per-city，如東京要含 JR 山手線/中央線）：
   //    這些線名符合者強制納入，繞過跨境/直通/營運者白名單等過濾。
   const includeRe = opts.includeRail ? new RegExp(opts.includeRail) : null;
+  // 強制納入指定未通車線（如三鶯線）：名稱符合者即使 construction/proposed 仍納入
+  const includeUnopenedRe = opts.includeUnopened ? new RegExp(opts.includeUnopened) : null;
   // 🎯 只保留線名符合者（per-city）：用於「單線城市」（如りんかい線、ゆりかもめ、PATH、桃園），
   //    其 bbox 會誤含整個都會網，故只留該線本身。
   const onlyRe = opts.onlyLineName ? new RegExp(opts.onlyLineName) : null;
@@ -285,6 +287,11 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     `relation["route"~"${modeRe}"](${s},${w},${n},${e});` +
     (opts.includeRail
       ? `relation["route"="train"]["name"~"${opts.includeRail}"](${s},${w},${n},${e});`
+      : '') +
+    (opts.includeUnopened // 強制納入指定的未通車線（如三鶯線）：抓 construction/proposed 關聯
+      ? `relation["route"="construction"]["name"~"${opts.includeUnopened}"](${s},${w},${n},${e});` +
+        `relation["construction:route"]["name"~"${opts.includeUnopened}"](${s},${w},${n},${e});` +
+        `relation["route"="proposed"]["name"~"${opts.includeUnopened}"](${s},${w},${n},${e});`
       : '') +
     `)->.r;.r out geom;node(r.r);out tags;` +
     `node["railway"~"^(station|halt)$"](${s},${w},${n},${e});out;`;
@@ -393,8 +400,10 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   for (const rel of rels) {
     const tags = rel.tags || {};
     // 指定 JR 線強制納入，但仍排除「直通運転」等延伸變體
-    const forceInclude = includeRe ? includeRe.test(nameOf(tags)) && !/直通/.test(nameOf(tags)) : false;
-    if (isUnopened(tags)) continue; // 🚧 未通車路線：所有城市一律不畫（forceInclude 也不例外）
+    const forceUnopen = includeUnopenedRe ? includeUnopenedRe.test(nameOf(tags)) : false;
+    const forceInclude =
+      forceUnopen || (includeRe ? includeRe.test(nameOf(tags)) && !/直通/.test(nameOf(tags)) : false);
+    if (isUnopened(tags) && !forceUnopen) continue; // 🚧 未通車路線一律不畫（除非指定強制納入，如三鶯線）
     if (!forceInclude && foreignNets.has(netKeyOf(tags))) continue; // 鄰境系統（如載香港時的深圳地鐵）
     if (!forceInclude && /[;,/]/.test((tags.ref || '').trim())) continue; // 多線直通合併關聯
     if (!forceInclude && isThroughRun(tags)) continue; // 與私鐵/JR 直通運轉之路段

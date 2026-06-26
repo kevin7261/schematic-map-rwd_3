@@ -33,12 +33,14 @@ export const METRO_OVERRIDES = {
       { match: '民生汐止|汐止東湖', color: '#5b8f8f' }, // 民生汐止線（規劃，暫定）
       { match: '機場|A線', color: '#8246af' }, // 紫：桃園機場捷運
       { match: '桃園|綠線', color: '#6cb02c' }, // 桃園綠線
-      { match: '淡海', color: '#23a3dc' }, // 淡海輕軌
-      { match: '安坑', color: '#00a14b' }, // 安坑輕軌
+      { match: '淡海', color: '#e34234' }, // 淡海輕軌 V線 朱紅（Wikipedia）
+      { match: '安坑', color: '#c3b091' }, // 安坑輕軌 K線 卡其（Wikipedia）
       { match: '板南|南港|板橋|土城', color: '#0070bd' }, // 藍：板南線（南港-板橋-土城）— 置末
     ],
     // 去重：OSM 同一條線常有多個名稱變體；同 family 只留座標點最多者
-    dedupeByName: ['萬大|樹林', '環狀.*東環|東環段'],
+    dedupeByName: ['萬大|樹林', '環狀.*東環|東環段', '三鶯'],
+    // 強制納入未通車線（使用者要求）：三鶯線、信義線東延（廣慈/博愛院）；OSM 為 construction
+    includeUnopened: '三鶯|信義線東延|廣慈|博愛',
   },
 
   // 🇯🇵 東京：只保留兩家地鐵公司（東京メトロ＋都營）；直通/私鐵段由 pipeline 內建剔除

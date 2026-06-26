@@ -78,6 +78,7 @@ async function main() {
         onlyLineName: ov.onlyLineName,
         clipToBbox: ov.clipToBbox,
         noNameMerge: ov.noNameMerge,
+        includeUnopened: ov.includeUnopened,
       });
       if (isMainlandChina(c)) convertFcToTraditional(fc); // 大陸城市簡→繁
       if (!ov.noNameMerge) mergeSameNameStations(fc); // 同名車站合併（紐約等特例除外）
