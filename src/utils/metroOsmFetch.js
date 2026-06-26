@@ -470,12 +470,29 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     const relsWithStops = g.rels.filter((r) => r.stops.length >= 2).sort((a, b) => b.stops.length - a.stops.length);
     if (relsWithStops.length) {
       const emitted = new Set();
+      const gkey = (p) => `${p[0].toFixed(3)},${p[1].toFixed(3)}`; // ~100m 網格，供幾何分支判定
+      const keptGeom = new Set();
+      const skipped = [];
       for (const r of relsWithStops) {
         const ks = r.stops.map((s2) => keyOf(s2.coord));
         const ov = emitted.size ? ks.filter((k) => emitted.has(k)).length / ks.length : 0;
-        if (ov >= 0.7) continue; // 方向/重複變體
+        if (ov >= 0.7) {
+          skipped.push(r); // 站點是子集→暫存，稍後檢查是否新增軌道幾何
+          continue;
+        }
         picked.push({ ...g, color, stops: r.stops, stopsWays: r.ways, geom: null });
         ks.forEach((k) => emitted.add(k));
+        for (const w of r.ways || []) for (const c of w) keptGeom.add(gkey(c));
+      }
+      // 幾何分支：站點雖為子集，但軌道幾何明顯新增者（如環狀線收尾弧、Stage6 站尚未進 OSM）→ 以 way 幾何補上
+      for (const r of skipped) {
+        const chain = stitchWays(r.ways).sort((a, b) => b.length - a.length)[0];
+        if (!chain || chain.length < 2) continue;
+        const newN = chain.filter((c) => !keptGeom.has(gkey(c))).length;
+        if (newN / chain.length >= 0.3) {
+          picked.push({ ...g, color, stops: null, stopsWays: null, geom: simplify(chain, 0.0006) });
+          for (const c of chain) keptGeom.add(gkey(c));
+        }
       }
     } else {
       let best = null;

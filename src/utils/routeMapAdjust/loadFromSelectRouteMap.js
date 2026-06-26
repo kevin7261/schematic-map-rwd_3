@@ -114,7 +114,11 @@ export function useRouteMapAdjust(dataStore) {
       window.alert('尚未載入路線，請先「從選擇路線圖載入」。');
       return;
     }
-    lyr.routeMapAdjustSkeleton = buildRouteMapAdjustSkeleton(lines);
+    lyr.routeMapAdjustSkeleton = buildRouteMapAdjustSkeleton(
+      lines,
+      Array.isArray(lyr.routeMapAdjustBlackDots) ? lyr.routeMapAdjustBlackDots : [],
+      Object.keys(lyr.routeMapAdjustStationMeta || {}).map((k) => k.split(',').map(Number))
+    );
     dataStore.requestRouteMapAdjustFit();
   };
 

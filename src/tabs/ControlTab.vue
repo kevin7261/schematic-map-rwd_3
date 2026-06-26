@@ -27,6 +27,7 @@
   } from '@/utils/leafletDrawStations.js';
   import { useSelectRouteMapCatalog } from '@/utils/selectRouteMap/cityCatalog.js';
   import { useRouteMapAdjust } from '@/utils/routeMapAdjust/loadFromSelectRouteMap.js';
+  import { routeMapAdjustToOsmRouteGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
   import {
     LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
     mergeOsm2GeojsonLoaderResultIntoLayer,
@@ -3471,6 +3472,25 @@
     routeMapAdjustRouteName: rmaRouteName,
     routeMapAdjustStationLabel: rmaStationLabel,
   } = useRouteMapAdjust(dataStore);
+
+  /** 📥「示意圖佈局（從路線圖調整）」：把 route_map_adjust 路線轉成 geojson 寫入該圖層之 geojsonData */
+  const loadRouteAdjustIntoSchematic = (layer) => {
+    if (!layer) return;
+    const adj = dataStore.findLayerById('route_map_adjust');
+    const lines = Array.isArray(adj?.routeMapAdjustLines) ? adj.routeMapAdjustLines : [];
+    if (!lines.length) {
+      window.alert('「路線圖調整」尚無路線，請先到「路線圖調整」從選擇路線圖載入。');
+      return;
+    }
+    const fc = routeMapAdjustToOsmRouteGeoJson(
+      lines,
+      Array.isArray(adj.routeMapAdjustBlackDots) ? adj.routeMapAdjustBlackDots : [],
+      adj.routeMapAdjustStationMeta || null
+    );
+    layer.geojsonData = fc;
+    layer.isLoaded = true;
+    window.alert(`已從路線圖調整載入 ${lines.length} 條路線。可按「開始執行」。`);
+  };
 
   /** 🗺️ Leaflet 畫線圖層物件 */
   const leafletDrawLayer = computed(() => dataStore.findLayerById('leaflet_josm_draw'));
@@ -9733,6 +9753,32 @@
         :key="layer.layerId"
         v-show="activeLayerTab === layer.layerId"
       >
+        <!-- 🗺️ 示意圖佈局（從路線圖調整）：載入 + 執行 -->
+        <div v-if="layer.isRouteSchematicLayer" class="pb-3 mb-3 border-bottom">
+          <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
+          <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
+            從「路線圖調整」載入目前路網作為輸入，再按「開始執行」計算示意圖佈局。
+          </div>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            @click="loadRouteAdjustIntoSchematic(layer)"
+          >
+            從路線圖調整載入
+          </button>
+          <div v-if="layer.geojsonData && layer.geojsonData.features" class="my-font-size-xs text-muted pb-2">
+            已載入輸入：{{ layer.geojsonData.features.length }} 個 features
+          </div>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+            :disabled="!layer.geojsonData || !layer.geojsonData.features || !layer.geojsonData.features.length || isExecuting"
+            @click="executeLayerFunction"
+          >
+            {{ isExecuting ? '執行中…' : '開始執行' }}
+          </button>
+        </div>
+
         <!-- 🗺️ 選擇路線圖（select_route_map）：載入城市路線（獨立複製，與畫線圖層不共用） -->
         <div v-if="layer.isSelectRouteMapLayer" class="pb-3 mb-3 border-bottom">
           <!-- ⚡ 快選：常用城市一鍵載入 -->

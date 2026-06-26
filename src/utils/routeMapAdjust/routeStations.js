@@ -559,17 +559,35 @@ export const computeRouteMapAdjustLoopRoutes = (lines) => {
  * 把目前路網變成「骨架圖」：
  *  - 重疊（共線）之路段合併為一條邊（無方向去重）。
  *  - 不同路線之「真交叉」處若原本沒有節點，生成一個交叉節點，並把該點插入相關路線（切段）。
+ *  - ⚠️ 不可改變原本結構：原本的端點（🔵 terminal）與交點（🔴 connect）站點一律保留為節點，
+ *    收縮 degree-2 過路點時絕不可穿過它們，避免相交點消失或不同路線被誤接成一條。
  * @param {Array} lines 路線
+ * @param {Array<[number,number]>} [blackDots] 黑點（供站點分類）
+ * @param {Array<[number,number]>} [stationCoords] 站點座標（供以站點為基礎之分類）
  * @returns {{nodes:Array<[number,number]>, edges:Array<{a:[number,number],b:[number,number],routeCount:number}>,
  *           crossNodes:Array<[number,number]>}}
  */
-export const buildRouteMapAdjustSkeleton = (lines) => {
+export const buildRouteMapAdjustSkeleton = (lines, blackDots = null, stationCoords = null) => {
   const safeLines = Array.isArray(lines)
     ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
     : [];
   const round = (n) => Number(Number(n).toFixed(6));
   const key = (p) => `${round(p[0])},${round(p[1])}`;
   const ON_TOL = 1e-6;
+
+  // 0) 原本站點分類（端點🔵／交點🔴）：這些是「本來的結構」，骨架務必保留為節點。
+  const { terminals: stationTerminals, connects: stationConnects } = computeRouteMapAdjustStations(
+    safeLines,
+    blackDots,
+    stationCoords
+  );
+  // 交點要插入「每條通過該點的路線」（切段），端點本就是路線頂點不需插入。
+  const stationConnectPts = (stationConnects || []).filter((p) => Array.isArray(p) && p.length >= 2);
+  // 端點＋交點之鍵 → 強制視為真實節點（收縮時不可穿越）。
+  const forcedNodeKeys = new Set([
+    ...(stationTerminals || []).map((p) => key(p)),
+    ...stationConnectPts.map((p) => key(p)),
+  ]);
 
   // 1) 所有「真交叉」點（不同路線之線段內部相交）
   const rawCross = [];
@@ -592,7 +610,9 @@ export const buildRouteMapAdjustSkeleton = (lines) => {
   for (const l of safeLines) for (const v of l.latlngs) existing.add(key(v));
   const crossNodes = crossings.filter((c) => !existing.has(key(c)));
 
-  // 2) 把交叉點插入各路線（在所屬線段上、依序），使交叉成為圖的頂點（切段）
+  // 2) 把「交叉點＋交點站點」插入各路線（在所屬線段上、依序），使其成為圖的頂點（切段）。
+  //    交點站點（connect）亦須切段，否則某路線只是「路過」該站而未斷點，相交點會在收縮時消失。
+  const splitPoints = dedupePoints([...crossings, ...stationConnectPts], 1e-7);
   const insertOnLine = (latlngs) => {
     const out = [latlngs[0]];
     for (let i = 0; i < latlngs.length - 1; i++) {
@@ -600,7 +620,7 @@ export const buildRouteMapAdjustSkeleton = (lines) => {
       const b = latlngs[i + 1];
       const ab = planarDist(a, b);
       const on = [];
-      for (const c of crossings) {
+      for (const c of splitPoints) {
         const cp = closestPointOnSegment(c, a, b);
         if (planarDist(c, cp) > ON_TOL) continue; // 不在此段
         const ta = planarDist(a, c);
@@ -655,7 +675,9 @@ export const buildRouteMapAdjustSkeleton = (lines) => {
   });
 
   const degree = (k) => adj.get(k)?.size || 0;
-  const isReal = (k) => degree(k) !== 2 || crossKeys.has(k); // 交叉點/端點/分歧點為真實節點
+  // 交叉點／端點／分歧點，以及「本來的」端點(🔵)／交點(🔴)站點，皆為真實節點：
+  //   收縮 degree-2 過路點時絕不可穿越，保留原本結構（相交點不消失、路線不被誤接）。
+  const isReal = (k) => degree(k) !== 2 || crossKeys.has(k) || forcedNodeKeys.has(k);
   const mkey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
   const microSeen = new Set();
   const edgesOut = [];
@@ -811,4 +833,106 @@ export const buildRouteMapAdjustSkeleton = (lines) => {
     edges: finalEdges,
     crossNodes,
   };
+};
+
+/**
+ * 把「路線圖調整」之路線/黑點轉成 OSM 風格路網 GeoJSON（way／node），
+ * 供示意圖佈局（schematic_layout）之輸入管線解析。格式與 leafletDrawToOsmRouteGeoJson 相同，
+ * 但獨立使用本圖層之 computeRouteMapAdjustRouteStations／routeMapAdjustColorNameForIndex。
+ * @param {Array<{color?:string, latlngs:Array<[number,number]>, routeName?:string, routeId?:string}>} lines
+ * @param {Array<[number,number]>} blackDots
+ * @param {Object<string,{id?:string|number, name?:string}>} [stationMeta] 座標→站點資料，鍵為 `${lat.toFixed(6)},${lng.toFixed(6)}`
+ * @returns {{type:'FeatureCollection', features:object[]}}
+ */
+export const routeMapAdjustToOsmRouteGeoJson = (lines, blackDots, stationMeta = null) => {
+  const safeLines = Array.isArray(lines)
+    ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
+    : [];
+  const routeStations = computeRouteMapAdjustRouteStations(safeLines, blackDots);
+  const nodeKey = (lon, lat) => `${lon.toFixed(7)},${lat.toFixed(7)}`;
+  const rank = (t) => (t === 'intersection' ? 2 : t === 'terminal' ? 1 : 0);
+  const routeName = (i) => safeLines[i]?.routeName || routeMapAdjustColorNameForIndex(i);
+  const routeId = (i) => safeLines[i]?.routeId || String(i + 1);
+  const metaKey = (lat, lon) => `${(+lat).toFixed(6)},${(+lon).toFixed(6)}`;
+  const metaFor = (lat, lon) => (stationMeta && stationMeta[metaKey(lat, lon)]) || null;
+
+  const nodeByKey = new Map();
+  routeStations.forEach((route) => {
+    const rName = routeName(route.routeIndex);
+    route.stations.forEach((st) => {
+      const [lat, lon] = st.latlng;
+      const k = nodeKey(lon, lat);
+      const t =
+        st.type === 'connect' ? 'intersection' : st.type === 'terminal' ? 'terminal' : 'normal';
+      let e = nodeByKey.get(k);
+      if (!e) {
+        e = { lon, lat, type: t, routeNames: new Set(), meta: metaFor(lat, lon) };
+        nodeByKey.set(k, e);
+      } else if (rank(t) > rank(e.type)) {
+        e.type = t;
+      }
+      e.routeNames.add(rName);
+      if (st.type === 'connect' && Array.isArray(st.connectRoutes)) {
+        st.connectRoutes.forEach((ri) => e.routeNames.add(routeName(ri)));
+      }
+    });
+  });
+
+  const features = [];
+  safeLines.forEach((line, i) => {
+    const cum = [0];
+    for (let k = 0; k < line.latlngs.length - 1; k++) {
+      cum.push(cum[k] + planarDist(line.latlngs[k], line.latlngs[k + 1]));
+    }
+    const pts = line.latlngs.map((p, k) => ({ pos: cum[k], coord: [p[1], p[0]] }));
+    (routeStations[i]?.stations || [])
+      .filter((s) => s.type !== 'terminal')
+      .forEach((s) => {
+        const pr = projectOnPolyline(line.latlngs, s.latlng);
+        if (pr) pts.push({ pos: pr.pos, coord: [s.latlng[1], s.latlng[0]] });
+      });
+    pts.sort((a, b) => a.pos - b.pos);
+    const coords = [];
+    for (const pt of pts) {
+      const last = coords[coords.length - 1];
+      if (last && last[0] === pt.coord[0] && last[1] === pt.coord[1]) continue;
+      coords.push(pt.coord);
+    }
+    if (coords.length < 2) return;
+    features.push({
+      type: 'Feature',
+      properties: {
+        type: 'way',
+        id: i + 1,
+        tags: {
+          route_id: routeId(i),
+          route_name: routeName(i),
+          color: line.color || '#666666',
+          railway: 'subway',
+        },
+      },
+      geometry: { type: 'LineString', coordinates: coords },
+    });
+  });
+
+  let nid = 1;
+  for (const e of nodeByKey.values()) {
+    features.push({
+      type: 'Feature',
+      properties: {
+        type: 'node',
+        id: nid,
+        tags: {
+          station_id: e.meta && e.meta.id != null ? String(e.meta.id) : `s${nid}`,
+          station_name: (e.meta && e.meta.name) || '',
+          type: e.type,
+          route_name_list: [...e.routeNames],
+        },
+      },
+      geometry: { type: 'Point', coordinates: [e.lon, e.lat] },
+    });
+    nid += 1;
+  }
+
+  return { type: 'FeatureCollection', features };
 };

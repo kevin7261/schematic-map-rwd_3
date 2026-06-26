@@ -350,6 +350,14 @@ export function mountRouteMapAdjust(el, dataStore) {
     skeletonGroup.clearLayers();
     const sk = layer.routeMapAdjustSkeleton;
     if (!sk) return;
+    // 🔵🔴 原本的端點（藍）／交點（紅）站點在骨架圖也要照原色畫，而非一律灰黑點。
+    const { terminals, connects } = computeRouteMapAdjustStations(
+      layer.routeMapAdjustLines,
+      layer.routeMapAdjustBlackDots,
+      Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) => k.split(',').map(Number))
+    );
+    const terminalKeys = new Set((terminals || []).map((p) => llKey(p[0], p[1])));
+    const connectKeys = new Set((connects || []).map((p) => llKey(p[0], p[1])));
     for (const e of sk.edges || []) {
       const path = Array.isArray(e.path) ? e.path : [];
       if (path.length < 2) continue;
@@ -378,6 +386,7 @@ export function mountRouteMapAdjust(el, dataStore) {
       let fill = '#555555';
       let stroke = '#555555';
       let baseR = 4;
+      const nk = llKey(n.latlng[0], n.latlng[1]);
       if (n.isPurple) {
         fill = '#9c27b0';
         stroke = '#6a1b9a';
@@ -386,6 +395,14 @@ export function mountRouteMapAdjust(el, dataStore) {
         fill = '#ffd600';
         stroke = '#caa700';
         baseR = 8;
+      } else if (connectKeys.has(nk)) {
+        // 🔴 交點（connect）：照原色畫紅點
+        fill = '#ff0000';
+        stroke = '#ff0000';
+      } else if (terminalKeys.has(nk)) {
+        // 🔵 端點（terminal）：照原色畫藍點
+        fill = '#1565c0';
+        stroke = '#1565c0';
       }
       const m = L.circleMarker(n.latlng, {
         radius: baseR,
