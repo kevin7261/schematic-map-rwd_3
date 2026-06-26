@@ -68,7 +68,11 @@ node 屬性：`osm_id, station_name, station_id`。
 
 其他內建行為：**分支保留**（同一條線的多個關聯，依站集合重疊 <70% 視為真實分支一併保留，如倫敦 Central 的 Ealing/Hainault、新加坡 EW 樟宜支線、台北新北投/小碧潭支線）；**站序投影排序**（以軌道幾何縫成路徑排序站點，修正 OSM stop 順序錯置）；**未通車不畫**（construction/proposed/未來開通日一律剔除，除非 includeUnopened）。
 
-⚠️ 路線中間不可有紅(交點)/藍(端點)點：站點分類（`src/utils/*/routeStations.js` 的 computeRouteMapStations）已改為——端點須是「未被其他線段共用的真線端」（分支接點不算端點）、交點須落在「不同 route_name 的線」上（同線分支接點不算交點）。此為渲染邏輯，重新整理即生效。
+⚠️⚠️ **路線中間絕對不可有紅(交點/轉乘)或藍(端點)點**（硬規則，使用者多次強調）。三層機制缺一不可：
+1. **站點為基礎分類**：紅/藍/黑只在真實車站(node)出現；傳 `stationCoords` 給 `computeRouteMapStations(lines, blackDots, stationCoords)`。紅=站有 ≥2 不同 route_name 經過；藍=站在某線端點且非紅；黑=其餘。共軌/交叉的非站點頂點不冒紅。
+2. **端點以頂點總出現次數判定**：真線端只出現 1 次（環線/分支/轉乘接點 ≥2 次不算端點）。
+3. **轉乘截斷**：抓取後 `splitAtConnects`（_toTraditional.mjs）在轉乘站把線切段；渲染時 `addStationDot` 對 connect/terminal **先畫白色底圈(radius+3)** → 線被白色缺口切斷、紅/藍點落在切口。
+兩套渲染（selectRouteMap、routeMapAdjust）皆須同步。
 
 - `onlyLineName`：只保留 route_name 符合 regex 的線。用於「單線城市」（discovery 把單一路線當城市，bbox 會誤含整個都會網），如 `japan-yurikamome`、`united-states-path`、`taiwan-taoyuan`、`united-kingdom-docklands-light-railway`。若該線為 route=train（如東京りんかい線）需同時設 `includeRail`。
 

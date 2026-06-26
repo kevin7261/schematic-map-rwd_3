@@ -157,6 +157,18 @@ export function mountRouteMapAdjust(el, dataStore) {
     );
     const routesAtCoord = buildRoutesAtCoord();
     const addStationDot = (latlng, fillColor, radius, type) => {
+      // 🔴🔵 端點/交點：先畫白色底圈「切斷」路線（路線中間不可有紅/藍點）
+      if (type === 'connect' || type === 'terminal') {
+        L.circleMarker(latlng, {
+          radius: radius + 3,
+          color: '#ffffff',
+          weight: 0,
+          fillColor: '#ffffff',
+          fillOpacity: 1,
+          interactive: false,
+          pane: 'srmaDots',
+        }).addTo(stationGroup);
+      }
       const m = L.circleMarker(latlng, {
         radius,
         color: fillColor,
