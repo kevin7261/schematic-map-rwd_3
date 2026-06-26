@@ -311,42 +311,84 @@ export function mountRouteMapAdjust(el, dataStore) {
     const sk = layer.routeMapAdjustSkeleton;
     return !!sk && Array.isArray(sk.edges) && sk.edges.length > 0;
   };
+  // 骨架邊 tooltip：與原本路線 hover 相同樣式（逐路線列 route_name/route_id/railway/color），
+  //   重疊路段則把每條路線依序列出。
+  const skeletonEdgeTooltip = (e) => {
+    const routes = Array.isArray(e.routes) ? e.routes : [];
+    return (
+      `<div style="font-size:12px;line-height:1.5">` +
+      routes.map((r) => lineTooltipHtml(r)).join('<hr style="margin:3px 0;border:none;border-top:1px solid #eee">') +
+      `</div>`
+    );
+  };
+  // 骨架節點 tooltip：與原本站點 hover 相同樣式（station_name/id/osm_id/type/route_name_list）
+  const skeletonNodeTooltip = (n) => {
+    const k = llKey(n.latlng[0], n.latlng[1]);
+    const meta = (layer.routeMapAdjustStationMeta && layer.routeMapAdjustStationMeta[k]) || {};
+    const routes = Array.isArray(n.routes) ? n.routes : [];
+    const names = routes.map((r) => r.routeName).filter(Boolean);
+    const type = n.isCross
+      ? '交叉生成節點'
+      : routes.length >= 2
+        ? '交點 intersection'
+        : '端點/節點';
+    return (
+      `<div style="font-size:12px;line-height:1.5">` +
+      rowHtml('station_name', meta.name) +
+      rowHtml('station_id', meta.id) +
+      rowHtml('osm_id', meta.osmId) +
+      rowHtml('type', type) +
+      (names.length
+        ? `<div><span style="color:#888">route_name_list</span> ${esc(names.join('、'))}</div>`
+        : '') +
+      `</div>`
+    );
+  };
   const renderSkeleton = () => {
     skeletonGroup.clearLayers();
     const sk = layer.routeMapAdjustSkeleton;
     if (!sk) return;
     for (const e of sk.edges || []) {
-      if (!Array.isArray(e.a) || !Array.isArray(e.b)) continue;
-      L.polyline([e.a, e.b], {
-        color: e.routeCount >= 2 ? '#222222' : '#3949ab', // 重疊邊深色、單一路線邊藍紫
-        weight: e.routeCount >= 2 ? 4 : 3,
-        opacity: 0.9,
-        interactive: false,
-      }).addTo(skeletonGroup);
+      const path = Array.isArray(e.path) ? e.path : [];
+      if (path.length < 2) continue;
+      // 🔴 合併(共線)→紅；🔵 頭尾共點(分歧)→藍；🟢 環線→綠；其餘→該路線色。高亮者畫粗。
+      let color = e.routes?.[0]?.color || '#3949ab';
+      let baseWeight = 4;
+      if (e.isMerged) {
+        color = '#ff1744';
+        baseWeight = 8;
+      } else if (e.isHeadTailShared) {
+        color = '#1e88e5';
+        baseWeight = 8;
+      } else if (e.isLoop) {
+        color = '#00c853';
+        baseWeight = 8;
+      }
+      const pl = L.polyline(path, { color, weight: baseWeight, opacity: 0.9, interactive: true });
+      pl.bindTooltip(skeletonEdgeTooltip(e), { sticky: true });
+      pl.on('mouseover', () => pl.setStyle({ weight: baseWeight + 4 }));
+      pl.on('mouseout', () => pl.setStyle({ weight: baseWeight }));
+      pl.addTo(skeletonGroup);
     }
-    // 圖的節點（灰）
+    // 節點：🟡 新加交叉 → 黃、大；其餘 → 灰、一般
     for (const n of sk.nodes || []) {
-      L.circleMarker(n, {
-        radius: 2.5,
-        color: '#555555',
-        weight: 0,
-        fillColor: '#555555',
-        fillOpacity: 0.9,
-        interactive: false,
-        pane: 'srmaDots',
-      }).addTo(skeletonGroup);
-    }
-    // 🟠 交叉處新生成之節點（橘色，較大）
-    for (const c of sk.crossNodes || []) {
-      L.circleMarker(c, {
-        radius: 5,
-        color: '#ff6d00',
+      if (!n || !Array.isArray(n.latlng)) continue;
+      const isCross = !!n.isCross;
+      const color = isCross ? '#ffd600' : '#555555';
+      const baseR = isCross ? 8 : 4;
+      const m = L.circleMarker(n.latlng, {
+        radius: baseR,
+        color: isCross ? '#caa700' : '#555555',
         weight: 1,
-        fillColor: '#ff6d00',
+        fillColor: color,
         fillOpacity: 1,
-        interactive: false,
+        interactive: true,
         pane: 'srmaDots',
-      }).addTo(skeletonGroup);
+      });
+      m.bindTooltip(skeletonNodeTooltip(n), { sticky: true });
+      m.on('mouseover', () => m.setRadius(baseR + 3));
+      m.on('mouseout', () => m.setRadius(baseR));
+      m.addTo(skeletonGroup);
     }
   };
 

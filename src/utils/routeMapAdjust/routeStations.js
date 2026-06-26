@@ -617,32 +617,132 @@ export const buildRouteMapAdjustSkeleton = (lines) => {
     return dd;
   };
 
-  // 3) 建邊（無方向去重，重疊→一條）+ 收集節點
-  const nodes = new Map();
-  const edges = new Map();
+  // 3) 建鄰接圖（微段，含路線屬性），再收縮 degree-2 過路點 → 每條骨架邊 = 兩個
+  //    「交叉點/端點」(degree≠2 或交叉生成點) 之間的整段折線。
+  const attrOf = (l, li) => ({
+    routeIndex: li,
+    routeName: l.routeName || null,
+    routeId: l.routeId || null,
+    color: l.color || null,
+    railway: l.railway || null,
+  });
+  const crossKeys = new Set(crossNodes.map((c) => key(c)));
+  const vert = new Map(); // key -> latlng
+  const adj = new Map(); // key -> Map(nbKey -> Map(routeIndex->attr))
+  const addAdj = (k1, k2, attr) => {
+    if (!adj.has(k1)) adj.set(k1, new Map());
+    let m = adj.get(k1).get(k2);
+    if (!m) {
+      m = new Map();
+      adj.get(k1).set(k2, m);
+    }
+    m.set(attr.routeIndex, attr);
+  };
   safeLines.forEach((l, li) => {
-    const pts = insertOnLine(l.latlngs);
+    const attr = attrOf(l, li);
+    const pts = insertOnLine(l.latlngs).map((p) => [round(p[0]), round(p[1])]);
+    for (const p of pts) {
+      const k = key(p);
+      if (!vert.has(k)) vert.set(k, p);
+    }
     for (let k = 0; k < pts.length - 1; k++) {
-      const A = [round(pts[k][0]), round(pts[k][1])];
-      const Bp = [round(pts[k + 1][0]), round(pts[k + 1][1])];
-      const aK = key(A);
-      const bK = key(Bp);
-      if (aK === bK) continue;
-      if (!nodes.has(aK)) nodes.set(aK, A);
-      if (!nodes.has(bK)) nodes.set(bK, Bp);
-      const ek = aK < bK ? `${aK}|${bK}` : `${bK}|${aK}`;
-      let e = edges.get(ek);
-      if (!e) {
-        e = { a: A, b: Bp, routes: new Set() };
-        edges.set(ek, e);
-      }
-      e.routes.add(li);
+      const a = key(pts[k]);
+      const b = key(pts[k + 1]);
+      if (a === b) continue;
+      addAdj(a, b, attr);
+      addAdj(b, a, attr);
     }
   });
 
+  const degree = (k) => adj.get(k)?.size || 0;
+  const isReal = (k) => degree(k) !== 2 || crossKeys.has(k); // 交叉點/端點/分歧點為真實節點
+  const mkey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+  const microSeen = new Set();
+  const edgesOut = [];
+  const nodeRoutes = new Map(); // key -> Map(routeIndex->attr)
+  const addNodeRoutes = (k, routesMap) => {
+    if (!nodeRoutes.has(k)) nodeRoutes.set(k, new Map());
+    for (const [ri, a] of routesMap) nodeRoutes.get(k).set(ri, a);
+  };
+
+  // 從某條未走過的微段，沿 degree-2 過路點走到下一個真實節點（或回到起點＝環）
+  const walkChain = (start, firstNb) => {
+    const path = [vert.get(start)];
+    const routes = new Map();
+    let prev = start;
+    let cur = firstNb;
+    microSeen.add(mkey(prev, cur));
+    for (const [ri, a] of adj.get(prev).get(cur)) routes.set(ri, a);
+    path.push(vert.get(cur));
+    let guard = 0;
+    while (!isReal(cur) && cur !== start && guard++ < 100000) {
+      const nbrs = [...adj.get(cur).keys()];
+      const next = nbrs.find((x) => x !== prev);
+      if (next === undefined) break;
+      microSeen.add(mkey(cur, next));
+      for (const [ri, a] of adj.get(cur).get(next)) routes.set(ri, a);
+      path.push(vert.get(next));
+      prev = cur;
+      cur = next;
+    }
+    edgesOut.push({ path, routes: [...routes.values()] });
+    addNodeRoutes(start, routes);
+    addNodeRoutes(cur, routes);
+  };
+
+  // (a) 從真實節點出發收縮
+  for (const k of vert.keys()) {
+    if (!isReal(k)) continue;
+    for (const nb of adj.get(k).keys()) {
+      if (!microSeen.has(mkey(k, nb))) walkChain(k, nb);
+    }
+  }
+  // (b) 純環（全 degree-2、無真實節點）：任取起點收縮成一條（首尾同點）
+  for (const k of vert.keys()) {
+    for (const nb of (adj.get(k) || new Map()).keys()) {
+      if (!microSeen.has(mkey(k, nb))) walkChain(k, nb);
+    }
+  }
+
+  // 分類旗標：
+  //  - 環線路線索引（同一路線頭尾相同）
+  //  - 頭尾共點：沿用原本 highlight 邏輯（兩共點間多條分走之子路段），取其兩端共點座標
+  const loopRouteIdx = new Set();
+  safeLines.forEach((l, li) => {
+    if (l.closed === true || key(l.latlngs[0]) === key(l.latlngs[l.latlngs.length - 1])) {
+      loopRouteIdx.add(li);
+    }
+  });
+  // 🔵 頭尾共點（藍線）：骨架圖上「同一對節點之間有 ≥2 條不同邊（分歧路徑）」者
+  //   ＝原本 highlight 邏輯（兩共點間多條分走），在收縮後的圖上即為「平行多重邊」。
+  const pairEdges = new Map(); // pairKey -> [edgeIndex...]
+  edgesOut.forEach((e, i) => {
+    const p = e.path;
+    if (!Array.isArray(p) || p.length < 2) return;
+    const a = key(p[0]);
+    const b = key(p[p.length - 1]);
+    if (a === b) return; // 自環不算
+    const pk = a < b ? `${a}#${b}` : `${b}#${a}`;
+    if (!pairEdges.has(pk)) pairEdges.set(pk, []);
+    pairEdges.get(pk).push(i);
+  });
+  const htsEdgeIdx = new Set();
+  for (const idxs of pairEdges.values()) {
+    if (idxs.length >= 2) idxs.forEach((i) => htsEdgeIdx.add(i));
+  }
+
   return {
-    nodes: [...nodes.values()],
-    edges: [...edges.values()].map((e) => ({ a: e.a, b: e.b, routeCount: e.routes.size })),
+    nodes: [...nodeRoutes.keys()].map((k) => ({
+      latlng: vert.get(k),
+      routes: [...nodeRoutes.get(k).values()],
+      isCross: crossKeys.has(k),
+    })),
+    edges: edgesOut.map((e, i) => ({
+      ...e,
+      isMerged: (e.routes?.length || 0) >= 2, // 🔴 合併（共線）
+      isLoop: (e.routes || []).some((r) => loopRouteIdx.has(r.routeIndex)), // 🟢 環線
+      isHeadTailShared: htsEdgeIdx.has(i), // 🔵 頭尾共點（分歧邊）
+    })),
     crossNodes,
   };
 };
