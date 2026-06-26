@@ -9928,6 +9928,8 @@
             </div>
           </div>
 
+          <!-- 紅/黃/綠/藍 highlight 清單：整塊限高 320pt，內容過長可捲動 -->
+          <div style="max-height: 320pt; overflow-y: auto">
           <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
           <div class="my-title-xs-gray pb-2">
             共線段（重疊）
@@ -9955,6 +9957,66 @@
             <span>{{ s.routeCount }} 路線：{{ s.routeNames.join('、') }}</span>
           </div>
           <div v-if="rmaSharedList.length" class="pb-2"></div>
+
+          <!-- 🟡 交叉站點 cross（黃，預設顯示） -->
+          <div class="my-title-xs-gray pb-2">
+            交叉站點（cross）
+            <span class="text-muted">· 路線幾何交叉但無站點處，地圖以黃色 halo 高亮</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #ffd600"
+              ></span>
+              cross 數
+            </span>
+            <span>{{ rmaCrossList.length }}</span>
+          </div>
+          <div v-if="rmaCrossList.length === 0" class="my-font-size-xs pb-3">
+            尚無交叉站點。按上方「加上交叉站點」計算。
+          </div>
+          <div
+            v-for="c in rmaCrossList"
+            :key="c.index"
+            class="d-flex align-items-center my-font-size-xs pb-1"
+          >
+            <span class="me-2" style="min-width: 18px">{{ c.index + 1 }}.</span>
+            <span
+              class="d-inline-block rounded-circle me-2"
+              style="width: 8px; height: 8px; background-color: #ffd600"
+            ></span>
+            <span>cross（{{ c.latlng[0].toFixed(5) }}, {{ c.latlng[1].toFixed(5) }}）</span>
+          </div>
+          <div v-if="rmaCrossList.length" class="pb-2"></div>
+
+          <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
+          <div class="my-title-xs-gray pb-2">
+            頭尾同點（環線）
+            <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block me-2"
+                style="width: 14px; height: 8px; background-color: #00c853"
+              ></span>
+              環線數
+            </span>
+            <span>{{ rmaLoopList.length }}</span>
+          </div>
+          <div v-if="rmaLoopList.length === 0" class="my-font-size-xs pb-3">
+            無環線（沒有頭尾為同一點的路線）。
+          </div>
+          <div
+            v-for="e in rmaLoopList"
+            :key="e.index"
+            class="d-flex align-items-center my-font-size-xs pb-1"
+          >
+            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+            <span>{{ e.routeName }}</span>
+          </div>
+          <div v-if="rmaLoopList.length" class="pb-2"></div>
 
           <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
           <div class="my-title-xs-gray pb-2">
@@ -9984,33 +10046,7 @@
           </div>
           <div v-if="rmaEndpointList.length" class="pb-2"></div>
 
-          <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
-          <div class="my-title-xs-gray pb-2">
-            頭尾同點（環線）
-            <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
           </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #00c853"
-              ></span>
-              環線數
-            </span>
-            <span>{{ rmaLoopList.length }}</span>
-          </div>
-          <div v-if="rmaLoopList.length === 0" class="my-font-size-xs pb-3">
-            無環線（沒有頭尾為同一點的路線）。
-          </div>
-          <div
-            v-for="e in rmaLoopList"
-            :key="e.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
-            <span>{{ e.routeName }}</span>
-          </div>
-          <div v-if="rmaLoopList.length" class="pb-2"></div>
 
           <!-- 🕸️ 把整個路網合併成單一結構（重疊路線→一條線，屬性以 list 全記） -->
           <div class="my-title-xs-gray pb-2">路網結構</div>
@@ -10098,35 +10134,7 @@
             </span>
             <span>{{ rmaStats.black }}</span>
           </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-3">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #ffd600"
-              ></span>
-              cross（交叉）
-            </span>
-            <span>{{ rmaCrossList.length }}</span>
-          </div>
 
-          <!-- 🟡 交叉站點清單（type = cross） -->
-          <div class="my-title-xs-gray pb-2">交叉站點（cross）</div>
-          <div v-if="rmaCrossList.length === 0" class="my-font-size-xs pb-3">
-            尚無交叉站點。按上方「加上交叉站點」計算。
-          </div>
-          <div
-            v-for="c in rmaCrossList"
-            :key="c.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ c.index + 1 }}.</span>
-            <span
-              class="d-inline-block rounded-circle me-2"
-              style="width: 8px; height: 8px; background-color: #ffd600"
-            ></span>
-            <span>cross（{{ c.latlng[0].toFixed(5) }}, {{ c.latlng[1].toFixed(5) }}）</span>
-          </div>
-          <div v-if="rmaCrossList.length" class="pb-2"></div>
 
           <!-- 各路線站點（依序：起點 → 終點） -->
           <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>

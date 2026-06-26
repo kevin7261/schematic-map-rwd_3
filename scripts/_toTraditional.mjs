@@ -107,6 +107,12 @@ export function mergeSameNameStations(fc) {
 export function splitAtConnects(fc) {
   const k = (p) => `${(+p[0]).toFixed(6)},${(+p[1]).toFixed(6)}`;
   const ways = (fc.features || []).filter((f) => f.properties?.element_type === 'way');
+  // 只在「轉乘車站(有 node)」處截斷，不在共軌中段的非站點頂點切（否則會暴量）
+  const nodeKeys = new Set(
+    (fc.features || [])
+      .filter((f) => f.properties?.element_type === 'node')
+      .map((f) => k(f.geometry.coordinates))
+  );
   const rid = (w) => w.properties.route_name || w.properties.route_id || '';
   const coordRoutes = new Map(); // 座標 → 經過的不同路線集合
   for (const w of ways) {
@@ -120,7 +126,7 @@ export function splitAtConnects(fc) {
       coordRoutes.get(kk).add(r);
     }
   }
-  const isConnect = (kk) => (coordRoutes.get(kk)?.size || 0) >= 2;
+  const isConnect = (kk) => nodeKeys.has(kk) && (coordRoutes.get(kk)?.size || 0) >= 2;
   const others = (fc.features || []).filter((f) => f.properties?.element_type !== 'way');
   const out = [];
   for (const w of ways) {
