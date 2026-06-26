@@ -61,6 +61,12 @@ for (const id of ids) {
     splitAtConnects(fc); // 交點截斷（路線中間不留紅點）
     dropOrphanNodes(fc); // 收尾：清除孤立 node
     const v = validateGeojson(fc);
+    if (!v.lines) {
+      console.log('0 線（OSM 無資料）→ 不寫檔、不設 file');
+      delete c.file;
+      fs.writeFileSync(CATALOG, JSON.stringify(catalog));
+      continue;
+    }
     const rel = fileFor(c);
     const full = path.join(DIR, rel);
     fs.mkdirSync(path.dirname(full), { recursive: true });

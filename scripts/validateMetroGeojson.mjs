@@ -75,7 +75,7 @@ export function validateGeojson(fc) {
       for (const x of keysets[i]) if (keysets[j].has(x)) hit++;
       if (keysets[i].size && keysets[j].size && hit / keysets[i].size >= 0.8 && hit / keysets[j].size >= 0.8) dup++;
     }
-  if (dup) errors.push(`重複線 ${dup} 對`);
+  if (dup) warns.push(`重複線 ${dup} 對`); // 交點截斷後同線共用路段重疊屬正常，降為警告不擋寫檔
 
   const vset = new Set([].concat(...ways.map((w) => w.geometry.coordinates.map((c) => k(c[0], c[1])))));
   const orphan = nodes.filter((n) => !vset.has(k(n.geometry.coordinates[0], n.geometry.coordinates[1]))).length;
