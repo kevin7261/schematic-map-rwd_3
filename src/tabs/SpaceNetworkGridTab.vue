@@ -2938,6 +2938,9 @@
               tags: {
                 ...(props.way_properties?.tags || props.properties?.tags || {}),
                 ...(seg.route_colors ? { route_colors: seg.route_colors } : {}),
+                ...(seg._schematicCorridorSkipDraw
+                  ? { _schematicCorridorSkipDraw: true }
+                  : {}),
               },
               name: seg.route_name || props.name || props.route_name,
               color: seg.route_color,
@@ -2964,6 +2967,9 @@
               tags: {
                 ...(seg.way_properties?.tags || {}),
                 ...(seg.route_colors ? { route_colors: seg.route_colors } : {}),
+                ...(seg._schematicCorridorSkipDraw
+                  ? { _schematicCorridorSkipDraw: true }
+                  : {}),
               },
               name: seg.name,
               station_weights: seg.station_weights, // 傳遞 station_weights
@@ -5342,6 +5348,7 @@
       /** 路網網格_2 最短路徑：此段在路徑上 → 加粗顯示。 */
       pathHighlightThicken = false
     ) => {
+      if (tags?._schematicCorridorSkipDraw) return;
       // 參數保留以維持位置呼叫相容；對應的縮減綠標邏輯已隨測試圖層移除
       void l3BlackDotReducedWeightGreen;
       // 與 MapTab 一致：tags.color／tags.colour，否則 feature.properties.color（如路段匯出列），預設 #666666
@@ -5410,7 +5417,33 @@
         .map((s) => s.trim())
         .filter(Boolean);
       const overlayPaths = [];
-      if (routeColorsList.length >= 2) {
+      const useSkeletonMulticolorDash = isSchematicLayout && routeColorsList.length >= 2;
+      if (useSkeletonMulticolorDash) {
+        const N = routeColorsList.length;
+        const dashLen = 8;
+        const dashArray = `${dashLen} ${dashLen * (N - 1)}`;
+        pathElement
+          .attr('stroke', routeColorsList[0])
+          .attr('stroke-dasharray', dashArray)
+          .attr('stroke-dashoffset', '0')
+          .attr('stroke-linecap', 'butt');
+        for (let i = 1; i < N; i++) {
+          overlayPaths.push(
+            zoomGroup
+              .append('path')
+              .attr('d', pathData)
+              .attr('stroke', routeColorsList[i])
+              .attr('fill', 'none')
+              .attr('stroke-width', baseStrokeW)
+              .style('vector-effect', 'non-scaling-stroke')
+              .attr('opacity', 0.9)
+              .attr('stroke-linecap', 'butt')
+              .attr('stroke-dasharray', dashArray)
+              .attr('stroke-dashoffset', String(dashLen * i))
+              .style('pointer-events', 'none')
+          );
+        }
+      } else if (routeColorsList.length >= 2) {
         const N = routeColorsList.length;
         const dashLen = 8;
         const dashArray = `${dashLen} ${dashLen * (N - 1)}`;
@@ -10163,9 +10196,9 @@
       }
     }
 
-    // 診斷高亮：只畫重疊區段，hover 顯示轉折點數
+    // 診斷高亮：共軌已合併（綠）／仍重疊（橘）
     if (
-      isNormalizeFormat &&
+      (isNormalizeFormat || isSchematicLayout) &&
       Array.isArray(dataStore.overlappingSegmentRanges) &&
       dataStore.overlappingSegmentRanges.length > 0
     ) {
@@ -10179,20 +10212,21 @@
         if (!Array.isArray(pts) || pts.length < 2) return;
         const pathData = overlapLineGen(pts);
         if (!pathData) return;
-        const turnCounts = range.turnCounts || [];
-        const displayText =
-          turnCounts.length === 0
-            ? '這一個路段的轉折點數：—'
-            : turnCounts.length === 1
-              ? `這一個路段的轉折點數：${turnCounts[0].turnCount}`
-              : `這一個路段的轉折點數：${turnCounts.map((t) => `${t.routeName} ${t.turnCount}`).join('；')}`;
+        const isFixed = range.fixed === true || range.kind === 'fixed';
+        const routeLabel = Array.isArray(range.routes) ? range.routes.join(' × ') : '';
+        const displayText = isFixed
+          ? `已合併多色虛線：${routeLabel || '—'}`
+          : range.turnCounts?.length
+            ? `仍重疊：${routeLabel}（轉折 ${range.turnCounts.map((t) => `${t.routeName} ${t.turnCount}`).join('；')}）`
+            : `仍重疊：${routeLabel || '—'}`;
         overlapGroup
           .append('path')
           .attr('d', pathData)
-          .attr('stroke', '#e60000')
+          .attr('stroke', isFixed ? '#2e7d32' : '#ff8800')
           .attr('fill', 'none')
-          .attr('stroke-width', '8pt')
-          .attr('opacity', 0.75)
+          .attr('stroke-width', isFixed ? '6pt' : '8pt')
+          .attr('stroke-dasharray', isFixed ? '6 4' : null)
+          .attr('opacity', isFixed ? 0.65 : 0.75)
           .attr('title', displayText)
           .style('pointer-events', 'stroke')
           .style('cursor', 'pointer')
