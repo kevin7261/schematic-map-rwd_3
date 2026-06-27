@@ -50,16 +50,18 @@ export function mountRouteMapAdjust(el, dataStore) {
     subdomains: 'abc',
   }).addTo(map);
 
-  // 自訂 pane 控制疊放順序：線(overlayPane 400) < 站名 < 站點圓點
-  //  → 站名永遠在圓點「之下」，名稱絕不會擋到任何站點
+  // 自訂 pane 控制疊放順序：共線/環線/頭尾共點底色(srmaUnder 350) < 路線(overlayPane 400) < 站名 < 站點圓點
+  //  → 紅/綠/藍底色高亮永遠墊在路線「底下」，上面才畫路線原來的顏色；站名永遠在圓點「之下」
+  map.createPane('srmaUnder');
+  map.getPane('srmaUnder').style.zIndex = 350;
   map.createPane('srmaNames');
   map.getPane('srmaNames').style.zIndex = 450;
   map.getPane('srmaNames').style.pointerEvents = 'none';
   map.createPane('srmaDots');
   map.getPane('srmaDots').style.zIndex = 460;
 
-  // ⚠️ 群組加入順序＝由下而上的圖層順序：
-  //    共線/環線/頭尾共點底色（最底）→ 路線 → 站點／交叉（最上）
+  // ⚠️ 疊放順序由 pane 的 zIndex 決定（非加入順序）：
+  //    共線/環線/頭尾共點底色(srmaUnder 350) → 路線(overlayPane 400) → 站點／交叉（最上）
   const sharedGroup = L.layerGroup().addTo(map); // 🔴 共線段底色高亮（墊在路線底下）
   const loopGroup = L.layerGroup().addTo(map); // 🟢 頭尾同點（環線）綠色底色高亮（墊在路線底下）
   const endpointGroup = L.layerGroup().addTo(map); // 🔵 頭尾共點端點線段藍色底色高亮（墊在路線底下）
@@ -231,6 +233,7 @@ export function mountRouteMapAdjust(el, dataStore) {
         opacity: 0.85,
         lineCap: 'round',
         interactive: true,
+        pane: 'srmaUnder', // 墊在路線底下，上面才畫路線原來的顏色
       });
       pl.bindTooltip(sharedTooltipHtml(edge), { sticky: true });
       pl.addTo(sharedGroup);
@@ -285,6 +288,7 @@ export function mountRouteMapAdjust(el, dataStore) {
         lineCap: 'round',
         lineJoin: 'round',
         interactive: false,
+        pane: 'srmaUnder', // 墊在路線底下
       }).addTo(endpointGroup);
     }
   };
@@ -302,6 +306,7 @@ export function mountRouteMapAdjust(el, dataStore) {
         lineCap: 'round',
         lineJoin: 'round',
         interactive: false,
+        pane: 'srmaUnder', // 墊在路線底下
       }).addTo(loopGroup);
     }
   };
@@ -351,7 +356,8 @@ export function mountRouteMapAdjust(el, dataStore) {
     const sk = layer.routeMapAdjustSkeleton;
     if (!sk) return;
     // 🔵🔴 原本的端點（藍）／交點（紅）站點在骨架圖也要照原色畫，而非一律灰黑點。
-    const { terminals, connects } = computeRouteMapAdjustStations(
+    //  🖤 黑點（一般中間站）在骨架圖也要照原位置畫出，不可因骨架化而消失。
+    const { terminals, connects, blacks } = computeRouteMapAdjustStations(
       layer.routeMapAdjustLines,
       layer.routeMapAdjustBlackDots,
       Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) => k.split(',').map(Number))
@@ -361,24 +367,57 @@ export function mountRouteMapAdjust(el, dataStore) {
     for (const e of sk.edges || []) {
       const path = Array.isArray(e.path) ? e.path : [];
       if (path.length < 2) continue;
-      // 🔴 合併(共線)→紅；🔵 頭尾共點(分歧)→藍；🟢 環線→綠；其餘→該路線色。高亮者畫粗。
-      let color = e.routes?.[0]?.color || '#3949ab';
-      let baseWeight = 4;
-      if (e.isMerged) {
-        color = '#ff1744';
-        baseWeight = 8;
-      } else if (e.isHeadTailShared) {
-        color = '#1e88e5';
-        baseWeight = 8;
-      } else if (e.isLoop) {
-        color = '#00c853';
-        baseWeight = 8;
+      // 與一般檢視一致：🔴 合併(共線)／🔵 頭尾共點(分歧)／🟢 環線 以紅/藍/綠「底色」墊在路線底下，
+      //                上面才畫路線原來的顏色；其餘邊只畫路線原色。
+      const routeColor = e.routes?.[0]?.color || '#3949ab';
+      const hl = e.isMerged
+        ? '#ff1744'
+        : e.isHeadTailShared
+          ? '#1e88e5'
+          : e.isLoop
+            ? '#00c853'
+            : null;
+      if (hl) {
+        L.polyline(path, {
+          color: hl,
+          weight: 12,
+          opacity: 0.85,
+          lineCap: 'round',
+          lineJoin: 'round',
+          interactive: false,
+          pane: 'srmaUnder', // 墊在路線底下，上面才畫路線原來的顏色
+        }).addTo(skeletonGroup);
       }
-      const pl = L.polyline(path, { color, weight: baseWeight, opacity: 0.9, interactive: true });
+      const baseWeight = 4;
+      const pl = L.polyline(path, {
+        color: routeColor,
+        weight: baseWeight,
+        opacity: 0.9,
+        interactive: true,
+      });
       pl.bindTooltip(skeletonEdgeTooltip(e), { sticky: true });
       pl.on('mouseover', () => pl.setStyle({ weight: baseWeight + 4 }));
       pl.on('mouseout', () => pl.setStyle({ weight: baseWeight }));
       pl.addTo(skeletonGroup);
+    }
+    // 🖤 黑點站（一般中間站）：骨架化後仍照原位置畫出（不可消失）。先畫，讓端點/交點/交叉節點疊在其上。
+    const routesAtCoord = buildRoutesAtCoord();
+    for (const p of blacks || []) {
+      if (!Array.isArray(p) || p.length < 2) continue;
+      const r = 3;
+      const m = L.circleMarker(p, {
+        radius: r,
+        color: '#ffffff', // 白色 1px border
+        weight: 1,
+        fillColor: '#000000',
+        fillOpacity: 1,
+        interactive: true,
+        pane: 'srmaDots',
+      });
+      m.bindTooltip(stationTooltipHtml(p, 'black', routesAtCoord), { sticky: true });
+      m.on('mouseover', () => m.setRadius(r + 3));
+      m.on('mouseout', () => m.setRadius(r));
+      m.addTo(skeletonGroup);
     }
     // 節點：🟣 切斷處(紫) → 紫、大；🟡 新加交叉 → 黃、大；其餘 → 灰、一般
     for (const n of sk.nodes || []) {

@@ -220,10 +220,12 @@ function pointInPolygon(pt, poly) {
 
 /**
  * D. 對單一子筆畫做垂直投影（§5, Eq.1/2）。自由節點投影到定向直線、已置放點固定。
- * @returns {{ out: Map<number,[number,number]>, u:[number,number], n:[number,number], perpCommon:number }}
+ * E. 一致性化解（§6）：投影線不得掃過他筆畫「已置放（固定參考）」點 —— 以 point-in-polygon
+ *    偵測,並**夾住 perpCommon**(調整當前 stroke,**絕不移動固定參考**,符合論文「previously
+ *    schematized strokes 為固定參考」之原則)。
+ * @returns Map<index,[x,y]>（僅自由節點）
  */
-function projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng) {
-  // 單位向量：沿軸 u、垂軸 n。
+function projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng, foreignPlaced) {
   const u = [Math.cos(orientAng), Math.sin(orientAng)];
   const n = [-Math.sin(orientAng), Math.cos(orientAng)];
 
@@ -237,19 +239,37 @@ function projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng) {
     else if ((nodeDeg.get(nid) || 0) > 2) w = 10;
     wsum += w; pacc += w * perpOf(work[i]);
   }
-  const perpCommon = wsum > 0 ? pacc / wsum : 0;
+  let perpCommon = wsum > 0 ? pacc / wsum : 0;
+  const projAt = (i, pc) => {
+    const along = work[i][0] * u[0] + work[i][1] * u[1];
+    return [along * u[0] + pc * n[0], along * u[1] + pc * n[1]];
+  };
+
+  if (foreignPlaced && foreignPlaced.length) {
+    const origLo = Math.min(...idxs.map((i) => perpOf(work[i])));
+    const origHi = Math.max(...idxs.map((i) => perpOf(work[i])));
+    for (let pass = 0; pass < 4; pass++) {
+      const poly = idxs.map((i) => work[i]).concat(idxs.slice().reverse().map((i) => projAt(i, perpCommon)));
+      let changed = false;
+      for (const fp of foreignPlaced) {
+        if (!pointInPolygon(fp, poly)) continue;
+        const fperp = fp[0] * n[0] + fp[1] * n[1];
+        if (fperp <= origLo && perpCommon < fperp) { perpCommon = fperp + 1; changed = true; }
+        else if (fperp >= origHi && perpCommon > fperp) { perpCommon = fperp - 1; changed = true; }
+        else if (Math.abs(fperp - perpCommon) < 1) { perpCommon += perpCommon >= (origLo + origHi) / 2 ? 1 : -1; changed = true; }
+      }
+      if (!changed) break;
+    }
+  }
 
   const out = new Map();
   for (const i of idxs) {
     const nid = chain[i];
-    if (placed.has(nid)) continue; // 已置放點固定不動
-    const along = work[i][0] * u[0] + work[i][1] * u[1];
-    out.set(i, [
-      Math.round(along * u[0] + perpCommon * n[0]),
-      Math.round(along * u[1] + perpCommon * n[1]),
-    ]);
+    if (placed.has(nid)) continue; // 固定參考不動
+    const p = projAt(i, perpCommon);
+    out.set(i, [Math.round(p[0]), Math.round(p[1])]);
   }
-  return { out, u, n, perpCommon };
+  return out;
 }
 
 /**
@@ -287,7 +307,10 @@ export function runStrokeOnGraph(graph, coords0, opts = {}) {
     const breaks = [...new Set([0, chain.length - 1, ...dpDirectionSplit(orig, threshold), ...fixedIdx])]
       .sort((a, b) => a - b);
 
+    // 鄰近 foreign 已置放點（不屬本筆畫；固定參考），供 Step E 夾制（不移動它們）。
     const chainSet = new Set(chain);
+    const foreignPlaced = [];
+    for (const nid of placed) if (!chainSet.has(nid)) foreignPlaced.push(coords[nid]);
 
     for (let b = 0; b < breaks.length - 1; b++) {
       const s = breaks[b];
@@ -299,29 +322,9 @@ export function runStrokeOnGraph(graph, coords0, opts = {}) {
       const chordAng = Math.atan2(orig[e][1] - orig[s][1], orig[e][0] - orig[s][0]);
       const orientAng = snapOrientation(chordAng, mode, gridBias);
 
-      // D：垂直投影（自由點）。先存投影前幾何,供 Step E 構多邊形。
-      const before = idxs.map((i) => work[i].slice());
-      const { out, u, n, perpCommon } = projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng);
-      for (const [i, p] of out) work[i] = p;
-
-      // E. 一致性化解（§6, Fig.9d/9f）：原子筆畫與投影直線間構成多邊形;
-      //    point-in-polygon 偵測落入其中的「他筆畫已置放點」→ 把該點移出多邊形（推到投影線另一側）。
-      const poly = before.concat(idxs.map((i) => work[i]).reverse());
-      const perpOf = (p) => p[0] * n[0] + p[1] * n[1];
-      let beforeCenter = 0;
-      for (const p of before) beforeCenter += perpOf(p);
-      beforeCenter /= before.length || 1;
-      const side = Math.sign(beforeCenter - perpCommon) || 1; // 原筆畫所在側
-      for (const nid of placed) {
-        if (chainSet.has(nid)) continue;
-        if (!pointInPolygon(coords[nid], poly)) continue;
-        const alongF = coords[nid][0] * u[0] + coords[nid][1] * u[1];
-        const newPerp = perpCommon - side; // 移到投影線「遠離原筆畫」之一側 → 出多邊形
-        coords[nid] = [
-          Math.round(alongF * u[0] + newPerp * n[0]),
-          Math.round(alongF * u[1] + newPerp * n[1]),
-        ];
-      }
+      // D + E：垂直投影（自由點）；Step E 以夾住投影線維持拓樸（固定參考不動）。
+      const projected = projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng, foreignPlaced);
+      for (const [i, p] of projected) work[i] = p;
     }
 
     // 提交本筆畫尚未置放之節點座標。
