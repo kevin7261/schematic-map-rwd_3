@@ -62,6 +62,7 @@ export function buildConnectSkeleton(baseFlat) {
   // ---- pass 1: identity 拓撲（相鄰 identity = 鄰居；經過的 route 集合）----
   const nbr = new Map();
   const rts = new Map();
+  const keepIds = new Set(); // 🟡 交叉(cross)/🟣 切斷(purple)/connect/terminal：屬骨架節點,即使 degree-2 也不可收縮成黑點
   for (const seg of baseFlat) {
     const pts = seg?.points;
     if (!Array.isArray(pts) || pts.length < 2) continue;
@@ -71,12 +72,14 @@ export function buildConnectSkeleton(baseFlat) {
     for (let i = 0; i < pts.length; i++) {
       const id = idAt(seg, i, nodes);
       addSet(rts, id, rn);
+      if (isSkeletonKeepNode(nodes[i])) keepIds.add(id);
       if (prev != null && prev !== id) { addSet(nbr, id, prev); addSet(nbr, prev, id); }
       prev = id;
     }
   }
-  // connect = degree≠2（端點/分歧）或 真實轉乘（≥2 route）；degree-2 單線直通點 → 非 connect（收縮成黑點）。
-  const isConn = (id) => ((nbr.get(id)?.size ?? 0) !== 2) || (isRealId(id) && (rts.get(id)?.size ?? 0) >= 2);
+  // connect = 骨架保留節點（黃/紫/connect/terminal）或 degree≠2（端點/分歧）或 真實轉乘（≥2 route）；
+  //   其餘 degree-2 單線直通點（黑色路線中間站）→ 非 connect（收縮成黑點，最後沿邊內插放回）。
+  const isConn = (id) => keepIds.has(id) || ((nbr.get(id)?.size ?? 0) !== 2) || (isRealId(id) && (rts.get(id)?.size ?? 0) >= 2);
 
   // ---- pass 2: 每段於內部 connect 點切成 atom（原子段）----
   const atoms = [];
@@ -250,6 +253,26 @@ export function scaleSkeletonToIntegerGrid(segments, opts = {}) {
     connectCount: chosen.cellByOrig.size,
     attempts,
   };
+}
+
+/**
+ * 此節點是否為「必須保留」的骨架節點（非黑色路線中間站）：
+ *   🟡 交叉(cross)、🟣 切斷(purple)、connect/terminal。即使 degree-2 也不可收縮成黑點。
+ * 標記來源（routeStations.js 經 B3/flat 以 cloneJson 完整保留到 node.tags）：
+ *   node_kind ∈ {cross, purple}；node_type ∈ {connect, terminal}；
+ *   node_class_color = 🟡#ffd600 / 🟣#9c27b0；或 isCross/isPurple 旗標。
+ */
+function isSkeletonKeepNode(node) {
+  if (!node || typeof node !== 'object') return false;
+  const t = node.tags || {};
+  const kind = node.node_kind ?? t.node_kind;
+  if (kind === 'cross' || kind === 'purple') return true;
+  if (node.isCross || node.isPurple || t.isCross || t.isPurple) return true;
+  const nt = node.node_type ?? t.node_type;
+  if (nt === 'connect' || nt === 'terminal') return true;
+  const cc = String(t.node_class_color ?? node.node_class_color ?? '').toLowerCase();
+  if (cc === '#ffd600' || cc === '#9c27b0') return true; // 黃(交叉) / 紫(切斷)
+  return false;
 }
 
 function nodeIdentity(node, x, y) {

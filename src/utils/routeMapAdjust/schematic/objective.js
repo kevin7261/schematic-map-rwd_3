@@ -147,7 +147,17 @@ export function findNodeOnForeignEdgePairs(graph, coords, limit = 400) {
       if ((bx - ax) * (py - ay) - (by - ay) * (px - ax) !== 0) continue; // 不共線
       if (px < Math.min(ax, bx) || px > Math.max(ax, bx) || py < Math.min(ay, by) || py > Math.max(ay, by)) continue;
       if ((px === ax && py === ay) || (px === bx && py === by)) continue; // 在端點不算
-      pairs.push([inc[0], e.id]);
+      // 選一條「與 e 不相鄰」（不共端點）之入射邊來分離：分離約束會把該入射邊全體（含 n）推到 e 一側，
+      // 從而把 n 推離 e。若挑到與 e 共端點的入射邊（如 inc[0] 恰好共享 e 的端點），分離器視為相鄰而拒絕，
+      // 該重疊就永遠修不掉（H4 不收斂 → 輸出殘留交叉/重疊）。故優先挑非相鄰者，退而求其次才用 inc[0]。
+      let incE = -1;
+      for (const ie of inc) {
+        const ed = edges[ie];
+        if (ed.u === e.u || ed.u === e.v || ed.v === e.u || ed.v === e.v) continue; // 與 e 相鄰 → 不可分離
+        incE = ie;
+        break;
+      }
+      pairs.push([incE === -1 ? inc[0] : incE, e.id]);
       if (pairs.length >= limit) return pairs;
       break; // 此節點已找到一條壓過之線，加一組分離即可
     }
