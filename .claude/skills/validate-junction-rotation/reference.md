@@ -1,40 +1,6 @@
 # 360° 環序驗證 — 算法細節
 
-## 資料結構
-
-### Flat segment
-
-每條 `LineString` feature → `{ route_name, points: [[x,y], ...] }`
-
-- input：`x=lng, y=lat`
-- result：格網整數或浮點
-
-### Junction table
-
-對 segment `si` 的 head（index 0）與 tail（index last）：
-
-- `jKey = key6(x, y)` 分歧點
-- `nKey = key6(另一端 x, y)` branch 身分
-- 同一 `(jKey, nKey)` 合併路線名
-
-只保留 `branches.size >= 3` 的 `jKey`。
-
-座標 key：`key6(x,y) => "${x.toFixed(6)},${y.toFixed(6)}"`
-
-## 角度與排序
-
-### far-end 角（標準 A，路線對）
-
-```javascript
-function leaveAngleToFarEnd(seg, jHead, nKey) {
-  const pts = seg.points;
-  const [jx, jy] = pts[jHead ? 0 : pts.length - 1];
-  const [ox, oy] = nKey.split(',').map(Number);
-  return Math.atan2(oy - jy, ox - jx);
-}
-```
-
-### first-step 角（標準 B，分支級）
+## 角度（与 rotationStructure.js 相同）
 
 ```javascript
 function leaveAngleFirstStep(seg, jHead) {
@@ -45,69 +11,46 @@ function leaveAngleFirstStep(seg, jHead) {
 }
 ```
 
-CCW 排序：依角度遞增，同角以 `nKey` tie-break。
+## CCW 排序（最大角隙）
 
-## 標準 A：路線對 flip
+1. 按 raw angle 排序  
+2. 找相邻角最大 gap（>180° 空档）  
+3. 从 gap 后一支开始为 CCW 环起点  
 
-對 junction 的 CCW 序列 `order`（元素為 `nKey`）：
+避免 `(44,40)` 类 135° / −45° 被 normAngleDiff 反序。
 
-```javascript
-function firstRouteIndex(order, junction, route) {
-  return order.findIndex((nKey) => junction.get(nKey).route === route);
-}
-
-function routePairOrder(order, junction, routeA, routeB) {
-  const iA = firstRouteIndex(order, junction, routeA);
-  const iB = firstRouteIndex(order, junction, routeB);
-  const n = order.length;
-  const step = (iB - iA + n) % n;
-  return step <= n / 2 ? 'A before B' : 'B before A';
-}
-```
-
-對所有不同路線對 `(A,B)`：若 `routePairOrder(refOrder)` ≠ `routePairOrder(outOrder)` → violation。
-
-注意：2 路 4 支時，`firstRouteIndex` 取該路**第一次**出現在 CCW 環上的 branch。
-
-## 標準 B：分支級 cyclic
+## 路线对 flip
 
 ```javascript
-function sameCyclic(a, b) {
-  if (a.length !== b.length || !a.length) return true;
-  const start = b.indexOf(a[0]);
-  if (start < 0) return false;
-  for (let i = 0; i < a.length; i++)
-    if (a[i] !== b[(start + i) % a.length]) return false;
-  return true;
-}
+const iA = order.findIndex(k => junction.get(k).route === routeA);
+const iB = order.findIndex(k => junction.get(k).route === routeB);
+const step = (iB - iA + n) % n;
+return step <= n / 2 ? 'A before B' : 'B before A';
 ```
 
-`refOrder` 與 `outOrder`（皆為 `nKey[]`）比對。  
-**不作主 fail**，因 4 支 2 路常假陽性。
+## 离线 snap（假阳性过滤）
 
-## 假陽性機制（教學用）
+当 ref 为 lat/lng、out 为格网时，路线对 flip 还须：
 
-### 同路兩支
+```javascript
+max(|refFirstStep° − outFirstStep°|) among branches of routeA or routeB at junction > snapDeg
+```
 
-4 向 = 路線 P 進/出 + 路線 Q 進/出。分支級要求 `[P1,Q1,P2,Q2]` 完全一致；  
-路徑簡化可能變 `[P1,Q1,Q2,P2]`，但 `firstRouteIndex(P)` 與 `firstRouteIndex(Q)` 先後不變 → 標準 A Pass。
+默认 `snapDeg = 30`，且 **out 该 branch 须为 2 点 connect 段**。台北 MILP 仅 `(44,16)–(46,16)`（row 47）满足。
 
-### 第一段角度
+## 最小修正（fixRotationResult.mjs）
 
-中和新蘆一支 segVerts 4→2 時，firstStep 角可差 ~44°，分支排序變、路線對不變。
+1. `restoreOverfitPatches`：还原错误的全域 sync  
+2. 对目标 `export_row_index`（默认 47）：  
+   - 在 ref 环序取 prev/next branch 的 **ref first-step 角**  
+   - `angMid = angPrev + (angNext−angPrev)_ccw / 2`  
+   - **仅**写该 segment 的 far 端点 `round(j + dist·(cos,sin))`  
+   - **不** moveGridPoint 同步其它段
 
-### 座標系
+## 与 analyzeRotationStructure 差异
 
-ref 用 lat/lng、out 用格網；角度在各自空間計算。路線對檢查只看**先後**，較穩。
-
-## 與 rotationStructure.js 對照
-
-| 函式 | 用途 |
-|------|------|
-| `buildJunctionTable` | 建分歧點表 |
-| `leaveAngle` | 第一段方向 |
-| `orderedNKeys` | CCW 排序 |
-| `sameCyclic` | 分支級比對 |
-| `firstFlipPair` | 分支級錯誤描述 |
-
-本 skill 新增：**路線對 flip** 作為 `violations` 來源。
+| | app | 离线 skill |
+|---|-----|------------|
+| ref/out 空间 | 皆格网 | ref lat/lng, out 格网 |
+| Fail | 分支 cyclic | 路线对 + snap |
+| fix | graph 迭代 | 单行 47 默认 |
