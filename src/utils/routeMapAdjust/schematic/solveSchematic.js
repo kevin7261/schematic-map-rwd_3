@@ -81,7 +81,7 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
     weights: MILP_WEIGHTS,
     preferredDirs: null, // S2 以地理最近八方向為偏好（論文 §4.6）
     timeLimit: 30,
-    maxTimeLimit: 60,
+    maxTimeLimit: 600, // 加時上限放寬到 600s（30→60→120→240→480→600 逐步重試）
     maxH4Iter: 8,
     maxSepIter: 8,
     onProgress: report,

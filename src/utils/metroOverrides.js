@@ -122,8 +122,15 @@ export const METRO_OVERRIDES = {
   'venezuela-maracaibo': { allowLightRail: true },
   'venezuela-valencia': { allowLightRail: true },
   'united-kingdom-docklands-light-railway': { allowLightRail: true, onlyLineName: 'DLR|Docklands' },
-  // 🗽 紐約：不同線的同名站多為不同實體站，停用同名合併（特例）
-  'united-states-new-york-city': { noNameMerge: true },
+  // 🗽 紐約：只保留 NYC Subway（route_name 皆以「NYCS - 」起頭），剔除 PATH／AirTrain／
+  //    Hudson–Bergen LR／Newark LR／Jamaica Station Route(AirTrain JFK)；再 dropByName 去掉
+  //    同樣帶 NYCS 前綴的 Staten Island Railway（使用者要求只留地鐵）。
+  //    noNameMerge：不同線的同名站多為不同實體站，停用同名合併（特例）。
+  'united-states-new-york-city': {
+    onlyLineName: 'NYCS',
+    dropByName: 'Staten Island',
+    noNameMerge: true,
+  },
   // 🇸🇬 新加坡：LRT 環線（Sengkang/Punggol）在 OSM 是 CW/ACW 半環，各停中段→假端點。
   //    用 mergeLoops 把同名半環縫成完整閉環（勿用 dedupeByName，那會刪掉另一半）。
   'singapore-singapore': {
