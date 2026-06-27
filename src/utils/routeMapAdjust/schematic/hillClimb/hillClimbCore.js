@@ -262,12 +262,15 @@ export function runHillClimb(graph, coords0, opts = {}) {
   let moves = 0, trials = 0, passes = 0;
 
   // 單站移動：於距離 R 之矩形周框試移（§3.1）。
+  // 接受判準為「字典序」：先讓共線重疊變少（即使成本沒降也接受），重疊相同時才比成本下降。
+  //   → hill-climbing 會主動消除可分離的路線重疊（不同邊共線），達成「不可出現重疊」。
+  //   同邊共軌在建圖時已併為單一邊（圖中不存在自重疊），不受此影響，仍走多色虛線。
   const tryStation = (n, R) => {
     const [ox, oy] = coords[n];
     const occ = occupiedCells(coords, new Set([n]));
     const beforeCross = crossingsAtNode(graph, coords, n);
     const beforeOverlap = overlapAtNode(graph, coords, n);
-    let best = null, bestCost = cost;
+    let best = null, bestCost = cost, bestOverlap = beforeOverlap;
     for (const [dx, dy] of ringOffsets(R)) {
       if (trials >= maxTrials) break;
       trials++;
@@ -276,9 +279,19 @@ export function runHillClimb(graph, coords0, opts = {}) {
       if (occ.has(`${nx},${ny}`)) continue; // Occlusion（不重合）
       if (!relativePositionOk(graph, coords, init, n, nx, ny, null)) continue; // Relative Position
       coords[n] = [nx, ny];
-      const c = schematicCost(graph, coords, routePairs, params);
-      if (c < bestCost - 1e-9 && preservesRotation(graph, rot, coords, [n]) && crossingsAtNode(graph, coords, n) <= beforeCross && overlapAtNode(graph, coords, n) <= beforeOverlap && !nodeOnForeignEdge(graph, coords, n)) {
-        bestCost = c; best = [nx, ny];
+      // 硬約束（環序、交叉不增、不壓他線）必須全過。
+      if (
+        preservesRotation(graph, rot, coords, [n]) &&
+        crossingsAtNode(graph, coords, n) <= beforeCross &&
+        !nodeOnForeignEdge(graph, coords, n)
+      ) {
+        const ov = overlapAtNode(graph, coords, n); // 重疊不可比目前最佳更糟
+        if (ov <= bestOverlap) {
+          const c = schematicCost(graph, coords, routePairs, params);
+          if (ov < bestOverlap || c < bestCost - 1e-9) {
+            bestOverlap = ov; bestCost = c; best = [nx, ny];
+          }
+        }
       }
       coords[n] = [ox, oy];
     }
@@ -294,7 +307,7 @@ export function runHillClimb(graph, coords0, opts = {}) {
     let beforeCross = 0;
     let beforeOverlap = 0;
     for (const m of members) { beforeCross += crossingsAtNode(graph, coords, m); beforeOverlap += overlapAtNode(graph, coords, m); }
-    let best = null, bestCost = cost;
+    let best = null, bestCost = cost, bestOverlap = beforeOverlap;
     for (const [dx, dy] of ringOffsets(R)) {
       if (trials >= maxTrials) break;
       trials++;
@@ -312,13 +325,16 @@ export function runHillClimb(graph, coords0, opts = {}) {
         if (!relativePositionOk(graph, coords, init, m, coords[m][0], coords[m][1], set)) { valid = false; break; }
       }
       if (valid) {
-        const c = schematicCost(graph, coords, routePairs, params);
         let afterCross = 0;
         let afterOverlap = 0;
         for (const m of members) { afterCross += crossingsAtNode(graph, coords, m); afterOverlap += overlapAtNode(graph, coords, m); }
-        if (c < bestCost - 1e-9 && preservesRotation(graph, rot, coords, members) && afterCross <= beforeCross && afterOverlap <= beforeOverlap
+        // 字典序：先讓重疊變少（即使成本沒降也接受），重疊相同時才比成本（同單站移動）。
+        if (afterOverlap <= bestOverlap && preservesRotation(graph, rot, coords, members) && afterCross <= beforeCross
           && members.every((m) => !nodeOnForeignEdge(graph, coords, m))) {
-          bestCost = c; best = [dx, dy];
+          const c = schematicCost(graph, coords, routePairs, params);
+          if (afterOverlap < bestOverlap || c < bestCost - 1e-9) {
+            bestOverlap = afterOverlap; bestCost = c; best = [dx, dy];
+          }
         }
       }
       for (const m of members) coords[m] = before[m].slice();

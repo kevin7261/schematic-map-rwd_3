@@ -9933,6 +9933,47 @@
     triggerJsonDownload(layer.geojsonData, `${layer.layerId}_input.json`);
   };
 
+  /**
+   * 「示意圖佈局」(schematic_rma_*)：是否已有直線化（八方向佈局）後的結果可下載。
+   */
+  const routeSchematicHasResult = (layer) =>
+    Array.isArray(layer?.spaceNetworkGridJsonData) && layer.spaceNetworkGridJsonData.length > 0;
+
+  /**
+   * 「示意圖佈局」(schematic_rma_*)：下載**直線化後的結果** GeoJSON。
+   * 把佈局結果（spaceNetworkGridJsonData）以與骨架輸入相同的 GeoJSON FeatureCollection
+   * 格式輸出（經 export 列 → minimalLineStringFeatureCollectionFromRouteExportRows），
+   * 與「下載 JSON（輸入骨架）」同格式、可再次載入同一管線。
+   */
+  const downloadRouteSchematicResultJson = (layer) => {
+    if (!routeSchematicHasResult(layer)) {
+      window.alert('此圖層尚無佈局結果，請先按「開始執行」計算示意圖佈局。');
+      return;
+    }
+    let rows = Array.isArray(layer.processedJsonData) ? layer.processedJsonData : null;
+    if (!rows || !rows.length) {
+      try {
+        const flat = normalizeSpaceNetworkDataToFlatSegments(
+          JSON.parse(JSON.stringify(layer.spaceNetworkGridJsonData))
+        );
+        rows = flatSegmentsToGeojsonStyleExportRows(flat);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('下載示意圖佈局結果 JSON：產生匯出列失敗', e);
+        rows = null;
+      }
+    }
+    if (!rows || !rows.length) {
+      window.alert('無法由佈局結果產生匯出資料。');
+      return;
+    }
+    const fc = minimalLineStringFeatureCollectionFromRouteExportRows(rows, {
+      stationPoints: 'all',
+      routeLine: 'full',
+    });
+    triggerJsonDownload(fc, `${layer.layerId}_result.json`);
+  };
+
 </script>
 
 <template>
@@ -10030,6 +10071,15 @@
             @click="downloadRouteSchematicInputJson(layer)"
           >
             下載 JSON（輸入骨架）
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
+            :disabled="!routeSchematicHasResult(layer)"
+            title="下載直線化（八方向佈局）後的結果 GeoJSON（與輸入骨架同格式、可再次載入）"
+            @click="downloadRouteSchematicResultJson(layer)"
+          >
+            下載 JSON（直線化結果）
           </button>
           <div
             v-if="layer.layerId === 'schematic_rma_milp' && layer.dashboardData?.rotationStructureCheck?.layoutDone"

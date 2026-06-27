@@ -127,20 +127,9 @@ export function syncPostLayoutOverlapState(layer, fullFlat, corridor, outOv) {
   const dataStore = useDataStore();
   if (!layer) return;
 
+  // 只在地圖上標「真正未解決的重疊」（橘）。已合併的共軌本身就以多色交錯虛線呈現，
+  // 不再疊綠色診斷標記（會讓乾淨的共軌看起來像重疊）。
   const highlights = [];
-  for (const seg of fullFlat || []) {
-    if (seg?._schematicCorridorSkipDraw) continue;
-    if (!Array.isArray(seg?._schematicCorridorRoutes) || seg._schematicCorridorRoutes.length < 2) continue;
-    const pts = seg.points.map(readPt);
-    for (let i = 0; i + 1 < pts.length; i++) {
-      highlights.push({
-        points: [pts[i], pts[i + 1]],
-        routes: seg._schematicCorridorRoutes,
-        kind: 'fixed',
-        fixed: true,
-      });
-    }
-  }
   for (const ex of outOv.examples || []) {
     highlights.push({
       points: [ex.a, ex.b],
