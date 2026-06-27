@@ -10,7 +10,13 @@
 
 import { resolveSchematicInput } from './input.js';
 import { buildSchematicGraph, splitHighDegreeNodes, applyCoordsToSkeleton } from './graph.js';
-import { writeSchematicResultToLayer, reinsertBlackStations, injectEdgeBends } from './assemble.js';
+import {
+  writeSchematicResultToLayer,
+  reinsertBlackStations,
+  injectEdgeBends,
+  spreadParallelCorridorLanes,
+  findOutputOverlaps,
+} from './assemble.js';
 import { showSolveOverlay } from './solveOverlay.js';
 
 export async function runLiveLayout(layerId, profileId, title, opts = {}) {
@@ -59,6 +65,7 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   const graph = splitHighDegreeNodes(buildSchematicGraph(input.skeletonFlat), 8);
   const optimizedSkeleton = applyCoordsToSkeleton(input.skeletonFlat, graph, result.coords);
   injectEdgeBends(optimizedSkeleton, graph, result.edgePaths); // ⑥ Bast 邊內彎折(其餘層 edgePaths=undefined,不影響)
+  spreadParallelCorridorLanes(optimizedSkeleton, graph); // 共軌錯開；保留每條路線 section，端點不動
   const fullFlat = reinsertBlackStations(optimizedSkeleton, input.sections);
   const v = result.violations || {};
   const write = writeSchematicResultToLayer(layerId, fullFlat, {
@@ -78,7 +85,19 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   const satNote = result.status === 'sat-feasible'
     ? '\n（⑧ SAT：已求得可行八方向+平面+保拓樸佈局；MaxSAT 最佳化超出瀏覽器記憶體故未進一步最佳化）'
     : '';
-  const summary = `完成！耗時 ${secs.toFixed(1)} 秒\n八方向違規 ${v.nonocti ?? '?'}、新交叉 ${v.crossings ?? '?'}、新重疊 ${v.overlaps ?? '?'}、重合 ${v.clashes ?? '?'}${fbNote}${satNote}`;
+  // 輸出端（畫面）重疊診斷：不同路線之線段共線重疊（graph 併邊檢查抓不到的那種）。
+  const outOv = findOutputOverlaps(fullFlat);
+  let ovNote = '';
+  if (outOv.count > 0) {
+    const ex = outOv.examples
+      .map((e) => `「${e.r1 || '?'}」×「${e.r2 || '?'}」@(${Math.round(e.at[0])},${Math.round(e.at[1])})`)
+      .join('\n  ');
+    ovNote = `\n⚠️ 輸出端路線重疊 ${outOv.count} 段：\n  ${ex}`;
+    console.warn('[輸出重疊]', outOv);
+  } else {
+    ovNote = '\n輸出端路線重疊：0';
+  }
+  const summary = `完成！耗時 ${secs.toFixed(1)} 秒\n八方向違規 ${v.nonocti ?? '?'}、新交叉 ${v.crossings ?? '?'}、新重疊 ${v.overlaps ?? '?'}、重合 ${v.clashes ?? '?'}${fbNote}${satNote}${ovNote}`;
   if (typeof window !== 'undefined' && window.alert) window.alert(summary);
-  return { ok: true, message: summary, stats: write.stats };
+  return { ok: true, message: summary, stats: write.stats, outputOverlaps: outOv.count };
 }

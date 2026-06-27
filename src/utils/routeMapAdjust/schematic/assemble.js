@@ -9,10 +9,160 @@ import { computeStationDataFromRoutes } from '@/utils/dataExecute/computeStation
 import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
 import { syncOrthoFlatSegmentEndpoints } from '@/utils/layers/json_grid_coord_normalized/axisAlignGridNetworkHillClimb.js';
 import { schematicStats } from './objective.js';
+import { segOverlap } from './repair.js';
+
+/** 平行共軌路線錯開間距（整數格）。 */
+const PARALLEL_LANE_SPACING = 1;
+
+function octiPerpDelta(a, b, lane = 1) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  if (dx === 0 && dy !== 0) return [lane, 0];
+  if (dy === 0 && dx !== 0) return [0, lane];
+  if (Math.abs(dx) === Math.abs(dy)) {
+    const sx = dx > 0 ? 1 : -1;
+    const sy = dy > 0 ? 1 : -1;
+    return [-sy * lane, sx * lane];
+  }
+  const [ux, uy] = perpOffsetUnit(a, b);
+  return [Math.round(ux * lane), Math.round(uy * lane)];
+}
 
 function readXY(p) {
   if (Array.isArray(p)) return [Number(p[0]), Number(p[1])];
   return [Number(p?.x ?? 0), Number(p?.y ?? 0)];
+}
+
+function writePt(p, x, y) {
+  if (Array.isArray(p)) {
+    p[0] = x;
+    p[1] = y;
+  } else if (p && typeof p === 'object') {
+    p.x = x;
+    p.y = y;
+  }
+}
+
+function syncPointGrid(seg, idx, x, y) {
+  const nd = seg?.nodes?.[idx];
+  if (nd && typeof nd === 'object') nd.tags = { ...(nd.tags || {}), x_grid: x, y_grid: y };
+}
+
+function collectRouteColors(seg, into) {
+  if (!seg) return;
+  const add = (c) => { if (c) into.add(String(c).trim()); };
+  add(seg.color);
+  add(seg.way_properties?.tags?.color);
+  const rc = seg.route_colors ?? seg.way_properties?.tags?.route_colors;
+  if (rc) String(rc).split(',').forEach((c) => add(c));
+}
+
+function applyRouteColorsToSeg(seg, colors) {
+  const arr = [...colors];
+  seg.route_colors = arr.join(',');
+  seg.color = arr.length === 1 ? arr[0] : '#000000';
+  if (seg.way_properties?.tags) {
+    seg.way_properties.tags.route_colors = seg.route_colors;
+    seg.way_properties.tags.color = seg.color;
+  }
+}
+
+function makeBendNode(x, y) {
+  return { node_type: 'bend', tags: { x_grid: x, y_grid: y } };
+}
+
+/**
+ * 平行共軌：每條路線保留獨立 section（拓撲不變），端點釘在 connect 節點，
+ * 中段以八方向平行軌錯開（2 點段加 A→A'→B'→B 微彎），並標 route_colors 供交錯渲染。
+ */
+export function spreadParallelCorridorLanes(optimizedSkeleton, graph) {
+  for (const edge of graph?.edges || []) {
+    if (edge.isLink) continue;
+    const sis = edge.sections || [];
+    if (sis.length <= 1) continue;
+
+    const sorted = sis.slice().sort((a, b) =>
+      String(optimizedSkeleton[a]?.route_name ?? '').localeCompare(String(optimizedSkeleton[b]?.route_name ?? ''))
+    );
+    const corridorColors = new Set();
+    for (const si of sorted) collectRouteColors(optimizedSkeleton[si], corridorColors);
+
+    const n = sorted.length;
+    for (let lane = 0; lane < n; lane++) {
+      const si = sorted[lane];
+      const seg = optimizedSkeleton[si];
+      if (!seg?.points || seg.points.length < 2) continue;
+
+      applyRouteColorsToSeg(seg, corridorColors);
+
+      const laneOff = (lane - (n - 1) / 2) * PARALLEL_LANE_SPACING;
+      if (Math.abs(laneOff) < 1e-9) continue;
+
+      const pts = seg.points.map(readXY);
+      const a = pts[0];
+      const b = pts[pts.length - 1];
+      const [pdx, pdy] = octiPerpDelta(a, b, 1);
+      const sign = laneOff > 0 ? 1 : -1;
+      const mag = Math.abs(laneOff);
+      const dx = pdx * sign * mag;
+      const dy = pdy * sign * mag;
+
+      if (pts.length === 2) {
+        const a2 = [a[0] + dx, a[1] + dy];
+        const b2 = [b[0] + dx, b[1] + dy];
+        seg.points = [[a[0], a[1]], a2, b2, [b[0], b[1]]];
+        seg.nodes = [seg.nodes?.[0], makeBendNode(a2[0], a2[1]), makeBendNode(b2[0], b2[1]), seg.nodes?.[1]];
+      } else {
+        for (let i = 1; i < pts.length - 1; i++) {
+          writePt(seg.points[i], pts[i][0] + dx, pts[i][1] + dy);
+          syncPointGrid(seg, i, pts[i][0] + dx, pts[i][1] + dy);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * 偵測「輸出端」不同路線之線段共線重疊（graph 併邊檢查看不到、但畫面上看得到）。
+ * @returns {{ count:number, examples:Array<{r1:string,r2:string,at:[number,number]}> }}
+ */
+export function findOutputOverlaps(fullFlat) {
+  const subs = [];
+  for (const seg of fullFlat || []) {
+    const pts = Array.isArray(seg?.points) ? seg.points.map(readXY) : [];
+    const rn = seg?.route_name ?? seg?.name ?? '';
+    for (let i = 0; i + 1 < pts.length; i++) subs.push({ rn, seg, a: pts[i], b: pts[i + 1] });
+  }
+  const examples = [];
+  let count = 0;
+  for (let i = 0; i < subs.length; i++) {
+    for (let j = i + 1; j < subs.length; j++) {
+      if (subs[i].rn === subs[j].rn) continue;
+      if (segOverlap(subs[i].a, subs[i].b, subs[j].a, subs[j].b) > 1e-6) {
+        count++;
+        if (examples.length < 8) {
+          examples.push({
+            r1: subs[i].rn,
+            r2: subs[j].rn,
+            at: subs[i].a,
+            seg1: subs[i].seg,
+            seg2: subs[j].seg,
+            a: subs[i].a,
+            b: subs[i].b,
+          });
+        }
+      }
+    }
+  }
+  return { count, examples };
+}
+
+function perpOffsetUnit(a, b) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-9) return [0, 0];
+  return [-dy / len, dx / len];
 }
 
 /**
@@ -42,7 +192,20 @@ export function injectEdgeBends(optimizedSkeleton, graph, edgePaths) {
 
 function nodeWithGrid(node, x, y, fallbackType) {
   const n = node ? JSON.parse(JSON.stringify(node)) : { node_type: fallbackType || 'line' };
-  n.tags = { ...(n.tags || {}), x_grid: x, y_grid: y };
+  const t = n.tags || {};
+  // 🟡 交叉/🟣 切斷分類色：確保進到 tags（結果渲染器以 tags.node_class_color 上色）。
+  //   標記可能在頂層(B3 snapStation 透傳)或已在 tags(原節點)，兩者皆收。
+  const node_kind = t.node_kind ?? n.node_kind;
+  const node_class_color = t.node_class_color ?? n.node_class_color;
+  const node_class_r = t.node_class_r ?? n.node_class_r;
+  n.tags = {
+    ...t,
+    ...(node_kind != null ? { node_kind } : {}),
+    ...(node_class_color != null ? { node_class_color } : {}),
+    ...(node_class_r != null ? { node_class_r } : {}),
+    x_grid: x,
+    y_grid: y,
+  };
   return n;
 }
 
@@ -132,9 +295,14 @@ export function writeSchematicResultToLayer(layerId, fullFlat, meta = {}) {
     return { ok: false, message: '無結果路段可寫入' };
   }
 
-  // 線色 = way 顏色（骨架分類色）：讓結果檢視器之 path.color 直接採用，使輸出線與骨架同色
+  // 線色 = way 顏色（骨架分類色）：讓結果檢視器之 path.color 直接採用，使輸出線與骨架同色。
+  //   並保留 route_colors（該邊所有不同顏色）：≥2 色時結果檢視器可畫多色交錯虛線。
   for (const seg of fullFlat) {
     if (seg && seg.color == null) seg.color = seg.way_properties?.tags?.color || undefined;
+    if (seg && seg.route_colors == null) {
+      const rc = seg.way_properties?.tags?.route_colors;
+      if (rc) seg.route_colors = rc;
+    }
   }
   layer.spaceNetworkGridJsonData = fullFlat;
   const computed = computeStationDataFromRoutes(fullFlat);

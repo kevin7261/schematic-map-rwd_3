@@ -12,7 +12,7 @@ import { segmentIntersectionInterior2D } from '@/utils/routeSegmentIntersections
 const cross = (ax, ay, bx, by) => ax * by - ay * bx;
 
 /** 兩線段共線重疊長度（>0 表疊線）；僅端點接觸回 0。 */
-function segOverlap(a, b, c, d) {
+export function segOverlap(a, b, c, d) {
   const rx = b[0] - a[0], ry = b[1] - a[1];
   const sx = d[0] - c[0], sy = d[1] - c[1];
   if (Math.abs(cross(rx, ry, sx, sy)) > 1e-9) return 0; // 不平行

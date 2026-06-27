@@ -378,5 +378,22 @@ export function runSat(graph, coords0, opts = {}) {
   }
 
   if (!coords) return { ok: false, message: MEM_MSG };
+
+  // ---- 拓撲保證（硬契約）：絕不輸出仍含交叉/重疊之佈局 ----
+  // 階段① 的惰性平面性可能因 maxPlanarIter 用盡、或加分離後 UNSAT（格網/嵌入過緊）而提早 break，
+  // 此時 feasibleCoords 仍殘留交叉或「站壓在他線上」的重疊 → 渲染出的拓撲已與輸入不同。
+  // 依論文忠實度與本專案原則：寧可誠實「未產出」，也絕不冒充一張拓撲被改變的地圖。
+  const residual = badCount(coords);
+  if (residual > 0) {
+    const cr = findCrossingPairs(graph, coords).length;
+    const ov = findNodeOnForeignEdgePairs(graph, coords).length;
+    return {
+      ok: false,
+      status: 'sat-topology-broken',
+      message:
+        `SAT 無法在目前格網/嵌入下消除全部交叉與重疊（殘留 交叉 ${cr}、線壓站 ${ov}），` +
+        `若輸出將改變拓撲結構。依忠實度要求不輸出被改變拓撲的地圖——請改用較小城市，或 ③ MILP / ⑥ Octilinear Grid。`,
+    };
+  }
   return { ok: true, coords, status: optimized ? 'sat' : 'sat-feasible', h4Pairs: added, optimized };
 }

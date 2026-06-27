@@ -62,6 +62,20 @@ function projectOnSegment(px, py, ax, ay, bx, by) {
   return [ax + t * dx, ay + t * dy, t];
 }
 
+/** 線段 (p0→p1) 與線段 (a,b) 相交則回傳沿 p0→p1 之參數 t∈[0,1]，否則 null。 */
+function segCrossParam(p0x, p0y, p1x, p1y, ax, ay, bx, by) {
+  const rx = p1x - p0x,
+    ry = p1y - p0y;
+  const sx = bx - ax,
+    sy = by - ay;
+  const denom = rx * sy - ry * sx;
+  if (Math.abs(denom) < 1e-12) return null; // 平行或退化
+  const t = ((ax - p0x) * sy - (ay - p0y) * sx) / denom;
+  const u = ((ax - p0x) * ry - (ay - p0y) * rx) / denom;
+  if (t >= 0 && t <= 1 && u >= 0 && u <= 1) return t;
+  return null;
+}
+
 /** 方向角 → 8 區(octant) index 0..7。 */
 function octant(ang) {
   let a = ang % (2 * Math.PI);
@@ -96,6 +110,28 @@ export function runForceDirected(graph, coords0, opts = {}) {
 
   const disp = coords.map(() => [0, 0]);
   const zoneMax = Array.from({ length: n }, () => new Float64Array(8));
+
+  // 每點的相鄰邊（供「移動後不可使任何相鄰邊與其他邊相交」之嚴格拓撲檢查）
+  const incident = Array.from({ length: n }, () => []);
+  graph.edges.forEach((e, ei) => { incident[e.u].push(ei); incident[e.v].push(ei); });
+  // 把節點 i 放到 (nx,ny) 後，其任一相鄰邊是否與「非共端點之邊」相交（用目前座標）。
+  const moveCreatesCrossing = (i, nx, ny) => {
+    for (const ei of incident[i]) {
+      const e = graph.edges[ei];
+      const ux = e.u === i ? nx : coords[e.u][0];
+      const uy = e.u === i ? ny : coords[e.u][1];
+      const vx = e.v === i ? nx : coords[e.v][0];
+      const vy = e.v === i ? ny : coords[e.v][1];
+      for (let ej = 0; ej < graph.edges.length; ej++) {
+        const f = graph.edges[ej];
+        if (f.u === e.u || f.u === e.v || f.v === e.u || f.v === e.v) continue; // 共端點不算
+        if (segCrossParam(ux, uy, vx, vy, coords[f.u][0], coords[f.u][1], coords[f.v][0], coords[f.v][1]) != null) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
 
   for (let it = 0; it < iters; it++) {
     for (let i = 0; i < n; i++) { disp[i][0] = 0; disp[i][1] = 0; }
@@ -179,7 +215,7 @@ export function runForceDirected(graph, coords0, opts = {}) {
       }
     }
 
-    // 套用位移（依其方向所在 8 區之上限夾住）
+    // 套用位移（依其方向所在 8 區之上限夾住）；逐點套用，clamp 以目前(已更新)座標為準。
     let maxMove = 0;
     for (let i = 0; i < n; i++) {
       let mvx = disp[i][0], mvy = disp[i][1];
@@ -188,6 +224,18 @@ export function runForceDirected(graph, coords0, opts = {}) {
       const z = octant(Math.atan2(mvy, mvx));
       const lim = zoneMax[i][z];
       if (m > lim) { mvx *= lim / m; mvy *= lim / m; }
+      // 🔒 嚴格防拓撲改變：移動後不可使該點「任一相鄰邊」與其他邊相交（8 區近似太粗會漏；此處精確檢查）。
+      //   若整步會造成交叉 → 二分搜尋可安全前進之最大比例；完全不行則此點本輪不動。
+      //   → 任何相鄰邊都不會掃到另一側 → 不新增交叉、相對位置不翻邊。
+      if (moveCreatesCrossing(i, coords[i][0] + mvx, coords[i][1] + mvy)) {
+        let loF = 0, hiF = 1;
+        for (let b = 0; b < 14; b++) {
+          const mid = (loF + hiF) / 2;
+          if (moveCreatesCrossing(i, coords[i][0] + mvx * mid, coords[i][1] + mvy * mid)) hiF = mid;
+          else loF = mid;
+        }
+        mvx *= loF; mvy *= loF;
+      }
       coords[i][0] += mvx; coords[i][1] += mvy;
       const mm = Math.hypot(mvx, mvy);
       if (mm > maxMove) maxMove = mm;
@@ -195,5 +243,34 @@ export function runForceDirected(graph, coords0, opts = {}) {
     if (maxMove < 1e-3) break;
   }
 
-  return coords.map((c) => [Math.round(c[0]), Math.round(c[1])]);
+  // 整數化（四捨五入）可能在極近處造成新交叉：逐點檢查，若某點四捨五入後其相鄰邊與某非相鄰邊相交，
+  //   改試其餘 3 個整數角，挑不相交者；皆不行則維持四捨五入。
+  const rounded = coords.map((c) => [Math.round(c[0]), Math.round(c[1])]);
+  const anyIncidentCross = (i) => {
+    for (const ei of incident[i]) {
+      const e = graph.edges[ei];
+      const ux = rounded[e.u][0], uy = rounded[e.u][1], vx = rounded[e.v][0], vy = rounded[e.v][1];
+      for (let ej = 0; ej < graph.edges.length; ej++) {
+        const f = graph.edges[ej];
+        if (f.u === e.u || f.u === e.v || f.v === e.u || f.v === e.v) continue; // 共端點不算交叉
+        if (segCrossParam(ux, uy, vx, vy, rounded[f.u][0], rounded[f.u][1], rounded[f.v][0], rounded[f.v][1]) != null) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  for (let i = 0; i < n; i++) {
+    if (!anyIncidentCross(i)) continue;
+    const fx = Math.floor(coords[i][0]), cx2 = Math.ceil(coords[i][0]);
+    const fy = Math.floor(coords[i][1]), cy2 = Math.ceil(coords[i][1]);
+    const orig = rounded[i];
+    let fixed = null;
+    for (const cnd of [[fx, fy], [cx2, fy], [fx, cy2], [cx2, cy2]]) {
+      rounded[i] = cnd;
+      if (!anyIncidentCross(i)) { fixed = cnd; break; }
+    }
+    if (!fixed) rounded[i] = orig; // 四角皆不行 → 還原四捨五入
+  }
+  return rounded;
 }

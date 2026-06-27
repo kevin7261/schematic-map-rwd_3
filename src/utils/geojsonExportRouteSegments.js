@@ -175,6 +175,10 @@ function snapStation(s) {
     lat,
     type: normalizeRouteSegmentEndpointType(s.type),
     connect_number: s.connect_number != null ? num(s.connect_number) : 0,
+    // 🟡 交叉/🟣 切斷骨架節點分類：透傳標記與分類色（示意圖佈局保留節點並上色用）。
+    ...(s.node_kind != null ? { node_kind: s.node_kind } : {}),
+    ...(s.node_class_color != null ? { node_class_color: s.node_class_color } : {}),
+    ...(s.node_class_r != null ? { node_class_r: s.node_class_r } : {}),
   };
 }
 
@@ -239,6 +243,10 @@ export function exportRouteSegmentsFromGeoJson(geojson, options = {}) {
         lat: coord[1],
         srcRouteList,
         ...(presetType ? { type: presetType } : {}),
+        // 🟡 交叉(cross)/🟣 切斷(purple) 等骨架節點分類：保留標記與分類色，供示意圖佈局保留節點並上色。
+        ...(t.node_kind != null ? { node_kind: t.node_kind } : {}),
+        ...(t.node_class_color != null ? { node_class_color: t.node_class_color } : {}),
+        ...(t.node_class_r != null ? { node_class_r: t.node_class_r } : {}),
       };
       // 不依座標把不同身分的站覆寫合併：同格保留多站，僅同 id＋同名才視為同一站(後者覆寫)。
       if (!stations.has(key)) stations.set(key, []);
@@ -371,6 +379,10 @@ export function exportRouteSegmentsFromGeoJson(geojson, options = {}) {
               lon: mlon,
               lat: mlat,
               type: 'normal',
+              // 🟡 交叉(cross)/🟣 切斷(purple) 中間骨架節點：保留標記與分類色，示意圖佈局不可丟。
+              ...(ms.node_kind != null ? { node_kind: ms.node_kind } : {}),
+              ...(ms.node_class_color != null ? { node_class_color: ms.node_class_color } : {}),
+              ...(ms.node_class_r != null ? { node_class_r: ms.node_class_r } : {}),
             };
           });
           const midCoords = currentMidStations.map((ms) => [

@@ -22,6 +22,7 @@ import {
   buildSameRouteEdgePairsAtNodes,
 } from '../graph.js';
 import { schematicCost } from '../objective.js';
+import { segOverlap } from '../repair.js';
 import { segmentIntersectionInterior2D } from '@/utils/routeSegmentIntersections.js';
 
 const STOTT_PREF_MULTIPLE = 4; // Table 4：Pref. grid spacing l
@@ -38,6 +39,26 @@ function crossingsAtNode(graph, coords, n) {
       if (b.id === a.id) continue;
       if (a.u === b.u || a.u === b.v || a.v === b.u || a.v === b.v) continue;
       if (segmentIntersectionInterior2D(ax1, ay1, ax2, ay2, coords[b.u][0], coords[b.u][1], coords[b.v][0], coords[b.v][1])) cnt++;
+    }
+  }
+  return cnt;
+}
+
+/**
+ * §3.3 Occlusion Rule（疊線版）：n 之入射邊與其他任一邊「共線重疊」的數量。
+ * segmentIntersectionInterior2D 只抓「真交叉」、抓不到共線重疊（同走廊疊在一起）→ 補此檢查，
+ * 確保 hill-climbing 不會製造路線重疊（= 不改變拓撲結構）。含相鄰邊（兩入射邊折回同向亦為疊線）。
+ */
+function overlapAtNode(graph, coords, n) {
+  const { edges, incident } = graph;
+  let cnt = 0;
+  for (const eid of incident[n]) {
+    const a = edges[eid];
+    const A = coords[a.u], B = coords[a.v];
+    for (let j = 0; j < edges.length; j++) {
+      if (j === eid) continue;
+      const b = edges[j];
+      if (segOverlap(A, B, coords[b.u], coords[b.v]) > 1e-6) cnt++;
     }
   }
   return cnt;
@@ -245,6 +266,7 @@ export function runHillClimb(graph, coords0, opts = {}) {
     const [ox, oy] = coords[n];
     const occ = occupiedCells(coords, new Set([n]));
     const beforeCross = crossingsAtNode(graph, coords, n);
+    const beforeOverlap = overlapAtNode(graph, coords, n);
     let best = null, bestCost = cost;
     for (const [dx, dy] of ringOffsets(R)) {
       if (trials >= maxTrials) break;
@@ -255,7 +277,7 @@ export function runHillClimb(graph, coords0, opts = {}) {
       if (!relativePositionOk(graph, coords, init, n, nx, ny, null)) continue; // Relative Position
       coords[n] = [nx, ny];
       const c = schematicCost(graph, coords, routePairs, params);
-      if (c < bestCost - 1e-9 && preservesRotation(graph, rot, coords, [n]) && crossingsAtNode(graph, coords, n) <= beforeCross && !nodeOnForeignEdge(graph, coords, n)) {
+      if (c < bestCost - 1e-9 && preservesRotation(graph, rot, coords, [n]) && crossingsAtNode(graph, coords, n) <= beforeCross && overlapAtNode(graph, coords, n) <= beforeOverlap && !nodeOnForeignEdge(graph, coords, n)) {
         bestCost = c; best = [nx, ny];
       }
       coords[n] = [ox, oy];
@@ -270,7 +292,8 @@ export function runHillClimb(graph, coords0, opts = {}) {
     const before = coords.map((c) => c.slice());
     const occ = occupiedCells(coords, set);
     let beforeCross = 0;
-    for (const m of members) beforeCross += crossingsAtNode(graph, coords, m);
+    let beforeOverlap = 0;
+    for (const m of members) { beforeCross += crossingsAtNode(graph, coords, m); beforeOverlap += overlapAtNode(graph, coords, m); }
     let best = null, bestCost = cost;
     for (const [dx, dy] of ringOffsets(R)) {
       if (trials >= maxTrials) break;
@@ -291,8 +314,9 @@ export function runHillClimb(graph, coords0, opts = {}) {
       if (valid) {
         const c = schematicCost(graph, coords, routePairs, params);
         let afterCross = 0;
-        for (const m of members) afterCross += crossingsAtNode(graph, coords, m);
-        if (c < bestCost - 1e-9 && preservesRotation(graph, rot, coords, members) && afterCross <= beforeCross
+        let afterOverlap = 0;
+        for (const m of members) { afterCross += crossingsAtNode(graph, coords, m); afterOverlap += overlapAtNode(graph, coords, m); }
+        if (c < bestCost - 1e-9 && preservesRotation(graph, rot, coords, members) && afterCross <= beforeCross && afterOverlap <= beforeOverlap
           && members.every((m) => !nodeOnForeignEdge(graph, coords, m))) {
           bestCost = c; best = [dx, dy];
         }

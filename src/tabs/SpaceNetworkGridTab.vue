@@ -2935,7 +2935,10 @@
               coordinates: coordinates,
             },
             properties: {
-              tags: props.way_properties?.tags || props.properties?.tags || {},
+              tags: {
+                ...(props.way_properties?.tags || props.properties?.tags || {}),
+                ...(seg.route_colors ? { route_colors: seg.route_colors } : {}),
+              },
               name: seg.route_name || props.name || props.route_name,
               color: seg.route_color,
               station_weights: seg.station_weights, // 傳遞 station_weights
@@ -2958,7 +2961,10 @@
               coordinates: coordinates,
             },
             properties: {
-              tags: seg.way_properties?.tags || {},
+              tags: {
+                ...(seg.way_properties?.tags || {}),
+                ...(seg.route_colors ? { route_colors: seg.route_colors } : {}),
+              },
               name: seg.name,
               station_weights: seg.station_weights, // 傳遞 station_weights
               nav_weight:
@@ -5353,7 +5359,7 @@
       }
       if (!pathData) return;
 
-      const baseStroke = isHvZTest3E3F3Highlight ? '#c2185b' : routeColor;
+      let baseStroke = isHvZTest3E3F3Highlight ? '#c2185b' : routeColor;
 
       const resolveWeightForRouteLineWidth = () => {
         if (Array.isArray(stationWeights) && stationWeights.length > 0) {
@@ -5397,10 +5403,42 @@
         .attr('stroke-linejoin', 'round')
         .style('cursor', 'pointer');
 
+      // 🎨 多色交錯（純顯示，不影響演算法/互動）：該段有 ≥2 種 route_colors 時，於同一路徑疊畫虛線，
+      //   base 設第 0 色，其餘色以 dash 交錯平鋪覆蓋（pointer-events:none，hover/tooltip 仍由 base 接）。
+      const routeColorsList = String(tags?.route_colors || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const overlayPaths = [];
+      if (routeColorsList.length >= 2) {
+        const N = routeColorsList.length;
+        const dashLen = 8;
+        const dashArray = `${dashLen} ${dashLen * (N - 1)}`;
+        baseStroke = routeColorsList[0];
+        pathElement.attr('stroke', baseStroke);
+        for (let i = 1; i < N; i++) {
+          overlayPaths.push(
+            zoomGroup
+              .append('path')
+              .attr('d', pathData)
+              .attr('stroke', routeColorsList[i])
+              .attr('fill', 'none')
+              .attr('stroke-width', baseStrokeW)
+              .style('vector-effect', isSchematicLayout ? 'non-scaling-stroke' : null)
+              .attr('opacity', 0.9)
+              .attr('stroke-linecap', 'butt')
+              .attr('stroke-dasharray', dashArray)
+              .attr('stroke-dashoffset', String(dashLen * i))
+              .style('pointer-events', 'none')
+          );
+        }
+      }
+
       // 添加 hover 效果
       pathElement
         .on('mouseover', function (event) {
           d3.select(this).attr('stroke-width', hoverStrokeW).attr('opacity', 1);
+          overlayPaths.forEach((ov) => ov.attr('stroke-width', hoverStrokeW).attr('opacity', 1));
 
           const buildLegacyLineTooltip = () => {
             let tooltipContent = '';
@@ -5577,6 +5615,7 @@
             .attr('stroke-width', baseStrokeW)
             .attr('opacity', 0.9)
             .attr('stroke', baseStroke);
+          overlayPaths.forEach((ov) => ov.attr('stroke-width', baseStrokeW).attr('opacity', 0.9));
 
           // 隱藏 tooltip
           tooltip.style('opacity', 0);

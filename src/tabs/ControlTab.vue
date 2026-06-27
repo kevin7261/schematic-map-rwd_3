@@ -6497,6 +6497,15 @@
 
   /** 將路網（flat segments）寫回本圖層並重算 Section／Connect／Station／匯出列 */
   const applyConnectStraightenSegmentsToLayer = (lyr, segments) => {
+    // 保留 route_colors（該邊所有不同顏色）：≥2 色時結果檢視器畫多色交錯虛線（純顯示）。
+    if (Array.isArray(segments)) {
+      for (const seg of segments) {
+        if (seg && seg.route_colors == null) {
+          const rc = seg.way_properties?.tags?.route_colors;
+          if (rc) seg.route_colors = rc;
+        }
+      }
+    }
     lyr.spaceNetworkGridJsonData = segments;
     const comp = computeStationDataFromRoutes(segments);
     lyr.spaceNetworkGridJsonData_SectionData = comp.sectionData;
