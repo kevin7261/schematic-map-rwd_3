@@ -2,8 +2,9 @@
  * 🗺️ 三個示意圖佈局圖層（schematic_rma_*）之**獨立**載入顯示。
  *
  * 載入後直接畫出「路線圖轉換骨架」的骨架 geojson（layer.geojsonData）：
- *  - 線：用 way tags.color（＝骨架邊分類色：🔴 合併／🔵 頭尾共點／🟢 環線／路線色）
- *  - 點：用 node tags.node_class_color（🟡 交叉／🟣 切斷）或型別預設色；白色 1px border、置於最上層。
+ *  - 線：底色＋原色畫法 — 先以 way tags.hl_color（🔴 合併／🔵 頭尾共點／🟢 環線）墊在底下，
+ *        上面再畫 way tags.color（路線原來的顏色）；無 hl_color 者只畫原色。
+ *  - 點：用 node tags.node_class_color（🟡 交叉／🟣 切斷／🖤 黑點站）或型別預設色；白色 1px border、置於最上層。
  * 不經共用的 SpaceNetworkGridTab，顏色完全自控、與骨架一致。
  */
 import L from 'leaflet';
@@ -27,6 +28,8 @@ export function mountSchematicSkeleton(el, dataStore) {
     maxZoom: 19,
     subdomains: 'abcd',
   }).addTo(map);
+  map.createPane('schUnder');
+  map.getPane('schUnder').style.zIndex = 350; // 共線/環線/頭尾共點底色，墊在路線(overlayPane 400)底下
   map.createPane('schDots');
   map.getPane('schDots').style.zIndex = 460; // 點永遠在線之上
 
@@ -47,6 +50,18 @@ export function mountSchematicSkeleton(el, dataStore) {
       if (g?.type === 'LineString') {
         const latlngs = (g.coordinates || []).map(([lng, lat]) => [lat, lng]);
         if (latlngs.length >= 2) {
+          // 🔴🔵🟢 共線/環線/頭尾共點底色：墊在路線底下，上面才畫路線原來的顏色
+          if (tags.hl_color) {
+            L.polyline(latlngs, {
+              color: tags.hl_color,
+              weight: 12,
+              opacity: 0.85,
+              lineCap: 'round',
+              lineJoin: 'round',
+              interactive: false,
+              pane: 'schUnder',
+            }).addTo(lineGroup);
+          }
           const pl = L.polyline(latlngs, {
             color: tags.color || '#666666',
             weight: 4,

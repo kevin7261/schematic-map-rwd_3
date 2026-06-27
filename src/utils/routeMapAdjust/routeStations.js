@@ -948,18 +948,15 @@ export const routeMapAdjustToOsmRouteGeoJson = (lines, blackDots, stationMeta = 
 export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stationMeta) => {
   const edges = Array.isArray(skeleton?.edges) ? skeleton.edges : [];
   const nodes = Array.isArray(skeleton?.nodes) ? skeleton.nodes : [];
-  // 邊色：與骨架渲染器完全一致（🔴 合併／🔵 頭尾共點／🟢 環線／路線色）
-  const edgeColor = (e) =>
-    e.isMerged
-      ? '#ff1744'
-      : e.isHeadTailShared
-        ? '#1e88e5'
-        : e.isLoop
-          ? '#00c853'
-          : e.routes?.[0]?.color || '#3949ab';
+  // 與骨架渲染器一致的「底色＋原色」畫法：
+  //   color    ＝ 路線原來的顏色（主線色，畫在上面）
+  //   hl_color ＝ 🔴 合併(共線)／🔵 頭尾共點／🟢 環線 之底色高亮（墊在主線底下；無則空字串）
+  const routeColorOf = (e) => e.routes?.[0]?.color || '#3949ab';
+  const hlColorOf = (e) =>
+    e.isMerged ? '#ff1744' : e.isHeadTailShared ? '#1e88e5' : e.isLoop ? '#00c853' : '';
   // 點色：與骨架渲染器完全一致（🟣 切斷／🟡 交叉／🔴 connect／🔵 terminal／⚫ 其餘灰）
   const llKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
-  const { terminals, connects } = computeRouteMapAdjustStations(
+  const { terminals, connects, blacks } = computeRouteMapAdjustStations(
     lines,
     blackDots,
     Object.keys(stationMeta || {}).map((k) => k.split(',').map(Number))
@@ -988,7 +985,8 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
         tags: {
           route_id: String(i + 1),
           route_name: e.routes?.[0]?.routeName || `骨架邊 ${i + 1}`,
-          color: edgeColor(e),
+          color: routeColorOf(e), // 路線原色（主線，畫在上面）
+          hl_color: hlColorOf(e), // 共線/環線/頭尾共點底色（墊在底下；無則空）
           railway: 'subway',
         },
       },
@@ -996,6 +994,30 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
     });
   });
   let nid = 1;
+  // 🖤 黑點站（一般中間站）：骨架化後在示意圖佈局也要照原位置畫出（不可消失）。
+  //    先加入，讓端點/交點/交叉節點之後疊在其上。
+  (Array.isArray(blacks) ? blacks : []).forEach((p) => {
+    if (!Array.isArray(p) || p.length < 2) return;
+    const [lat, lng] = p;
+    const meta = (stationMeta && stationMeta[llKey(lat, lng)]) || {};
+    features.push({
+      type: 'Feature',
+      properties: {
+        type: 'node',
+        id: nid,
+        tags: {
+          station_id: meta.id != null ? String(meta.id) : `b${nid}`,
+          station_name: meta.name || '',
+          type: 'normal',
+          node_kind: 'black',
+          node_class_color: '#000000',
+          node_class_r: 3,
+        },
+      },
+      geometry: { type: 'Point', coordinates: [lng, lat] },
+    });
+    nid += 1;
+  });
   nodes.forEach((n) => {
     if (!n || !Array.isArray(n.latlng)) return;
     const [lat, lng] = n.latlng;
