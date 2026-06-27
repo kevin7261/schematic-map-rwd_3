@@ -504,8 +504,14 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       const skipped = [];
       for (const r of relsWithStops) {
         const ks = r.stops.map((s2) => keyOf(s2.coord));
-        const ov = emitted.size ? ks.filter((k) => emitted.has(k)).length / ks.length : 0;
-        if (ov >= 0.7) {
+        const newCount = emitted.size ? ks.filter((k) => !emitted.has(k)).length : ks.length;
+        const ov = emitted.size ? (ks.length - newCount) / ks.length : 0;
+        // 略過「純方向／重複變體」（與已保留站集合高度重疊且**完全不新增**車站）；但**真實分支**——
+        // 即使與主線共用長段主幹而站點重疊 ≥70%，只要新增任一車站——一律保留（如倫敦 District
+        // 的 Richmond/Kew、Metropolitan 的 Watford/Chesham、Northern 的 Mill Hill East 單站支線、
+        // Piccadilly 的 Heathrow T4 環）。近乎全等的重複線（含含雜訊多 1 站者）稍後仍由
+        // 「互相 ≥80% 重疊」去重收尾，故此處放寬到「新增 0 站才略過」是安全的。
+        if (ov >= 0.7 && newCount === 0) {
           skipped.push(r); // 站點是子集→暫存，稍後檢查是否新增軌道幾何
           continue;
         }
@@ -620,6 +626,9 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   built.sort((a, b) => b.latlngs.length - a.latlngs.length);
   const lineDefs = [];
   const keptKeys = [];
+  const keptStationKeys = new Set(); // 已保留各線之車站鍵集合（供分支保護用）
+  const stationKeysOf = (l) =>
+    l.canon ? l.canon.map((s2) => keyOf(s2.c)) : l.latlngs.map(keyOf);
   for (const l of built) {
     // per-city 營運者白名單（須在建站點前過濾，否則被剔線的站點會變孤立 node）：
     // 營運中路線須為允許之營運者；施工/計畫線不受限
@@ -632,19 +641,27 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       const inN = l.latlngs.filter((c) => inBbox(c[0], c[1])).length;
       if (inN / l.latlngs.length < 0.5) continue;
     }
+    // 分支保護：只要此線帶有「尚未出現過的車站」，即為真實分支（如倫敦 District 的 Richmond/Kew、
+    // Northern 的 Mill Hill East），縱使與主線共用長段主幹而頂點重疊 ≥80%，也不可當重複線剔除。
+    // 唯有完全不新增車站者（純雙向/重複變體）才套用下方 ≥80% 互疊去重。
+    const stKeys = stationKeysOf(l);
+    const addsNewStation = stKeys.some((k) => !keptStationKeys.has(k));
     const ks = new Set(l.latlngs.map(keyOf));
     let dup = false;
-    for (const kk of keptKeys) {
-      let hit = 0;
-      for (const k of ks) if (kk.has(k)) hit++;
-      if (hit / ks.size >= 0.8 && hit / kk.size >= 0.8) {
-        dup = true;
-        break;
+    if (!addsNewStation) {
+      for (const kk of keptKeys) {
+        let hit = 0;
+        for (const k of ks) if (kk.has(k)) hit++;
+        if (hit / ks.size >= 0.8 && hit / kk.size >= 0.8) {
+          dup = true;
+          break;
+        }
       }
     }
     if (dup) continue;
     lineDefs.push(l);
     keptKeys.push(ks);
+    for (const k of stKeys) keptStationKeys.add(k);
   }
 
   const metaTally = new Map();
