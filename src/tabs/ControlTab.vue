@@ -40,6 +40,7 @@
   } from '@/utils/layers/osm_2_geojson_2_json/index.js';
   import { loadMilpJsonRaw } from '@/utils/layers/schematic_layout/milp/readMilpResult.js';
   import { loadMilpJsonRaw as loadMilpJsonRawRma } from '@/utils/routeMapAdjust/schematic/milp/readMilpResult.js';
+  import { auditMilpRoutePairRotation } from '@/utils/routeMapAdjust/schematic/auditMilpRoutePair.js';
   import { reinsertBlackStations } from '@/utils/layers/schematic_layout/assemble.js';
   import { showSolveOverlay } from '@/utils/layers/schematic_layout/solveOverlay.js';
   import {
@@ -4051,6 +4052,9 @@
     }
 
     isExecuting.value = true;
+    if (currentLayer.value.layerId === 'schematic_rma_milp') {
+      currentLayer.value.milpRoutePairAudit = null;
+    }
 
     try {
       // 等待 UI 更新以顯示"計算中"畫面
@@ -9939,6 +9943,28 @@
   const routeSchematicHasResult = (layer) =>
     Array.isArray(layer?.spaceNetworkGridJsonData) && layer.spaceNetworkGridJsonData.length > 0;
 
+  const milpRoutePairAuditing = ref(false);
+
+  /** ③ MILP（RMA）：按鈕觸發路線對 CCW 環序審計（不動佈局管線） */
+  const runMilpRoutePairAudit = (layer) => {
+    if (!layer || layer.layerId !== 'schematic_rma_milp') return;
+    if (!routeSchematicHasResult(layer)) {
+      window.alert('此圖層尚無佈局結果，請先按「開始執行」。');
+      return;
+    }
+    milpRoutePairAuditing.value = true;
+    try {
+      const result = auditMilpRoutePairRotation(layer.layerId, layer.spaceNetworkGridJsonData);
+      if (!result.ok) {
+        window.alert(result.message || '審計失敗');
+        return;
+      }
+      layer.milpRoutePairAudit = result.audit;
+    } finally {
+      milpRoutePairAuditing.value = false;
+    }
+  };
+
   /**
    * 「示意圖佈局」(schematic_rma_*)：下載**直線化後的結果** GeoJSON。
    * 把佈局結果（spaceNetworkGridJsonData）以與骨架輸入相同的 GeoJSON FeatureCollection
@@ -10081,6 +10107,50 @@
           >
             下載 JSON（直線化結果）
           </button>
+          <button
+            v-if="layer.layerId === 'schematic_rma_milp'"
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
+            :disabled="!routeSchematicHasResult(layer) || milpRoutePairAuditing || isExecuting"
+            title="比對讀入骨架與佈局結果之路線對 CCW 環序（validate-junction-rotation skill 同邏輯）"
+            @click="runMilpRoutePairAudit(layer)"
+          >
+            {{ milpRoutePairAuditing ? '檢查中…' : '檢查路線對環序' }}
+          </button>
+          <div
+            v-if="layer.layerId === 'schematic_rma_milp' && layer.milpRoutePairAudit"
+            class="mt-2 p-2 rounded border my-font-size-xs"
+            style="line-height: 1.45"
+          >
+            <div class="my-title-xs-gray pb-1">路線對環序檢查（skill 同邏輯）</div>
+            <div
+              v-if="layer.milpRoutePairAudit.primaryVerdict === 'PASS'"
+              class="text-success"
+            >
+              正確 — {{ layer.milpRoutePairAudit.junctionCountGe3 }} 個分歧點路線對順序一致
+            </div>
+            <div v-else class="text-danger pb-1">
+              錯誤 — {{ layer.milpRoutePairAudit.violationCount }} 組路線對順序與骨架不符
+            </div>
+            <ul
+              v-if="layer.milpRoutePairAudit.reasonLines?.length"
+              class="mb-0 ps-3"
+            >
+              <li
+                v-for="(r, ri) in layer.milpRoutePairAudit.reasonLines"
+                :key="'mra-' + ri"
+                :class="layer.milpRoutePairAudit.primaryVerdict === 'PASS' ? 'text-muted' : 'text-danger'"
+              >
+                {{ r }}
+                <span
+                  v-if="layer.milpRoutePairAudit.violations?.[ri]?.fixHint"
+                  class="text-muted"
+                >
+                  （段索引 {{ layer.milpRoutePairAudit.violations[ri].fixHint.segmentIndex }}）
+                </span>
+              </li>
+            </ul>
+          </div>
           <div
             v-if="layer.layerId === 'schematic_rma_milp' && layer.dashboardData?.rotationStructureCheck?.layoutDone"
             class="mt-2 p-2 rounded border my-font-size-xs"

@@ -7,7 +7,6 @@ import {
   writeSchematicResultToLayer,
   reinsertBlackStations,
   injectEdgeBends,
-  resolveSharedCorridorDrawing,
   findOutputOverlaps,
 } from './assemble.js';
 import { showSolveOverlay } from './solveOverlay.js';
@@ -106,7 +105,6 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   }
 
   const fullFlat = outFullFlat;
-  const corridor = resolveSharedCorridorDrawing(fullFlat, graph);
 
   const meta = {
     ...input.meta,
@@ -127,12 +125,10 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   }
 
   const outOv = findOutputOverlaps(fullFlat);
-  syncPostLayoutOverlapState(useDataStore().findLayerById(layerId), fullFlat, corridor, outOv);
+  syncPostLayoutOverlapState(useDataStore().findLayerById(layerId), fullFlat, null, outOv);
 
   const v = result.violations || {};
-  let ovNote = outOv.count > 0 ? `\n⚠️ 仍重疊 ${outOv.count} 段（橘虛線）` : '\n輸出端重疊：0';
-  const merged = (corridor.corridorGroups || 0) + (corridor.collinearGroups || 0);
-  if (merged > 0) ovNote += `\n已合併 ${merged} 處共軌→多色虛線`;
+  const ovNote = outOv.count > 0 ? `\n⚠️ 仍重疊 ${outOv.count} 段（橘虛線）` : '\n輸出端重疊：0';
 
   let structNote = '';
   if (isMilp && structCheck) {

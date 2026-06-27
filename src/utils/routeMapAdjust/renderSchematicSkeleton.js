@@ -36,15 +36,20 @@ const wayTooltipHtml = (tags) => {
 };
 
 // 點 tooltip：與路線圖站點 hover 相同樣式（station_name/station_id/type/route_name_list）
-const nodeTooltipHtml = (tags) => {
+const nodeTooltipHtml = (props) => {
+  const bag = props && typeof props === 'object' ? props : {};
+  const tags = bag.tags && typeof bag.tags === 'object' ? bag.tags : {};
+  const stationName = bag.station_name ?? tags.station_name ?? tags.name ?? '';
+  const stationId = bag.station_id ?? tags.station_id ?? '';
+  const nodeType = tags.node_kind === 'black' ? '一般 normal' : tags.type;
   const list = Array.isArray(tags.route_name_list)
     ? tags.route_name_list.filter(Boolean)
     : [];
   return (
     `<div style="font-size:12px;line-height:1.5">` +
-    rowHtml('station_name', tags.station_name) +
-    rowHtml('station_id', tags.station_id) +
-    rowHtml('type', tags.node_kind === 'black' ? '一般 normal' : tags.type) +
+    rowHtml('station_name', stationName) +
+    rowHtml('station_id', stationId) +
+    rowHtml('type', nodeType) +
     (list.length
       ? `<div><span style="color:#888">route_name_list</span> ${esc(list.join('、'))}</div>`
       : '') +
@@ -144,6 +149,7 @@ export function mountSchematicSkeleton(el, dataStore) {
       } else if (g?.type === 'Point') {
         const [lng, lat] = g.coordinates || [];
         if (lng == null || lat == null) continue;
+        const nodeProps = f?.properties || {};
         const r = Number(tags.node_class_r) || 5;
         const m = L.circleMarker([lat, lng], {
           radius: r,
@@ -154,7 +160,7 @@ export function mountSchematicSkeleton(el, dataStore) {
           interactive: true,
           pane: 'schDots',
         });
-        m.bindTooltip(nodeTooltipHtml(tags), { sticky: true });
+        m.bindTooltip(nodeTooltipHtml(nodeProps), { sticky: true });
         m.on('mouseover', () => m.setRadius(r + 3));
         m.on('mouseout', () => m.setRadius(r));
         m.addTo(dotGroup);

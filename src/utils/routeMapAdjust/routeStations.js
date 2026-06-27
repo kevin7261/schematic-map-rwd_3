@@ -1156,14 +1156,15 @@ export const routeMapAdjustSkeletonToGeoJson = (
   nodes.forEach((n) => {
     if (!n || !Array.isArray(n.latlng)) return;
     const [lat, lng] = n.latlng;
+    const meta = (stationMeta && stationMeta[llKey(lat, lng)]) || {};
     features.push({
       type: 'Feature',
       properties: {
         type: 'node',
         id: nid,
         tags: {
-          station_id: `n${nid}`,
-          station_name: '',
+          station_id: meta.id != null ? String(meta.id) : `n${nid}`,
+          station_name: meta.name || '',
           type: n.isCross ? 'intersection' : 'normal',
           node_kind: n.isPurple ? 'purple' : n.isCross ? 'cross' : '', // 🟣 切斷點 halo 用
           node_class_color: nodeColor(n),
