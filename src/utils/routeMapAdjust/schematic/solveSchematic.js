@@ -77,14 +77,14 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
     return { ok: true, coords, edgePaths, violations: countViolations(graph, coords), status: profileId };
   }
 
-  // ③ MILP：Nöllenburg & Wolff (2011) 精確八方向求解。失敗就誠實回報「未產出」，
-  //    **不**用啟發式冒充（論文忠實度要求）。
+  // ③ MILP：Nöllenburg & Wolff (2011) 精確八方向求解（完全照論文,不加 fallback/簡化)。
+  //    NW11 本質重(原作者用 CPLEX 跑數小時),大城市可能未產出——此為忠實的代價,效能之後再調。
   report('MILP 精確八方向求解（Nöllenburg & Wolff 2011）…');
   const layout = await runOctilinearLayout(graph, {
     weights: MILP_WEIGHTS,
     preferredDirs: null, // S2 以地理最近八方向為偏好（論文 §4.6）
     timeLimit: 30,
-    maxTimeLimit: 600, // 加時上限放寬到 600s（30→60→120→240→480→600 逐步重試）
+    maxTimeLimit: 120,
     maxH4Iter: 8,
     maxSepIter: 8,
     onProgress: report,
@@ -95,7 +95,7 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
       ok: false,
       status: 'milp-failed',
       message: (layout.message || 'MILP 精確求解未產出（超時或不可行）') +
-        '\n（依論文忠實度要求，不以啟發式結果冒充 MILP；請放寬時限或縮小網路後重試）',
+        '\n（依論文忠實度要求,不以啟發式冒充 MILP）',
     };
   }
 

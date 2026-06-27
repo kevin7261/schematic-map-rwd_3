@@ -18,14 +18,22 @@ const esc = (s) =>
 const rowHtml = (k, v) =>
   v == null || v === '' ? '' : `<div><span style="color:#888">${esc(k)}</span> ${esc(v)}</div>`;
 
-// 線 tooltip：與路線圖 hover 相同樣式（route_name/route_id/railway/color）
-const wayTooltipHtml = (tags) =>
-  `<div style="font-size:12px;line-height:1.5">` +
-  rowHtml('route_name', tags.route_name) +
-  rowHtml('route_id', tags.route_id) +
-  rowHtml('railway', tags.railway) +
-  rowHtml('color', tags.color) +
-  `</div>`;
+// 線 tooltip：與路線圖 hover 相同樣式（route_name/route_id/railway/color）。
+//   骨架線雖一律黑，hover 仍顯示「真正的路線顏色」（route_color），並附色塊。
+const wayTooltipHtml = (tags) => {
+  const c = tags.route_color || tags.color || '';
+  const swatch = c
+    ? `<span style="display:inline-block;width:10px;height:10px;border:1px solid #ccc;background:${esc(c)};vertical-align:middle;margin-right:4px"></span>`
+    : '';
+  return (
+    `<div style="font-size:12px;line-height:1.5">` +
+    rowHtml('route_name', tags.route_name) +
+    rowHtml('route_id', tags.route_id) +
+    rowHtml('railway', tags.railway) +
+    (c ? `<div><span style="color:#888">color</span> ${swatch}${esc(c)}</div>` : '') +
+    `</div>`
+  );
+};
 
 // 點 tooltip：與路線圖站點 hover 相同樣式（station_name/station_id/type/route_name_list）
 const nodeTooltipHtml = (tags) => {

@@ -4843,34 +4843,45 @@
     return ['ortho', vPick.segIdx, vPick.edgeIdxStart, vPick.edgeIdxEnd];
   };
 
-  /** 與示意圖紅十字對齊：由所有路段頂點之四捨五入 bbox 取幾何中心格座標（四捨五入） */
+  /**
+   * 與示意圖紅十字對齊：中心＝所有「紅/黃/藍/紫點（交叉點 connect／端點 terminal＝各路段端點，
+   * 不含路線上的黑點站）」之網格座標，x、y 各自取**中位數**，再取整數格。
+   */
   const gridOrthoCrossCenterRoundedFromFlat = (flat) => {
-    let xMin = Infinity;
-    let xMax = -Infinity;
-    let yMin = Infinity;
-    let yMax = -Infinity;
+    const xs = [];
+    const ys = [];
+    const seen = new Set();
+    const addEnd = (p) => {
+      const x = Array.isArray(p) ? Number(p[0]) : Number(p?.x);
+      const y = Array.isArray(p) ? Number(p[1]) : Number(p?.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      const rx = Math.round(x);
+      const ry = Math.round(y);
+      const k = `${rx},${ry}`;
+      if (seen.has(k)) return;
+      seen.add(k);
+      xs.push(rx);
+      ys.push(ry);
+    };
     if (Array.isArray(flat)) {
       for (const seg of flat) {
         const pts = Array.isArray(seg?.points) ? seg.points : [];
-        for (const p of pts) {
-          const x = Array.isArray(p) ? Number(p[0]) : Number(p?.x);
-          const y = Array.isArray(p) ? Number(p[1]) : Number(p?.y);
-          if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-          const rx = Math.round(x);
-          const ry = Math.round(y);
-          xMin = Math.min(xMin, rx);
-          xMax = Math.max(xMax, rx);
-          yMin = Math.min(yMin, ry);
-          yMax = Math.max(yMax, ry);
-        }
+        if (pts.length < 1) continue;
+        addEnd(pts[0]); // 路段起點（紅/藍/黃/紫，非黑點）
+        addEnd(pts[pts.length - 1]); // 路段迄點
       }
     }
-    if (!Number.isFinite(xMin) || !Number.isFinite(xMax)) {
+    if (!xs.length) {
       return { cx: 0, cy: 0 };
     }
+    const median = (arr) => {
+      const s = [...arr].sort((a, b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    };
     return {
-      cx: Math.round((xMin + xMax) / 2),
-      cy: Math.round((yMin + yMax) / 2),
+      cx: Math.round(median(xs)),
+      cy: Math.round(median(ys)),
     };
   };
 

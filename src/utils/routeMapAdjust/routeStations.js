@@ -216,10 +216,20 @@ export const computeRouteMapAdjustSkeletonStations = (lines, blackDots, stationC
       if (k > 0 && on[k - 1].si !== on[k].si) neighbors[on[k].si].add(on[k - 1].si);
       if (k < on.length - 1 && on[k + 1].si !== on[k].si) neighbors[on[k].si].add(on[k + 1].si);
     }
-    if (l.closed && on.length >= 2) {
+    // 🟢 環線(circle)：除了 closed===true，首尾同座標也算封閉 → 接起接縫，避免接縫站
+    //    被當成 degree-1 端點（藍點）。與 computeRouteMapAdjustLoopRoutes 的環線判定一致。
+    const lp = l.latlngs;
+    const isClosed =
+      l.closed === true ||
+      `${(+lp[0][0]).toFixed(6)},${(+lp[0][1]).toFixed(6)}` ===
+        `${(+lp[lp.length - 1][0]).toFixed(6)},${(+lp[lp.length - 1][1]).toFixed(6)}`;
+    if (isClosed && on.length >= 2) {
       const a = on[0].si;
       const z = on[on.length - 1].si;
-      if (a !== z) { neighbors[a].add(z); neighbors[z].add(a); }
+      if (a !== z) {
+        neighbors[a].add(z);
+        neighbors[z].add(a);
+      }
     }
   }
   const t = [];
@@ -526,6 +536,8 @@ export const computeRouteMapAdjustSharedEndpointSegments = (lines) => {
   const subpaths = [];
   safeLines.forEach((line, li) => {
     const pts = line.latlngs;
+    // 🟢 環線(circle)不列入「頭尾共點(藍)」：環線只走綠線，不會有藍點。
+    if (line.closed === true || nodeKey(pts[0]) === nodeKey(pts[pts.length - 1])) return;
     const redIdx = [];
     for (let i = 0; i < pts.length; i++) {
       if (routesThrough(pts[i], li) >= 2) redIdx.push(i);
@@ -804,17 +816,20 @@ export const buildRouteMapAdjustSkeleton = (lines, blackDots = null, stationCoor
     if (idxs.length >= 2) idxs.forEach((i) => htsEdgeIdx.add(i));
   }
 
-  // 各邊分類
-  const classified = edgesOut.map((e, i) => ({
-    ...e,
-    isMerged: (e.routes?.length || 0) >= 2, // 🔴 合併（共線）
-    isLoop: (e.routes || []).some((r) => loopRouteIdx.has(r.routeIndex)), // 🟢 環線
-    isHeadTailShared: htsEdgeIdx.has(i), // 🔵 頭尾共點（分歧邊）
-  }));
+  // 各邊分類（環線優先於頭尾共點：circle 一律走綠線、2 個紫點，不可被當成藍線只切 1 個）
+  const classified = edgesOut.map((e, i) => {
+    const isLoop = (e.routes || []).some((r) => loopRouteIdx.has(r.routeIndex)); // 🟢 環線
+    return {
+      ...e,
+      isMerged: (e.routes?.length || 0) >= 2, // 🔴 合併（共線）
+      isLoop,
+      isHeadTailShared: htsEdgeIdx.has(i) && !isLoop, // 🔵 頭尾共點（環線不算）
+    };
+  });
 
-  // 折線上「平均分佈的 n 個轉折點」之頂點索引（n+1 等分，各取最接近之彎折頂點）
-  const evenTurningIndices = (path, n) => {
-    if (!Array.isArray(path) || path.length < 3 || n < 1) return [];
+  // 折線上「指定弧長比例位置」之頂點索引（各取最接近該比例之彎折頂點）
+  const turningIndicesAtFractions = (path, fractions) => {
+    if (!Array.isArray(path) || path.length < 3 || !fractions.length) return [];
     const cum = [0];
     for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + planarDist(path[i - 1], path[i]));
     const total = cum[cum.length - 1];
@@ -833,8 +848,8 @@ export const buildRouteMapAdjustSkeleton = (lines, blackDots = null, stationCoor
     if (!cand.length) return [];
     const out = [];
     const used = new Set();
-    for (let j = 1; j <= n; j++) {
-      const target = (total * j) / (n + 1);
+    for (const fr of fractions) {
+      const target = total * fr;
       let best = -1;
       let bd = Infinity;
       for (const i of cand) {
@@ -853,13 +868,14 @@ export const buildRouteMapAdjustSkeleton = (lines, blackDots = null, stationCoor
     return out.sort((a, b) => a - b);
   };
 
-  // 🟣 在紫點（藍線 1 個、綠線 2 個轉折點）處「切斷」邊：紫點成為節點，邊一分為多段
+  // 🟣 紫點切斷位置：🔵 頭尾共點(藍線)＝1/2 處 1 個；🟢 環線(綠線)＝1/3、2/3 處 2 個；🔴 合併(共線)＝不切。
+  //    紫點成為節點，邊在該處一分為多段。
   const finalEdges = [];
   const purpleNodes = [];
   for (const e of classified) {
-    const purpleN = e.isMerged ? 0 : e.isHeadTailShared ? 1 : e.isLoop ? 2 : 0;
+    const fractions = e.isMerged ? [] : e.isLoop ? [1 / 3, 2 / 3] : e.isHeadTailShared ? [1 / 2] : [];
     const path = Array.isArray(e.path) ? e.path : [];
-    const idxs = purpleN ? evenTurningIndices(path, purpleN) : [];
+    const idxs = fractions.length ? turningIndicesAtFractions(path, fractions) : [];
     if (!idxs.length) {
       finalEdges.push(e);
       continue;
@@ -1016,9 +1032,11 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
   const connectKeys = new Set((connects || []).map((p) => llKey(p[0], p[1])));
   const nodeColor = (n) => {
     const k = llKey(n.latlng[0], n.latlng[1]);
-    if (n.isCross || connectKeys.has(k)) return '#ff0000'; // 🔴 交叉點 / 分歧(degree≥3)
+    if (n.isCross) return '#ffd600'; // 🟡 交叉點（與原本黃點一致）
+    if (n.isPurple) return '#9c27b0'; // 🟣 切斷點（與原本紫點一致）
+    if (connectKeys.has(k)) return '#ff0000'; // 🔴 分歧(degree≥3)
     if (terminalKeys.has(k)) return '#1565c0'; // 🔵 端點
-    return '#000000'; // 🖤 其餘（含原紫點切斷點）→ 黑
+    return '#000000'; // 🖤 其餘 → 黑
   };
   const nodeRadius = (n) => (n.isCross ? 8 : n.isPurple ? 6 : 4);
   const features = [];
@@ -1034,7 +1052,8 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
         tags: {
           route_id: String(i + 1),
           route_name: e.routes?.[0]?.routeName || `骨架邊 ${i + 1}`,
-          color: routeColorOf(e), // 路線原色（主線，畫在上面）
+          color: routeColorOf(e), // 主線繪製色（骨架一律黑）
+          route_color: e.routes?.[0]?.color || '', // 真正的路線顏色（hover 顯示用）
           hl_color: hlColorOf(e), // 共線/環線/頭尾共點底色（墊在底下；無則空）
           railway: 'subway',
         },
@@ -1079,6 +1098,7 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
           station_id: `n${nid}`,
           station_name: '',
           type: n.isCross ? 'intersection' : 'normal',
+          node_kind: n.isPurple ? 'purple' : n.isCross ? 'cross' : '', // 🟣 切斷點 halo 用
           node_class_color: nodeColor(n),
           node_class_r: nodeRadius(n),
           route_name_list: (n.routes || []).map((r) => r.routeName).filter(Boolean),

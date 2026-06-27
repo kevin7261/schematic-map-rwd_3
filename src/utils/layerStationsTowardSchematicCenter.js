@@ -518,6 +518,54 @@ function isAxisTurnCell(adj, cx, cy) {
   return hasHorizNeighbor(adj, cx, cy) && hasVertNeighbor(adj, cx, cy);
 }
 
+/** 中位數（偶數取中間兩數平均） */
+function medianOf(arr) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/**
+ * 「往中心聚集」之中心：取所有「紅/黃/藍/紫點」(交叉點 connect／端點 terminal＝各 segment 端點；
+ * 不含路線上的黑點站) 之網格座標，x、y 各自取中位數並取整數格 → {gx, gy}（無點則 null）。
+ */
+export function getMedianAnchorCenterGrid(layer) {
+  const flat = normalizeSpaceNetworkDataToFlatSegments(layer?.spaceNetworkGridJsonData || []);
+  const xs = [];
+  const ys = [];
+  const seen = new Set();
+  const addEnd = (pt) => {
+    const [x, y] = getC(pt);
+    const rx = Math.round(toNum(x));
+    const ry = Math.round(toNum(y));
+    const k = `${rx},${ry}`;
+    if (seen.has(k)) return;
+    seen.add(k);
+    xs.push(rx);
+    ys.push(ry);
+  };
+  for (const seg of flat || []) {
+    const pts = seg?.points;
+    if (!Array.isArray(pts) || pts.length < 2) continue;
+    addEnd(pts[0]);
+    addEnd(pts[pts.length - 1]);
+  }
+  const mx = medianOf(xs);
+  const my = medianOf(ys);
+  if (mx == null || my == null) return null;
+  return { gx: Math.round(mx), gy: Math.round(my) };
+}
+
+/** 中位數中心對應之繪圖座標 [centerX, centerY]（無則 null） */
+function getMedianAnchorCenterPlot(layer) {
+  const med = getMedianAnchorCenterGrid(layer);
+  if (!med) return null;
+  const [px, py] = mapNetworkToSchematicPlotXY(layer, med.gx, med.gy);
+  if (!Number.isFinite(px) || !Number.isFinite(py)) return null;
+  return [px, py];
+}
+
 function getCenteringBounds(layer) {
   const bounds = getSchematicPlotBoundsFromLayer(layer);
   if (!bounds) return null;
@@ -539,13 +587,15 @@ function getCenteringBounds(layer) {
     addPt(px, py);
   }
 
+  const med = getMedianAnchorCenterPlot(layer);
   return {
     xMin,
     xMax,
     yMin,
     yMax,
-    centerX: (xMin + xMax) / 2,
-    centerY: (yMin + yMax) / 2,
+    // 🎯 中心＝紅/黃/藍/紫點（交叉點/端點）之中位數中心（整數格）；無點時退回幾何中心
+    centerX: med ? med[0] : (xMin + xMax) / 2,
+    centerY: med ? med[1] : (yMin + yMax) / 2,
   };
 }
 
@@ -556,13 +606,15 @@ function getCenteringBounds(layer) {
 function getSchematicCenteringBoundsForSlide(layer) {
   const b = getSchematicPlotBoundsFromLayer(layer);
   if (!b) return null;
+  const med = getMedianAnchorCenterPlot(layer);
   return {
     xMin: b.xMin,
     xMax: b.xMax,
     yMin: b.yMin,
     yMax: b.yMax,
-    centerX: (b.xMin + b.xMax) / 2,
-    centerY: (b.yMin + b.yMax) / 2,
+    // 🎯 中心＝紅/黃/藍/紫點（交叉點/端點）之中位數中心（整數格）；無點時退回幾何中心
+    centerX: med ? med[0] : (b.xMin + b.xMax) / 2,
+    centerY: med ? med[1] : (b.yMin + b.yMax) / 2,
   };
 }
 
@@ -633,8 +685,9 @@ function axisDistanceToSlideTarget(layer, tcx, tcy, x, y, dx) {
  */
 function wouldCrossSchematicBlueDashedCenterLines(layer, gx0, gy0, gx1, gy1, dx, dy, frame) {
   if (!frame || !Number.isFinite(frame.xMin)) return false;
-  const crossCx = (frame.xMin + frame.xMax) / 2;
-  const crossCy = (frame.yMin + frame.yMax) / 2;
+  // 與滑動目標一致：優先用中位數中心（frame.centerX/centerY），無則退回幾何中心
+  const crossCx = Number.isFinite(frame.centerX) ? frame.centerX : (frame.xMin + frame.xMax) / 2;
+  const crossCy = Number.isFinite(frame.centerY) ? frame.centerY : (frame.yMin + frame.yMax) / 2;
   const [px0, py0] = mapNetworkToSchematicPlotXY(layer, gx0, gy0);
   const [px1, py1] = mapNetworkToSchematicPlotXY(layer, gx1, gy1);
   const onVertLine = (px) => Math.abs(px - crossCx) < BLUE_DASHED_CROSS_EPS;

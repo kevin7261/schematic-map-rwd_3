@@ -284,9 +284,104 @@ export function mountRouteMapAdjust(el, dataStore) {
     });
   };
 
+  // 目前所有黑點站（車站）座標清單，供紫點 highlight 選取「最中心的車站」
+  const blackStationPts = () => {
+    const { blacks } = computeRouteMapAdjustStations(
+      layer.routeMapAdjustLines,
+      layer.routeMapAdjustBlackDots,
+      Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) => k.split(',').map(Number))
+    );
+    return Array.isArray(blacks) ? blacks : [];
+  };
+  // 點到線段最近點
+  const closestOnSeg = (p, a, b) => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return a;
+    let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return [a[0] + dx * t, a[1] + dy * t];
+  };
+  // 找出 path 上「最接近各弧長比例」的黑點站（車站）座標：紫點 highlight 要落在最中心的車站上，
+  //   而非幾何中心點（內插點）。以投影方式找「落在 path 上」的黑點站（容差），避免座標精度不符而漏抓。
+  const blackStationsNearFractions = (path, fractions, blackPts) => {
+    if (!Array.isArray(path) || path.length < 2) return [];
+    const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+    const cum = [0];
+    for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + d(path[i - 1], path[i]));
+    const total = cum[cum.length - 1] || 1;
+    const ON = 3e-5; // 約 3m：黑點站是否落在此 path 上
+    // 候選＝投影距離夠近的黑點站，記其在 path 上的弧長位置
+    const cands = [];
+    for (const s of blackPts) {
+      if (!Array.isArray(s) || s.length < 2) continue;
+      let bd = Infinity;
+      let bpos = 0;
+      for (let i = 1; i < path.length; i++) {
+        const cp = closestOnSeg(s, path[i - 1], path[i]);
+        const dist = d(s, cp);
+        if (dist < bd) {
+          bd = dist;
+          bpos = cum[i - 1] + d(path[i - 1], cp);
+        }
+      }
+      if (bd <= ON) cands.push({ p: s, pos: bpos });
+    }
+    if (!cands.length) return [];
+    const out = [];
+    const used = new Set();
+    for (const fr of fractions) {
+      const target = total * fr;
+      let best = null;
+      let bd = Infinity;
+      for (const c of cands) {
+        const k = llKey(c.p[0], c.p[1]);
+        if (used.has(k)) continue;
+        const dd = Math.abs(c.pos - target);
+        if (dd < bd) {
+          bd = dd;
+          best = c;
+        }
+      }
+      if (best) {
+        used.add(llKey(best.p[0], best.p[1]));
+        out.push(best.p);
+      }
+    }
+    return out;
+  };
+  // 🟣 在「最中心的黑點站」處畫紫色 highlight——樣式與黃色交叉點完全相同（紫色光暈 halo + 實心點）
+  const addPurpleCuts = (group, path, fractions, blackPts) => {
+    for (const c of blackStationsNearFractions(path, fractions, blackPts)) {
+      // 紫色底色光暈（halo）
+      L.circleMarker(c, {
+        radius: 10,
+        color: '#9c27b0',
+        weight: 0,
+        fillColor: '#9c27b0',
+        fillOpacity: 0.45,
+        interactive: false,
+        pane: 'srmaDots',
+      }).addTo(group);
+      // 紫點
+      L.circleMarker(c, {
+        radius: 5,
+        color: '#ffffff', // 白色 1px border
+        weight: 1,
+        fillColor: '#9c27b0',
+        fillOpacity: 1,
+        interactive: false,
+        pane: 'srmaDots',
+      }).addTo(group);
+    }
+  };
+
   // 🔵 頭尾共點：以藍色粗線標示「端點 → 下一個交叉點」之間的整段子路徑（底色，墊在路線底下）
+  //    並在 1/2 處放紫點（切斷位置）
   const renderEndpoints = () => {
     endpointGroup.clearLayers();
+    const bset = blackStationPts();
     const segs = computeRouteMapAdjustSharedEndpointSegments(layer.routeMapAdjustLines);
     for (const s of segs) {
       if (!Array.isArray(s.path) || s.path.length < 2) continue;
@@ -299,12 +394,15 @@ export function mountRouteMapAdjust(el, dataStore) {
         interactive: false,
         pane: 'srmaUnder', // 墊在路線底下
       }).addTo(endpointGroup);
+      addPurpleCuts(endpointGroup, s.path, [1 / 2], bset); // 🟣 藍線：最接近 1/2 的車站
     }
   };
 
   // 🟢 頭尾同點（環線）：單一路線頭尾為同一點，以綠色粗線標示整條（底色，墊在路線底下）
+  //    並在 1/3、2/3 處放紫點（切斷位置）。環線(circle)只有綠線、不會有藍點。
   const renderLoops = () => {
     loopGroup.clearLayers();
+    const bset = blackStationPts();
     const loops = computeRouteMapAdjustLoopRoutes(layer.routeMapAdjustLines);
     for (const s of loops) {
       if (!Array.isArray(s.path) || s.path.length < 2) continue;
@@ -317,6 +415,7 @@ export function mountRouteMapAdjust(el, dataStore) {
         interactive: false,
         pane: 'srmaUnder', // 墊在路線底下
       }).addTo(loopGroup);
+      addPurpleCuts(loopGroup, s.path, [1 / 3, 2 / 3], bset); // 🟣 綠線：最接近 1/3、2/3 的車站
     }
   };
 
@@ -412,10 +511,12 @@ export function mountRouteMapAdjust(el, dataStore) {
     for (const n of sk.nodes || []) {
       if (!n || !Array.isArray(n.latlng)) continue;
       const nk = llKey(n.latlng[0], n.latlng[1]);
-      // 骨架：點只有 🔴 交叉點/分歧（isCross 或 degree≥3）／🔵 端點／🖤 其餘（含原紫切斷點）。
+      // 骨架：🟡 交叉點(isCross)→黃／🟣 切斷點(isPurple)→紫／🔴 分歧(connect, degree≥3)→紅／🔵 端點→藍／🖤 其餘→黑。
       const baseR = 4;
       let fill = '#000000';
-      if (n.isCross || connectKeys.has(nk)) fill = '#ff0000';
+      if (n.isCross) fill = '#ffd600';
+      else if (n.isPurple) fill = '#9c27b0';
+      else if (connectKeys.has(nk)) fill = '#ff0000';
       else if (terminalKeys.has(nk)) fill = '#1565c0';
       const m = L.circleMarker(n.latlng, {
         radius: baseR,

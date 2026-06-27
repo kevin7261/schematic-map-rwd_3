@@ -8714,7 +8714,7 @@
               hbL3.color.trim() !== ''
               ? hbL3.color.trim()
               : hlStroke
-            : fillColor;
+            : '#ffffff'; // 白邊（與骨架點一致；非高亮時）
       }
 
       // 🎨「路線圖處理」示意圖佈局骨架：點用骨架分類色（黃交叉/紫切斷/紅 connect/藍 terminal/灰）+ 白色 1px border
@@ -10746,8 +10746,20 @@
           Number.isFinite(yMax);
         const spanOk = bboxOk && xMax > xMin && yMax > yMin;
         if (useFrozen || (bboxOk && spanOk)) {
-          const cxG = useFrozen ? Math.round(Number(fc.cx)) : Math.round((xMin + xMax) / 2);
-          const cyG = useFrozen ? Math.round(Number(fc.cy)) : Math.round((yMin + yMax) / 2);
+          // 中心＝紅/黃/藍/紫點（交叉點/端點）之中位數中心（整數格）；無則退回 bbox 幾何中點
+          const med = useFrozen
+            ? null
+            : layerStationsTowardSchematicCenter.getMedianAnchorCenterGrid(hlLayer);
+          const cxG = useFrozen
+            ? Math.round(Number(fc.cx))
+            : med
+              ? med.gx
+              : Math.round((xMin + xMax) / 2);
+          const cyG = useFrozen
+            ? Math.round(Number(fc.cy))
+            : med
+              ? med.gy
+              : Math.round((yMin + yMax) / 2);
           const crossG = zoomGroup
             .append('g')
             .attr('class', 'line-orthogonal-grid-center-crosshair')
