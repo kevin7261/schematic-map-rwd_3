@@ -1,15 +1,15 @@
 /* eslint-disable no-console */
 
 /**
- * Nöllenburg & Wolff (2011) 之 octilinear MILP 求解驅動（**忠實單次求解**）。
+ * 共用精確「八方向佈局引擎」（Nöllenburg & Wolff MILP 的硬約束）。三個比較圖層共用，
+ * 差別僅在**目標函數權重**與**初始化方位**（反映各論文精神）；硬約束相同 →
+ * 三層輸出皆為**精確八方向、零交叉、零重疊、零重合**的整數佈局。
  *
- * 依論文：解「一個」MILP（H1–H3 + S1–S3，整數八方向座標），H4 平面性以 §5.2 的
- * **惰性 cutting-plane** 加入——初始模型不含 H4，解出後偵測「相交 / 壓線 / 重合」的非相鄰邊對，
- * 加入對應 H4 分離約束後重解，直到無違規或達上限。無兩階段釘死方向、無 sepPairs 補丁
- * （H3 最小段長 + H4 分離即保證不重疊/不重合，符合論文精確模型）。
- *
- * 註：瀏覽器 HiGHS/WASM 無 solver callback，故以「重解」實現惰性加入（數學等價，效率較低）。
- *     大型網路可能於時限內無解 → 誠實回報失敗（由 solveSchematic 呈現，不以啟發式冒充）。
+ * 兩階段（在瀏覽器內以 HiGHS/WASM 可解）：
+ *  Phase 1（連續座標 + 惰性 H4）：解 → 找交叉邊對 → 加 H4 分離 → 重解，直到零交叉。
+ *    連續解的「邊方向(dir binary)」精確可靠，但連續座標取整會讓少數 45° 邊差 1 格。
+ *  Phase 2（釘死方向 + 整數座標 + 惰性節點分離）：把 Phase 1 的方向釘死、座標改整數，
+ *    再解（極快）→ 找座標重合節點 → 加分離 → 重解，得**精確八方向整數**且無重合。
  */
 
 import { buildMilpModel } from './buildMilpModel.js';
@@ -19,7 +19,7 @@ import { findCrossingPairs, findNodeOnForeignEdgePairs } from '../objective.js';
 const NDIR = 8;
 const TWO_PI = Math.PI * 2;
 
-/** 由「啟發式初始座標」算每邊偏好的 8 方向（供 S2 軟成本拉向；不動硬約束）。保留供外部使用。 */
+/** 由「啟發式初始座標」算每邊偏好的 8 方向（供各論文以 S2 軟成本拉向其形狀；不動硬約束）。 */
 export function computePreferredDirs(graph, coords) {
   const pref = {};
   for (const e of graph.edges) {
@@ -52,30 +52,17 @@ function findClashes(coords) {
   }
   return out;
 }
-/** 把「重合節點對」轉成一組非相鄰入射邊對，供 H4 分離（保持惰性 H4 框架，不另設 sepPairs）。 */
-function clashToEdgePair(graph, a, b) {
-  const incA = graph.incident[a] || [];
-  const incB = graph.incident[b] || [];
-  for (const x of incA) {
-    for (const y of incB) {
-      const ex = graph.edges[x], ey = graph.edges[y];
-      if (ex.u === ey.u || ex.u === ey.v || ex.v === ey.u || ex.v === ey.v) continue;
-      return [x, y];
-    }
-  }
-  return null;
-}
 
 /**
  * @param {object} graph split 後的抽象圖（nodes 帶初始 x/y → 決定方位偏好 k0）
- * @param {object} opts { weights:{wBend,wRpos,wLen}, timeLimit, maxTimeLimit, maxH4Iter, preferredDirs }
- * @returns {Promise<{ ok, coords?, status?, objective?, h4Pairs?, message? }>}
+ * @param {object} opts { weights:{wBend,wRpos,wLen}, timeLimit, maxH4Iter, maxSepIter }
+ * @returns {Promise<{ ok, coords?, status?, objective?, h4Pairs?, sepPairs?, message? }>}
  */
 export async function runOctilinearLayout(graph, opts = {}) {
   const weights = opts.weights || {};
   const TIME = opts.timeLimit ?? 30;
-  const MAX_TIME = opts.maxTimeLimit ?? 120;
   const MAX_H4 = opts.maxH4Iter ?? 8;
+  const MAX_SEP = opts.maxSepIter ?? 8;
   const report = typeof opts.onProgress === 'function' ? opts.onProgress : () => {};
 
   let highs;
@@ -85,9 +72,12 @@ export async function runOctilinearLayout(graph, opts = {}) {
     return { ok: false, message: 'HiGHS 求解器無法載入（可能離線/CDN 被擋）：' + (e?.message || e) };
   }
 
+  // 求解一個模型；若「退化/找不到可行整數解」，**逐步加時重試**（瀏覽器 WASM 較慢，
+  // 第一個可行整數解有時 30s 不夠）。回傳 { cols, cur, degenerate, status, objective } 或 null（真無解）。
+  const MAX_TIME = opts.maxTimeLimit ?? 120;
   function solveEscalating(model, tag) {
     let t = TIME;
-    for (;;) {
+    for (let attempt = 0; ; attempt++) {
       let result;
       try {
         result = highs.solve(model.lp, { time_limit: t, presolve: 'on' });
@@ -104,73 +94,98 @@ export async function runOctilinearLayout(graph, opts = {}) {
       }
       t = Math.min(MAX_TIME, t * 2);
       report(`${tag}：尚未找到可行整數解，加時重試（${t}s）…`);
+      console.log(`[Octi] ${tag} 退化(無可行整數解)，加時重試 → ${t}s …`);
     }
   }
 
-  // ---- 單次求解 + 惰性 H4（cutting-plane）：整數八方向座標 ----
+  // ---- Phase 1：連續座標 + 惰性 H4，求到零交叉 ----
   const h4Pairs = [];
   const seenH4 = new Set();
   let bestCoords = null;
-  let bestBad = Infinity;
+  let bestCrossings = Infinity;
+  let bestCols = null;
   let status = '';
   let objective = 0;
-
   for (let iter = 0; iter < MAX_H4; iter++) {
-    report(`MILP 求解（八方向+消交叉+消壓線+消重合）第 ${iter + 1} 輪…`);
-    const model = buildMilpModel(graph, {
-      ...weights,
-      h4Pairs,
-      integerCoords: true,
-      preferredDirs: opts.preferredDirs,
-    });
-    const sol = solveEscalating(model, `iter ${iter}`);
+    report(`階段一（求八方向+消交叉+消壓線）第 ${iter + 1} 輪…`);
+    const model = buildMilpModel(graph, { ...weights, h4Pairs, preferredDirs: opts.preferredDirs });
+    const sol = solveEscalating(model, `phase1 iter ${iter}`);
     if (sol.error) { if (bestCoords) break; return { ok: false, message: sol.error }; }
     status = sol.status;
-    if (!sol.cols) { if (bestCoords) break; return { ok: false, message: `MILP 無可行解（iter ${iter}，status=${status}）` }; }
-    if (sol.degenerate) {
-      if (bestCoords) break;
-      return { ok: false, message: `MILP 在 ${MAX_TIME}s 內找不到有意義整數解（模型對瀏覽器太重）。`, status };
-    }
-
+    if (!sol.cols) { if (bestCoords) break; return { ok: false, message: `MILP 無可行解（phase1 iter ${iter}，status=${status}）` }; }
     const cur = sol.cur;
-    const crossPairs = findCrossingPairs(graph, cur);
-    const onEdgePairs = findNodeOnForeignEdgePairs(graph, cur);
-    const clashes = findClashes(cur);
-    const bad = crossPairs.length + onEdgePairs.length + clashes.length;
-    console.log(`[NW11] iter ${iter}: status=${status} 交叉=${crossPairs.length} 壓線=${onEdgePairs.length} 重合=${clashes.length} H4對=${h4Pairs.length}`);
-
-    if (bad < bestBad) { bestBad = bad; bestCoords = cur; objective = sol.objective; }
-    if (bad === 0) break;
-
-    // 惰性加入新違規邊對。
+    const degenerate = sol.degenerate;
+    // 「不乾淨」= 交叉 + 節點壓在他線上（路線壓過非該線之紅/藍點）
+    const crossPairs = degenerate ? [] : findCrossingPairs(graph, cur);
+    const onEdgePairs = degenerate ? [] : findNodeOnForeignEdgePairs(graph, cur);
+    const badCount = degenerate ? Infinity : crossPairs.length + onEdgePairs.length;
+    console.log(`[Octi] phase1 iter ${iter}: status=${status} 交叉=${degenerate ? 'degen' : crossPairs.length} 壓線=${degenerate ? '-' : onEdgePairs.length} H4對=${h4Pairs.length}`);
+    if (degenerate) { if (bestCoords) break; return { ok: false, message: `MILP 在 ${MAX_TIME}s 內仍找不到有意義整數解（模型對瀏覽器太重）。`, status }; }
+    if (badCount < bestCrossings) {
+      bestCrossings = badCount;
+      bestCoords = cur;
+      bestCols = sol.cols;
+      objective = sol.objective;
+    }
+    if (badCount === 0) break;
     let added = 0;
-    const pushPair = (a, b) => {
-      if (a == null || b == null) return;
+    for (const [a, b] of [...crossPairs, ...onEdgePairs]) {
       const key = a < b ? `${a}-${b}` : `${b}-${a}`;
-      if (seenH4.has(key)) return;
+      if (seenH4.has(key)) continue;
       seenH4.add(key);
       h4Pairs.push([a, b]);
       added++;
-    };
-    for (const [a, b] of crossPairs) pushPair(a, b);
-    for (const [a, b] of onEdgePairs) pushPair(a, b);
-    for (const [a, b] of clashes) {
-      const ep = clashToEdgePair(graph, a, b);
-      if (ep) pushPair(ep[0], ep[1]);
     }
-    if (added === 0) break; // 無法再加新約束 → 收斂或受限
+    if (added === 0) break;
+  }
+  if (!bestCoords || !bestCols) {
+    return { ok: false, message: `MILP 僅得退化/超時解（HiGHS 在 ${MAX_TIME}s 內找不到有意義整數解；模型對瀏覽器太重）。`, status };
   }
 
-  if (!bestCoords) {
-    return { ok: false, message: `MILP 未得有效解（HiGHS 在 ${MAX_TIME}s 內無有意義整數解）。`, status };
+  // ---- 從最佳連續解抽取邊方向 ----
+  const fixDirs = {};
+  for (const e of graph.edges) {
+    let kk = 0;
+    for (let k = 0; k < NDIR; k++) if (Number(bestCols[`dir_${e.id}_${k}`]?.Primal ?? 0) > 0.5) { kk = k; break; }
+    fixDirs[e.id] = kk;
+  }
+
+  // ---- Phase 2：釘死方向 + 整數座標 + 惰性節點分離 ----
+  const sepPairs = [];
+  let coords = bestCoords;
+  let p2status = '';
+  for (let iter = 0; iter < MAX_SEP; iter++) {
+    report(`階段二（整數座標+去重合）第 ${iter + 1} 輪…`);
+    const model = buildMilpModel(graph, { ...weights, h4Pairs, fixDirs, sepPairs, integerCoords: true, preferredDirs: opts.preferredDirs });
+    const sol = solveEscalating(model, `phase2 iter ${iter}`);
+    if (sol.error) { console.warn('[Octi] ' + sol.error + '，沿用 phase1 best'); break; }
+    p2status = sol.status;
+    if (!sol.cols || sol.degenerate) {
+      console.warn(`[Octi] phase2 iter ${iter} 無有效解 status=${p2status}，沿用 phase1 best`);
+      break;
+    }
+    coords = sol.cur;
+    const clashes = findClashes(coords);
+    const onEdgePairs = findNodeOnForeignEdgePairs(graph, coords); // 節點壓在他線上
+    console.log(`[Octi] phase2 iter ${iter}: status=${p2status} 重合節點=${clashes.length} 壓線=${onEdgePairs.length} 分離對=${sepPairs.length}`);
+    if (!clashes.length && !onEdgePairs.length) break;
+    let added = 0;
+    for (const [a, b] of clashes) {
+      if (!sepPairs.some(([x, y]) => x === a && y === b)) { sepPairs.push([a, b]); added++; }
+    }
+    for (const [a, b] of onEdgePairs) {
+      const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+      if (!seenH4.has(key)) { seenH4.add(key); h4Pairs.push([a, b]); added++; }
+    }
+    if (added === 0) break;
   }
 
   return {
     ok: true,
-    coords: bestCoords,
-    status,
+    coords,
+    status: `${status} / p2:${p2status}`,
     objective,
     h4Pairs: h4Pairs.length,
-    sepPairs: 0,
+    sepPairs: sepPairs.length,
   };
 }

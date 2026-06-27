@@ -1,21 +1,19 @@
 /**
- * Nöllenburg & Wolff (2011)「Drawing and Labeling High-Quality Metro Maps by
- * Mixed-Integer Programming」(IEEE TVCG 17(5)) 之 octilinear MILP，依論文 §4 公式實作，
- * 輸出 CPLEX LP 供 HiGHS 求解。本檔為**忠實單次求解**模型（不做兩階段釘死方向）。
+ * Nöllenburg & Wolff (2011)「Drawing High-Quality Metro Maps by MIP」**octilinear** MILP，
+ * 依論文 §4 公式實作，輸出 CPLEX LP 供 HiGHS 求解。
  *
  * 方向 k（sector，CCW）：0=E 1=NE 2=N 3=NW 4=W 5=SW 6=S 7=SE；opp=(k+4)%8。
  *
  * 硬約束：
- *  (H1)&(H3) §4.2 Eq.1–3：每邊限「最近 3 個 octilinear 方向 {prec,orig,succ}」之一（論文模型，
- *            預設 dirWidth=1 → 3 方向）；對應方向之座標一致(big-M)＋最小段長 ℓ。
- *  (H2)      §4.3 Eq.4–5：保持節點周圍鄰邊之環狀順序（外向方向沿 rotation order 嚴格遞增、僅一處換圈）。
- *  (H4)      §4.4 Eq.6–7：每對「非相鄰邊」至少一個 octilinear 方向相隔 d_min。
- *            依 §5.2 以**惰性約束**加入（cutting-plane）：只對「目前解中相交/壓線/重合」的邊對加 H4，迭代重解。
+ *  (H1)&(H3) §4.2：每邊限「最近 3 個 octilinear 方向(orig,prec,succ)」之一；對應方向之座標一致(big-M)＋最小段長 ℓ。
+ *  (H2)      §4.3：保持節點周圍鄰邊之環狀順序（外向方向沿 rotation order 嚴格遞增、僅一處換圈 Σβ=1）。
+ *  (H4)      §4.4：每對「非相鄰邊」至少一個 octilinear 方向相隔 d_min（防交叉/重疊→防塌縮）。
+ *            依論文 §5.2 以**惰性約束**加入：只對「目前解中相交的邊對」加 H4，迭代重解。opts.h4Pairs 提供這些邊對。
  *
- * 軟約束(目標，§4.8 Eq.15)：
- *  (S1) §4.5 Eq.8–10 漸進式彎折成本：bd(u,v,w)=4−min(Δ,8−Δ)∈{0,1,2,3}（0=直線穿過、越銳越貴）。
- *  (S2) §4.6 Eq.11–12 相對位置：未用最近(輸入)方向則計成本。
- *  (S3) §4.7 Eq.13–14 總長：Σ L_e（L∞ 段長）。
+ * 軟約束(目標)：
+ *  (S1) 線彎折：同線相鄰段於節點趨向直線穿過（外向方向相反）。
+ *  (S2) 相對位置：未用最近方向(orig)則計 1。
+ *  (S3) 總長：Σλ_e（λ_e≥|ΔX|,|ΔY| 之 L∞ 長上界）。
  */
 
 import { computeRotationSystem, buildSameRouteEdgePairsAtNodes } from '../graph.js';
@@ -58,23 +56,30 @@ function projTerms(cx, cy, nodeId, sign) {
 /**
  * @param {object} graph
  * @param {{ Lmin?:number, dMin?:number, wBend?:number, wRpos?:number, wLen?:number,
- *   dirWidth?:number, h4Pairs?:Array<[number,number]>, integerCoords?:boolean, preferredDirs?:object }} [opts]
+ *   h4Pairs?:Array<[number,number]>, fixDirs?:object, integerCoords?:boolean, sepPairs?:Array<[number,number]> }} [opts]
+ *
+ * 兩階段求解支援：
+ *  - fixDirs: { [edgeId]: k } 把每邊方向釘死（第二階段用），消去方向自由度。
+ *  - integerCoords: true 時 X/Y/L 宣告為整數（第二階段，得精確八方向整數座標）。
+ *  - sepPairs: [[a,b],…] 對「座標重合之節點對」加分離約束（≥1 格），惰性加入。
  */
 export function buildMilpModel(graph, opts = {}) {
   const { nodes, edges, incident } = graph;
   const V = nodes.length;
   const Lmin = opts.Lmin ?? 2;
   const dMin = opts.dMin ?? 1;
+  // COORDMAX 越小 → big-M 越緊 → LP 鬆弛越緊、MIP 越快找到可行整數解（過小則放不下會 infeasible）。
+  // 中心錨定下 V*2 足夠容納緊湊 octilinear 佈局，且 big-M 較 V*4 緊一半 → 求解快很多。
   const COORDMAX = opts.coordMax ?? Math.max(40, V * 2);
   const M = 2 * COORDMAX + 10;
-  const wBend = opts.wBend ?? 1.5;
-  const wRpos = opts.wRpos ?? 1.5;
-  const wLen = opts.wLen ?? 0.1;
+  const wBend = opts.wBend ?? 5;
+  const wRpos = opts.wRpos ?? 3; // (S2) 相對位置：放寬方向後靠它把邊拉回原始方位、防塌縮
+  const wLen = opts.wLen ?? 0.3;
   const h4Pairs = opts.h4Pairs || [];
+  const fixDirs = opts.fixDirs || null;
+  const sepPairs = opts.sepPairs || [];
   const integerCoords = !!opts.integerCoords;
-  // §4.2 Eq.1：每邊限最近 3 方向（dirWidth=1 → diff≤1 → {prec,orig,succ}）。論文模型即此。
-  const dirWidth = opts.dirWidth ?? 1;
-  // 各論文「方向偏好」：S2 相對位置軟成本拉向此方向（不動硬約束）。
+  // 各論文「方向偏好」：S2 相對位置軟成本拉向此方向（不動硬約束/嵌入 → 穩定可解）。
   const preferredDirs = opts.preferredDirs || null;
 
   const rot = computeRotationSystem(graph);
@@ -86,23 +91,27 @@ export function buildMilpModel(graph, opts = {}) {
   const boundsExtra = [];
   let ci = 0;
 
-  // ---- (H1)&(H3) 每邊：限 3 方向 + 座標一致 + 最小段長；(S2) 相對位置 ----
-  const allowedByEdge = {};
+  // ---- (H1)&(H3) 每邊：方向唯一(限 3 方向) + 座標一致 + 最小段長；(S2) 相對位置 ----
   for (const e of edges) {
     const ang0 = Math.atan2(nodes[e.v].y - nodes[e.u].y, nodes[e.v].x - nodes[e.u].x);
     let k0 = Math.round(ang0 / (TWO_PI / NDIR));
     k0 = ((k0 % NDIR) + NDIR) % NDIR;
+    // 論文 §4.2「限最近數方向」：D 越小 → 二元變數越少、MIP 越輕（瀏覽器單執行緒可解）。
+    // 但過緊會與 H2 環序在高度數節點衝突致 infeasible → D 隨節點度數自動放寬。
+    const deg = Math.max(incident[e.u].length, incident[e.v].length);
+    const D = opts.dirWidth != null ? Math.max(opts.dirWidth, deg >= 5 ? 3 : opts.dirWidth) : NDIR;
     const allowed = [];
     for (let k = 0; k < NDIR; k++) {
       let diff = Math.abs(k - k0);
       diff = Math.min(diff, NDIR - diff);
-      if (diff <= dirWidth) allowed.push(k);
+      if (diff <= D) allowed.push(k);
       else cons.push(`c${ci++}: dir_${e.id}_${k} = 0`);
     }
-    allowedByEdge[e.id] = allowed;
     let sum = '';
     for (let k = 0; k < NDIR; k++) sum += term(1, `dir_${e.id}_${k}`);
     cons.push(`c${ci++}:${sum} = 1`);
+    // 第二階段：方向釘死
+    if (fixDirs && fixDirs[e.id] != null) cons.push(`c${ci++}: dir_${e.id}_${fixDirs[e.id]} = 1`);
     for (const k of allowed) {
       const [cx, cy] = DIRV[k];
       const d = `dir_${e.id}_${k}`;
@@ -115,13 +124,14 @@ export function buildMilpModel(graph, opts = {}) {
     }
     for (let k = 0; k < NDIR; k++) bin.push(`dir_${e.id}_${k}`);
     boundsExtra.push(`${fmt(Lmin)} <= L_${e.id} <= ${fmt(COORDMAX)}`);
-    // (S2) §4.6：未用偏好方向(預設=地理最近 k0)則計成本 → 最大化 dir_e_kPref。
+    // (S2) 相對位置：未用偏好方向則計 1 → 最大化 dir_e_kPref（kPref 預設為地理最近方向 k0）
     const kPref = preferredDirs && preferredDirs[e.id] != null ? preferredDirs[e.id] : k0;
     if (!e.isLink) obj.push(term(-wRpos, `dir_${e.id}_${kPref}`));
   }
 
   // ---- (H2) 每節點：保持環狀邊序（外向方向）----
-  for (let n = 0; n < V; n++) {
+  // 第二階段方向已釘死時可略過 H2（環序由釘死方向隱含；保留反而可能因微小排序差致 infeasible）。
+  if (!opts.skipH2) for (let n = 0; n < V; n++) {
     const R = rot[n];
     const m = R.length;
     if (m < 2) continue;
@@ -136,37 +146,25 @@ export function buildMilpModel(graph, opts = {}) {
     cons.push(`c${ci++}:${wsum} = 1`);
   }
 
-  // ---- (S1) §4.5 Eq.8–10：漸進式彎折成本 ----
-  // 同線相鄰段 (e1,e2) 於節點 v：依其外向方向組合 (out1,out2) 計 bd=4−min(Δ,8−Δ)，Δ=(out2−out1) mod 8。
-  // 直線穿過(out2=opp(out1)) → bd=0；45°→1；90°→2；135°→3。以 z 變數選取實際組合並計成本。
+  // ---- (S1) line straightness：直線穿過 = 該節點兩邊外向方向相反 ----
   let pidx = 0;
   for (const pr of routePairs) {
     const v = pr.node;
     const e1 = edges[pr.e1];
     const e2 = edges[pr.e2];
-    const a1 = allowedByEdge[e1.id] || [];
-    const a2 = allowedByEdge[e2.id] || [];
-    let zsum = '';
-    for (const k1 of a1) {
-      const out1 = e1.u === v ? k1 : (k1 + 4) % NDIR;
-      for (const k2 of a2) {
-        const out2 = e2.u === v ? k2 : (k2 + 4) % NDIR;
-        const delta = (out2 - out1 + NDIR) % NDIR;
-        const bd = 4 - Math.min(delta, NDIR - delta); // 0..4（0=直線穿過）
-        const z = `z_${pidx}_${k1}_${k2}`;
-        // z 僅當 e1 取 k1 且 e2 取 k2 時可為 1；Σz=1 → 恰選實際組合。
-        cons.push(`c${ci++}:${term(1, z)}${term(-1, `dir_${e1.id}_${k1}`)} <= 0`);
-        cons.push(`c${ci++}:${term(1, z)}${term(-1, `dir_${e2.id}_${k2}`)} <= 0`);
-        boundsExtra.push(`0 <= ${z} <= 1`);
-        if (bd > 0) obj.push(term(wBend * bd, z)); // 懲罰彎折（越銳越貴）
-        zsum += term(1, z);
-      }
+    for (let k = 0; k < NDIR; k++) {
+      const i1 = e1.u === v ? k : (k + 4) % NDIR;
+      const i2 = e2.u === v ? (k + 4) % NDIR : k;
+      const b = `b_${pidx}_${k}`;
+      cons.push(`c${ci++}:${term(1, b)}${term(-1, `dir_${e1.id}_${i1}`)} <= 0`);
+      cons.push(`c${ci++}:${term(1, b)}${term(-1, `dir_${e2.id}_${i2}`)} <= 0`);
+      boundsExtra.push(`0 <= ${b} <= 1`);
+      obj.push(term(-wBend, b));
     }
-    if (zsum) cons.push(`c${ci++}:${zsum} = 1`);
     pidx++;
   }
 
-  // ---- (H4) §4.4 + §5.2 惰性：對「目前相交/壓線/重合之非相鄰邊對」加分離約束（≥ d_min）----
+  // ---- (H4) 邊間距：對「目前相交之非相鄰邊對」加分離約束（惰性，§5.2）----
   let gpi = 0;
   for (const [a, bId] of h4Pairs) {
     const e1 = edges[a];
@@ -176,6 +174,7 @@ export function buildMilpModel(graph, opts = {}) {
     for (let k = 0; k < NDIR; k++) {
       const [cx, cy] = DIRV[k];
       const g = `g_${gpi}_${k}`;
+      // e2 在 -(cx,cy) 側、e1 在 +(cx,cy) 側，相隔 d_min：p(e2端) - p(e1端) <= M(1-g) - d_min
       for (const n2 of [e2.u, e2.v]) {
         for (const n1 of [e1.u, e1.v]) {
           cons.push(
@@ -190,11 +189,32 @@ export function buildMilpModel(graph, opts = {}) {
     gpi++;
   }
 
-  // ---- (S3) §4.7 總長 ----
+  // ---- 節點分離（防座標重合）：對重合節點對加「至少一座標相差 ≥1」----
+  let spi = 0;
+  for (const [a, b] of sepPairs) {
+    if (a === b) continue;
+    let ssum = '';
+    // 4 方向：±X、±Y 各相差 ≥1
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (let oi = 0; oi < dirs.length; oi++) {
+      const [cx, cy] = dirs[oi];
+      const s = `sep_${spi}_${oi}`;
+      // cx(Xa-Xb)+cy(Ya-Yb) >= 1 - M(1-s)
+      cons.push(
+        `c${ci++}:${projTerms(cx, cy, a, 1)}${projTerms(cx, cy, b, -1)}${term(M, s)} <= ${fmt(M - 1)}`
+      );
+      bin.push(s);
+      ssum += term(1, s);
+    }
+    cons.push(`c${ci++}:${ssum} >= 1`);
+    spi++;
+  }
+
+  // ---- (S3) 總長 ----
   for (const e of edges) obj.push(term(wLen, `L_${e.id}`));
 
   // ---- bounds ----
-  // 錨定 node 0 於座標空間中心以去除平移自由度（不依地理座標 → 較緊 big-M、MIP 更快）。
+  // 錨定 node 0 於座標空間中心以去除平移自由度（不依地理座標 → 可用較小 COORDMAX、較緊 big-M、MIP 更快）。
   const ax = Math.round(COORDMAX / 2);
   const ay = Math.round(COORDMAX / 2);
   const bounds = [];
@@ -209,7 +229,7 @@ export function buildMilpModel(graph, opts = {}) {
   }
   bounds.push(...boundsExtra);
 
-  // 整數座標：得精確八方向整數佈局（NW11 §4.2 註：octilinear 解落於格點）。
+  // 第二階段：座標與段長宣告為整數 → 精確八方向整數佈局
   const generals = [];
   if (integerCoords) {
     for (const n of nodes) generals.push(`X_${n.id}`, `Y_${n.id}`);
@@ -217,7 +237,7 @@ export function buildMilpModel(graph, opts = {}) {
   }
 
   const lp = [
-    '\\ Nollenburg-Wolff 2011 MIP (octilinear, H1-H4 + S1-S3, single-solve, lazy H4)',
+    '\\ Nollenburg-Wolff MIP (octilinear, H1-H4 + S1-S3)',
     'Minimize',
     ` obj:${obj.join('') || ' 0'}`,
     'Subject To',
