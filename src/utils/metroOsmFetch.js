@@ -504,7 +504,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       // 「真實分支」門檻：相對已保留軌道幾何需新增 ≥ NEW_GEOM_MIN 格（~100m/格）才算駛上新軌道。
       // 用「絕對新增格數」而非比例：短支線（如倫敦 Northern 的 Mill Hill East 單站支線）佔全線比例極小，
       // 比例門檻會漏掉；但其專用軌道仍是明確的新幾何。
-      const NEW_GEOM_MIN = 4;
+      const NEW_GEOM_MIN = 8;
       for (const r of relsWithStops) {
         const ks = r.stops.map((s2) => keyOf(s2.coord));
         const newCount = emitted.size ? ks.filter((k) => !emitted.has(k)).length : ks.length;
@@ -520,11 +520,6 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
         //   · 純車站子集的尖峰短程變體（newCount=0，如紐約 SIR 尖峰版只停部分站，逐站連線會切出
         //     橫越全島的假直線）→ 不畫出錯誤跳接。
         //   站點重疊低（ov<0.7）者本就是明顯不同的分支，照常保留。
-        if (process.env.DBG_BRANCH && ov >= 0.5)
-          // eslint-disable-next-line no-console
-          console.error(
-            `[branch] ${g.routeName?.slice(0, 38)} stops=${r.stops.length} ov=${ov.toFixed(2)} newCount=${newCount} newGeom=${newGeom} -> ${ov >= 0.7 && !(newCount > 0 && newGeom >= NEW_GEOM_MIN) ? 'DROP' : 'keep'}`,
-          );
         if (ov >= 0.7 && !(newCount > 0 && newGeom >= NEW_GEOM_MIN)) continue;
         picked.push({ ...g, color, stops: r.stops, stopsWays: r.ways, geom: null, closed: waysClosedLoop(r.ways) });
         ks.forEach((k) => emitted.add(k));

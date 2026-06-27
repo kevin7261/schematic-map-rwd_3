@@ -42,27 +42,127 @@ function syncNodeGrid(seg, idx, x, y) {
 const clone = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
 
 /**
- * 從完整 flat segments 建 connect 骨架：每段只取頭尾兩 connect 端點；中段黑點另存 sections。
+ * 從完整 flat segments 建 connect 骨架：connect 端點 + 中段黑點另存 sections。
+ *
+ * 🔁 connect 由骨架自身拓撲「重算」（不信上游切點）。先以 identity（同名/同 id）合併建拓撲，再判定：
+ *   connect = 端點/分歧（degree≠2）或 真實轉乘（具名站且被 ≥2 route 經過）；
+ *   其餘 **degree-2 單線直通點**（含一條線被切成多段、接點處重疊的紅點）→ **降為黑點、前後段串接成一條**。
+ *   → 真正的共站/分歧/端點才是紅 connect 節點；直通站一律黑點。分支（degree≥3）不收縮；
+ *     純環（無任何 connect 邊界）不收縮以保閉合；lollipop 迴圈以「回到起點前一步設邊界」拆成 2 段保環。
  * @returns {{ skeletonFlat:Array, sections:Array }}
  */
 export function buildConnectSkeleton(baseFlat) {
-  const skeletonFlat = [];
-  const sections = [];
+  const idAt = (seg, i, nodes) => {
+    const [x, y] = readPt(seg.points[i]);
+    return nodeIdentity(nodes[i] || null, x, y);
+  };
+  const isRealId = (id) => id.startsWith('n:') || id.startsWith('s:');
+  const addSet = (m, k, v) => { let s = m.get(k); if (!s) { s = new Set(); m.set(k, s); } s.add(v); };
+
+  // ---- pass 1: identity 拓撲（相鄰 identity = 鄰居；經過的 route 集合）----
+  const nbr = new Map();
+  const rts = new Map();
+  for (const seg of baseFlat) {
+    const pts = seg?.points;
+    if (!Array.isArray(pts) || pts.length < 2) continue;
+    const nodes = Array.isArray(seg.nodes) ? seg.nodes : [];
+    const rn = seg.route_name ?? seg.name ?? '';
+    let prev = null;
+    for (let i = 0; i < pts.length; i++) {
+      const id = idAt(seg, i, nodes);
+      addSet(rts, id, rn);
+      if (prev != null && prev !== id) { addSet(nbr, id, prev); addSet(nbr, prev, id); }
+      prev = id;
+    }
+  }
+  // connect = degree≠2（端點/分歧）或 真實轉乘（≥2 route）；degree-2 單線直通點 → 非 connect（收縮成黑點）。
+  const isConn = (id) => ((nbr.get(id)?.size ?? 0) !== 2) || (isRealId(id) && (rts.get(id)?.size ?? 0) >= 2);
+
+  // ---- pass 2: 每段於內部 connect 點切成 atom（原子段）----
+  const atoms = [];
   for (const seg of baseFlat) {
     const pts = seg?.points;
     if (!Array.isArray(pts) || pts.length < 2) continue;
     const nodes = Array.isArray(seg.nodes) ? seg.nodes : [];
     const last = pts.length - 1;
+    const bset = new Set([0, last]);
+    for (let i = 1; i < last; i++) if (isConn(idAt(seg, i, nodes))) bset.add(i);
+    const b = [...bset].sort((x, y) => x - y);
+    for (let bi = 0; bi + 1 < b.length; bi++) {
+      const a = b[bi];
+      const c = b[bi + 1];
+      atoms.push({
+        seg,
+        headId: idAt(seg, a, nodes), tailId: idAt(seg, c, nodes),
+        headPt: clone(pts[a]), tailPt: clone(pts[c]),
+        headNode: clone(nodes[a]), tailNode: clone(nodes[c]),
+        blacks: nodes.slice(a + 1, c).map(clone),
+        used: false,
+      });
+    }
+  }
+
+  // ---- pass 3: 跨「非 connect 直通接點」串接 atom（重疊紅點 → 黑點、前後段合一）----
+  const ends = new Map(); // id -> [{atom, end:'h'|'t'}]
+  const pushEnd = (id, atom, end) => { let l = ends.get(id); if (!l) { l = []; ends.set(id, l); } l.push({ atom, end }); };
+  for (const at of atoms) { pushEnd(at.headId, at, 'h'); pushEnd(at.tailId, at, 't'); }
+
+  const mkBoundary = (nd) => { const o = clone(nd) || { node_type: 'connect' }; if (o.node_type === 'line' || o.node_type == null) o.node_type = 'connect'; return o; };
+  const mkBlack = (nd) => { const o = clone(nd) || { node_type: 'line' }; o.node_type = 'line'; return o; };
+  const trav = (at, end) => (end === 'h'
+    ? { startId: at.headId, farId: at.tailId, startPt: at.headPt, startNode: at.headNode, farPt: at.tailPt, farNode: at.tailNode, blacks: at.blacks }
+    : { startId: at.tailId, farId: at.headId, startPt: at.tailPt, startNode: at.tailNode, farPt: at.headPt, farNode: at.headNode, blacks: at.blacks.slice().reverse() });
+
+  const skeletonFlat = [];
+  const sections = [];
+  const emit = (startPt, startNode, farPt, farNode, blacks, seg) => {
     skeletonFlat.push({
-      route_name: seg.route_name,
-      name: seg.name,
-      points: [clone(pts[0]), clone(pts[last])],
-      nodes: [clone(nodes[0]) || { node_type: 'connect' }, clone(nodes[last]) || { node_type: 'connect' }],
-      properties_start: clone(seg.properties_start),
-      properties_end: clone(seg.properties_end),
-      way_properties: clone(seg.way_properties),
+      route_name: seg?.route_name,
+      name: seg?.name,
+      points: [startPt, farPt],
+      nodes: [mkBoundary(startNode), mkBoundary(farNode)],
+      properties_start: clone(seg?.properties_start),
+      properties_end: clone(seg?.properties_end),
+      way_properties: clone(seg?.way_properties),
     });
-    sections.push({ blackNodes: nodes.slice(1, last).map(clone) });
+    sections.push({ blackNodes: blacks });
+  };
+
+  // 自每個 connect 邊界出發，跨非 connect 直通點串接成一條
+  for (const start of atoms) {
+    for (const startEnd of ['h', 't']) {
+      const startId = startEnd === 'h' ? start.headId : start.tailId;
+      if (start.used || !isConn(startId)) continue;
+      const t0 = trav(start, startEnd);
+      const chainStartId = t0.startId;
+      const blacks = [];
+      let cur = start;
+      let ce = startEnd;
+      let endPt = t0.farPt;
+      let endNode = t0.farNode;
+      let guard = 0;
+      for (;;) {
+        const t = trav(cur, ce);
+        cur.used = true;
+        for (const bl of t.blacks) blacks.push(bl);
+        // 抵達 connect 邊界、或快繞回起點（lollipop）、或防呆 → 收尾
+        if (isConn(t.farId) || t.farId === chainStartId || guard++ > atoms.length + 2) {
+          endPt = t.farPt; endNode = t.farNode; break;
+        }
+        blacks.push(mkBlack(t.farNode)); // 直通接點降為黑點
+        const cands = (ends.get(t.farId) || []).filter((x) => !x.atom.used);
+        if (cands.length !== 1) { endPt = t.farPt; endNode = t.farNode; break; }
+        cur = cands[0].atom;
+        ce = cands[0].end;
+      }
+      emit(t0.startPt, t0.startNode, endPt, endNode, blacks, start.seg);
+    }
+  }
+  // 純環（無 connect 邊界）：未串接的 atom 各自成段，保留環不收縮。
+  for (const at of atoms) {
+    if (at.used) continue;
+    at.used = true;
+    emit(at.headPt, at.headNode, at.tailPt, at.tailNode, at.blacks, at.seg);
   }
   return { skeletonFlat, sections };
 }

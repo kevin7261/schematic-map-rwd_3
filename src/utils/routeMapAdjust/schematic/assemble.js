@@ -15,6 +15,31 @@ function readXY(p) {
   return [Number(p?.x ?? 0), Number(p?.y ?? 0)];
 }
 
+/**
+ * ⑥ Bast：把每條邊的 grid 彎折路徑塞進對應 skeleton 段之 points（start→bend…→end），
+ * 使邊以八方向彎折折線渲染、黑站沿彎折路徑分布。其餘佈局(無 edgePaths)不受影響。
+ * @param {Array<object>} optimizedSkeleton applyCoordsToSkeleton 之輸出（就地修改）
+ * @param {object} graph splitHighDegreeNodes 之輸出（edges 帶 sections）
+ * @param {object} edgePaths { [edgeId]: [[x,y]…] }（pos[u]→pos[v]）
+ */
+export function injectEdgeBends(optimizedSkeleton, graph, edgePaths) {
+  if (!edgePaths) return;
+  const d2 = (a, b) => { const dx = a[0] - b[0], dy = a[1] - b[1]; return dx * dx + dy * dy; };
+  for (const e of graph.edges) {
+    const path = edgePaths[e.id];
+    if (!path || path.length < 3) continue; // 無中間彎折 → 維持直線
+    for (const si of e.sections || []) {
+      const seg = optimizedSkeleton[si];
+      if (!seg?.points || seg.points.length < 2) continue;
+      const start = readXY(seg.points[0]);
+      const interiorFwd = path.slice(1, -1);
+      const interior = d2(path[0], start) <= d2(path[path.length - 1], start) ? interiorFwd : interiorFwd.slice().reverse();
+      const endPt = seg.points[seg.points.length - 1];
+      seg.points = [seg.points[0], ...interior.map((p) => [p[0], p[1]]), endPt];
+    }
+  }
+}
+
 function nodeWithGrid(node, x, y, fallbackType) {
   const n = node ? JSON.parse(JSON.stringify(node)) : { node_type: fallbackType || 'line' };
   n.tags = { ...(n.tags || {}), x_grid: x, y_grid: y };

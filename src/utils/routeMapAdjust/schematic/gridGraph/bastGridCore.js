@@ -1,159 +1,200 @@
 /**
- * Bast, Brosi & Storandt (2020)「Metro Maps on Octilinear Grid Graphs」(EuroVis / CGF 39(3))
- * 之**快速近似演算法**核心（worker-safe：不依賴 dataStore）。
+ * Bast, Brosi & Storandt (2020)「Metro Maps on Octilinear Grid Graphs」(EuroVis/CGF 39(3))
+ * 之**快速近似演算法**（§4）核心（worker-safe）。
  *
- * 論文方法：在一張「octilinear 格網圖 Γ」上找各輸入站的格點 ψ(v)，邊則為格點間的最短路徑；
- *   近似解不解 ILP，改以「依序貪婪地在格網圖上算最短路」放置——每條邊從已定端點的格點，
- *   路由到另一端點之候選格點集合（取幾何位置附近的格點），成本 = 移動懲罰（離幾何位置距離）
- *   + 彎折懲罰（c135=1, c90=1.5, c45=2，越銳越貴）；已用格點/扇區封鎖以保拓樸（不新增交叉、保環序）。
- *   度數 2 站先收縮、最後等距插回。
+ * 在 octilinear grid 圖 Γ 上,把每條輸入邊路由為「set-to-set 最短路」(可含多次彎折),
+ * 已路由路徑作為障礙;依 line degree 排序邊;保拓樸(封鎖已用格點/格邊、對角交叉)。
+ *   · 成本(§2.2, §6.1):hop c_h + 彎折 c_b(c180=0,c135=1,c90=1.5,c45=2;180°U-turn 禁止)
+ *     + 對角線 +0.5 offset;端點移動懲罰 = ‖p(v)−ψ‖·(c_h+c_m), c_m=0.5。
+ *   · 候選格點:輸入點幾何位置半徑 r=3D 內之格點;兩端皆未定時以 Voronoi 切分(§4.2)。
+ *   · port/sink/bend 節點以「Dijkstra 狀態含入向 dir」等價表示(免顯式建圖)。
+ * 度數2站於上游收縮、之後等距插回。各圖層各自輸出自己論文演算法之座標（不接 MILP）。
  *
- * 本檔對應其近似演算法、輸出**連通節點的格點座標**（黑站已於上游收縮，之後沿邊等距插回）：
- *  · 格網 = 整數格；8 方向 octilinear。
- *  · 邊處理順序：自「線度數最高」節點 BFS（論文 §「edge ordering」）。
- *  · 每條邊 (u 已放, v 未放)：在 8 方向 × 各步長中，選讓 v 落在「離其幾何位置最近且未被占用」之格點、
- *    且在 u 處彎折成本最小者（論文：候選格點 + sink 邊距離懲罰 + 彎折懲罰之最短路）。
- *  · 占用格點封鎖（一格一站）→ 近似拓撲保持。
- *
- * 各圖層各自輸出自己論文演算法的座標（不接 MILP）。
+ * 註:本檔為論文「近似演算法(無 local search 的 A-2 變體)」;§4.6 local search 未實作。
  */
 
 const DIRS = [
-  [1, 0],
-  [1, 1],
-  [0, 1],
-  [-1, 1],
-  [-1, 0],
-  [-1, -1],
-  [0, -1],
-  [1, -1],
+  [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1],
 ];
+const BEND = [0, 1, 1.5, 2, Infinity]; // 轉角 0/45/90/135/180°(U-turn 禁止)
+const C_H = 0.5; // hop 成本(小;彎折為主)
+const C_M = 0.5; // 移動懲罰
+const DIAG_OFF = 0.5; // 對角線額外 offset
+const R = 3; // 候選半徑(3D, D=1)
 
-/** 兩 octilinear 方向索引間的彎折成本（論文 c135=1, c90=1.5, c45=2；直走=0）。 */
-function bendCost(dirA, dirB) {
-  if (dirA == null) return 0; // 起點：無前一段
-  let d = Math.abs(dirA - dirB);
-  d = Math.min(d, 8 - d); // 轉角（單位 45°）：0..4
-  return [0, 1, 1.5, 2, 2.5][d];
-}
+function octTurn(a, b) { const d = Math.abs(a - b) % 8; return Math.min(d, 8 - d); }
+const isDiag = (di) => di % 2 === 1;
 
-/** 邊長中位數（步長尺度基準，至少 1）。 */
 function medianEdgeLength(graph, coords) {
   const lens = [];
-  for (const e of graph.edges) {
-    const a = coords[e.u];
-    const b = coords[e.v];
-    lens.push(Math.hypot(b[0] - a[0], b[1] - a[1]));
-  }
+  for (const e of graph.edges) lens.push(Math.hypot(coords[e.v][0] - coords[e.u][0], coords[e.v][1] - coords[e.u][1]));
   if (!lens.length) return 4;
   lens.sort((a, b) => a - b);
   return Math.max(1, Math.round(lens[lens.length >> 1]));
 }
 
-/** 線度數（入射邊數）最高的節點當 BFS 起點。 */
-function pickRoot(graph) {
-  let best = 0;
-  let bestDeg = -1;
-  for (let i = 0; i < graph.nodes.length; i++) {
-    const d = graph.incident[i].length;
-    if (d > bestDeg) {
-      bestDeg = d;
-      best = i;
-    }
-  }
-  return best;
+/** 二元最小堆(以 cost)。 */
+class Heap {
+  constructor() { this.a = []; }
+  get size() { return this.a.length; }
+  push(c, x) { const a = this.a; a.push({ c, x }); let i = a.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (a[p].c <= a[i].c) break; [a[p], a[i]] = [a[i], a[p]]; i = p; } }
+  pop() { const a = this.a; const top = a[0]; const last = a.pop(); if (a.length) { a[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < a.length && a[l].c < a[m].c) m = l; if (r < a.length && a[r].c < a[m].c) m = r; if (m === i) break; [a[m], a[i]] = [a[i], a[m]]; i = m; } } return top.x; }
 }
 
-/**
- * 對 connect 圖節點座標跑 Bast et al. (2020) 近似（octilinear 格網最短路放置）。
- * @param {object} graph buildSchematicGraph / splitHighDegreeNodes 結果（nodes/edges/incident）
- * @param {Array<[number,number]>} coords0 地理初值座標（nodeId→[x,y]，已縮放整數格＝幾何目標）
- * @param {object} [opts] 可調參數
- * @returns {Array<[number,number]>} 佈局後整數格點座標（nodeId→[x,y]）
- */
+/** §4.1 line-degree 邊排序(dangling-node BFS,鄰邊依鄰點 ldeg 降冪)。 */
+function edgeOrder(graph, ldeg) {
+  const n = graph.nodes.length;
+  const processed = new Array(n).fill(false);
+  const inDangling = new Array(n).fill(false);
+  const order = [];
+  const addedE = new Set();
+  let remaining = n;
+  while (remaining > 0) {
+    // 取未處理且 ldeg 最高者起一個元件
+    let seed = -1, sd = -1;
+    for (let i = 0; i < n; i++) if (!processed[i] && ldeg[i] > sd) { sd = ldeg[i]; seed = i; }
+    if (seed < 0) break;
+    const dangling = [seed]; inDangling[seed] = true;
+    while (dangling.length) {
+      // 取 dangling 中 ldeg 最高者
+      let bi = 0; for (let i = 1; i < dangling.length; i++) if (ldeg[dangling[i]] > ldeg[dangling[bi]]) bi = i;
+      const vd = dangling.splice(bi, 1)[0];
+      inDangling[vd] = false;
+      if (processed[vd]) continue;
+      processed[vd] = true; remaining--;
+      const nbrs = graph.incident[vd].map((eid) => { const e = graph.edges[eid]; return { eid, u: e.u === vd ? e.v : e.u }; });
+      nbrs.sort((a, b) => ldeg[b.u] - ldeg[a.u]);
+      for (const { eid, u } of nbrs) {
+        if (!addedE.has(eid)) { addedE.add(eid); order.push(eid); }
+        if (!processed[u] && !inDangling[u]) { dangling.push(u); inDangling[u] = true; }
+      }
+    }
+  }
+  // 保險:未納入之邊補在後面
+  for (const e of graph.edges) if (!addedE.has(e.id)) order.push(e.id);
+  return order;
+}
+
 export function runBastGrid(graph, coords0, opts = {}) {
   const n = graph.nodes.length;
-  if (n === 0) return [];
-  if (n === 1) return [[Math.round(coords0[0][0]), Math.round(coords0[0][1])]];
+  if (n === 0) return { coords: [], edgePaths: {} };
+  if (n === 1) return { coords: [[Math.round(coords0[0][0]), Math.round(coords0[0][1])]], edgePaths: {} };
+  // edgePaths[edgeId] = 該邊在 grid 上的彎折路徑[[x,y]…](pos[u]→pos[v]);供管線以彎折幾何渲染。
+  const edgePaths = {};
 
-  const geo = coords0.map((c) => [Math.round(c[0]), Math.round(c[1])]); // 幾何目標格點
-  const L = opts.idealLen ?? medianEdgeLength(graph, coords0);
-  const wMove = opts.wMove ?? 1; // 移動懲罰（離幾何位置距離）
-  const wBend = opts.wBend ?? 2.0 * L; // 彎折懲罰（× 邊長尺度，使與距離可比）
-  const maxSpan = opts.maxSpan ?? 4; // 每方向以幾何投影步長 ±maxSpan 找空格
+  const geo = coords0.map((c) => [Math.round(c[0]), Math.round(c[1])]);
+  void (opts.idealLen ?? medianEdgeLength(graph, coords0));
+
+  // line degree = 經過該節點之不同 route 數
+  const routesPerNode = Array.from({ length: n }, () => new Set());
+  for (const e of graph.edges) {
+    if (e.isLink) continue;
+    for (const rn of e.routes || new Set([e.route_name])) { routesPerNode[e.u].add(rn); routesPerNode[e.v].add(rn); }
+  }
+  const ldeg = routesPerNode.map((s) => s.size);
 
   const pos = new Array(n).fill(null);
-  const inDir = new Array(n).fill(null); // 進入各節點的方向索引（算彎折用）
-  const occupied = new Set();
-  const occ = (x, y) => occupied.has(x + ',' + y);
-  const setPos = (i, x, y, dir) => {
-    pos[i] = [x, y];
-    inDir[i] = dir;
-    occupied.add(x + ',' + y);
-  };
-  /** 找離 (gx,gy) 最近的未占用整數格（環狀外擴）。 */
-  const nearestFree = (gx, gy) => {
-    if (!occ(gx, gy)) return [gx, gy];
-    for (let r = 1; r < 500; r++) {
-      for (let dx = -r; dx <= r; dx++) {
-        for (let dy = -r; dy <= r; dy++) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-          if (!occ(gx + dx, gy + dy)) return [gx + dx, gy + dy];
-        }
-      }
+  const blockedNode = new Set(); // 路徑內部格點(不可穿過/重用)
+  const blockedEdge = new Set(); // 已用格邊(無向)
+  const blockedDiag = new Set(); // 已用對角線(cell+type),防 X 交叉
+  const nk = (x, y) => x + ',' + y;
+  const ek = (x1, y1, x2, y2) => (x1 < x2 || (x1 === x2 && y1 <= y2)) ? `${x1},${y1}|${x2},${y2}` : `${x2},${y2}|${x1},${y1}`;
+  const diagKey = (x, y, di) => { const [dx, dy] = DIRS[di]; const mnx = Math.min(x, x + dx), mny = Math.min(y, y + dy); return `${mnx},${mny},${dx * dy > 0 ? 'A' : 'B'}`; };
+  const diagOpp = (x, y, di) => { const [dx, dy] = DIRS[di]; const mnx = Math.min(x, x + dx), mny = Math.min(y, y + dy); return `${mnx},${mny},${dx * dy > 0 ? 'B' : 'A'}`; };
+
+  const cands = (id) => {
+    if (pos[id]) return [{ x: pos[id][0], y: pos[id][1], pen: 0 }];
+    const g = geo[id]; const out = [];
+    for (let dx = -R; dx <= R; dx++) for (let dy = -R; dy <= R; dy++) {
+      const d2 = dx * dx + dy * dy; if (d2 > R * R) continue;
+      const x = g[0] + dx, y = g[1] + dy;
+      if (blockedNode.has(nk(x, y))) continue;
+      out.push({ x, y, pen: Math.sqrt(d2) * (C_H + C_M) });
     }
-    return [gx, gy];
+    if (!out.length) out.push({ x: g[0], y: g[1], pen: 0 });
+    return out;
   };
 
-  // BFS 邊處理順序：自線度數最高節點。
-  const root = pickRoot(graph);
-  const [rx, ry] = nearestFree(geo[root][0], geo[root][1]);
-  setPos(root, rx, ry, null);
-
-  const queue = [root];
-  let qh = 0;
-  while (qh < queue.length) {
-    const u = queue[qh++];
-    for (const eid of graph.incident[u]) {
-      const e = graph.edges[eid];
-      const v = e.u === u ? e.v : e.u;
-      if (pos[v] != null) continue; // 已放（兩端皆已放的邊：直邊渲染，容許彎折）
-
-      // 在 8 方向 × 幾何投影附近步長中，選成本最小且空的格點。
-      const ux = pos[u][0];
-      const uy = pos[u][1];
-      const offx = geo[v][0] - ux;
-      const offy = geo[v][1] - uy;
-      let best = null;
+  const route = (S, T) => {
+    // Voronoi 切分(兩端皆未定時,候選分給較近者)
+    const tKey = new Set(T.map((t) => nk(t.x, t.y)));
+    const tPen = new Map(); for (const t of T) { const k = nk(t.x, t.y); if (!tPen.has(k) || t.pen < tPen.get(k)) tPen.set(k, t.pen); }
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const p of S.concat(T)) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }
+    const margin = Math.max(10, (maxX - minX) + (maxY - minY));
+    minX -= margin; maxX += margin; minY -= margin; maxY += margin;
+    const dist = new Map(), par = new Map();
+    const heap = new Heap();
+    for (const s of S) {
+      if (tKey.has(nk(s.x, s.y))) continue; // s==t 退化跳過
+      const k = `${s.x},${s.y},-1`;
+      if (!dist.has(k) || s.pen < dist.get(k)) { dist.set(k, s.pen); par.set(k, null); heap.push(s.pen, { x: s.x, y: s.y, d: -1, k }); }
+    }
+    let best = null, bestCost = Infinity;
+    while (heap.size) {
+      const cur = heap.pop(); const g = dist.get(cur.k); if (g > bestCost) break;
+      const tp = tPen.get(nk(cur.x, cur.y));
+      if (tp != null && cur.d >= 0) { const tot = g + tp; if (tot < bestCost) { bestCost = tot; best = cur; } }
       for (let di = 0; di < 8; di++) {
-        const [dxu, dyu] = DIRS[di];
-        const dd = dxu * dxu + dyu * dyu;
-        const k0 = Math.max(1, Math.round((offx * dxu + offy * dyu) / dd)); // 幾何投影步長
-        for (let k = Math.max(1, k0 - maxSpan); k <= k0 + maxSpan; k++) {
-          const x = ux + k * dxu;
-          const y = uy + k * dyu;
-          if (occ(x, y)) continue;
-          const dist = Math.hypot(x - geo[v][0], y - geo[v][1]); // 幾何精度
-          const cost = wMove * dist + wBend * bendCost(inDir[u], di);
-          if (!best || cost < best.cost) best = { x, y, dir: di, cost };
+        const nx = cur.x + DIRS[di][0], ny = cur.y + DIRS[di][1];
+        if (nx < minX || nx > maxX || ny < minY || ny > maxY) continue;
+        const goal = tKey.has(nk(nx, ny));
+        if (blockedNode.has(nk(nx, ny)) && !goal) continue;
+        if (blockedEdge.has(ek(cur.x, cur.y, nx, ny))) continue;
+        if (isDiag(di) && blockedDiag.has(diagOpp(cur.x, cur.y, di))) continue;
+        const b = cur.d < 0 ? 0 : BEND[octTurn(cur.d, di)];
+        if (!isFinite(b)) continue;
+        const ng = g + C_H + b + (isDiag(di) ? DIAG_OFF : 0);
+        const k2 = `${nx},${ny},${di}`;
+        if (!dist.has(k2) || ng < dist.get(k2)) { dist.set(k2, ng); par.set(k2, cur.k); heap.push(ng, { x: nx, y: ny, d: di, k: k2 }); }
+      }
+    }
+    if (!best) return null;
+    let k = best.k; const path = [];
+    while (k != null) { const i = k.lastIndexOf(','); const xy = k.slice(0, i).split(','); path.push([+xy[0], +xy[1]]); k = par.get(k); }
+    path.reverse();
+    return path;
+  };
+
+  const blockPath = (path) => {
+    for (let i = 0; i < path.length; i++) {
+      if (i > 0 && i < path.length - 1) blockedNode.add(nk(path[i][0], path[i][1])); // 內部格點
+      if (i > 0) {
+        const [x1, y1] = path[i - 1], [x2, y2] = path[i];
+        blockedEdge.add(ek(x1, y1, x2, y2));
+        const dx = x2 - x1, dy = y2 - y1;
+        if (dx !== 0 && dy !== 0) { // 對角:封鎖此對角(其交叉對角即被擋)
+          let di = DIRS.findIndex(([a, b]) => a === Math.sign(dx) && b === Math.sign(dy));
+          if (di >= 0) blockedDiag.add(diagKey(x1, y1, di));
         }
       }
-      if (!best) {
-        const [fx, fy] = nearestFree(geo[v][0], geo[v][1]);
-        best = { x: fx, y: fy, dir: null };
-      }
-      setPos(v, best.x, best.y, best.dir);
-      queue.push(v);
     }
+  };
+
+  const order = edgeOrder(graph, ldeg);
+  for (const eid of order) {
+    const e = graph.edges[eid];
+    if (e.isLink) continue;
+    const u = e.u, v = e.v;
+    let S = cands(u), T = cands(v);
+    if (!pos[u] && !pos[v]) { // Voronoi 切分
+      S = S.filter((p) => Math.hypot(p.x - geo[u][0], p.y - geo[u][1]) <= Math.hypot(p.x - geo[v][0], p.y - geo[v][1]));
+      T = T.filter((p) => Math.hypot(p.x - geo[v][0], p.y - geo[v][1]) < Math.hypot(p.x - geo[u][0], p.y - geo[u][1]));
+      if (!S.length) S = cands(u); if (!T.length) T = cands(v);
+    }
+    const path = route(S, T);
+    if (!path || path.length < 2) {
+      // fallback:直接放到幾何最近未占用格
+      if (!pos[u]) { const c = cands(u)[0]; pos[u] = [c.x, c.y]; blockedNode.add(nk(c.x, c.y)); }
+      if (!pos[v]) { const c = cands(v).find((p) => !blockedNode.has(nk(p.x, p.y))) || cands(v)[0]; pos[v] = [c.x, c.y]; blockedNode.add(nk(c.x, c.y)); }
+      continue;
+    }
+    if (!pos[u]) pos[u] = path[0].slice();
+    if (!pos[v]) pos[v] = path[path.length - 1].slice();
+    edgePaths[eid] = path.map((p) => [p[0], p[1]]);
+    blockPath(path);
   }
 
-  // 非連通殘餘節點：放到離幾何位置最近的空格。
-  for (let i = 0; i < n; i++) {
-    if (pos[i] == null) {
-      const [fx, fy] = nearestFree(geo[i][0], geo[i][1]);
-      setPos(i, fx, fy, null);
-    }
-  }
-
-  return pos;
+  for (let i = 0; i < n; i++) if (!pos[i]) pos[i] = [geo[i][0], geo[i][1]];
+  return { coords: pos, edgePaths };
 }

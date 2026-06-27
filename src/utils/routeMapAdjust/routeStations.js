@@ -186,6 +186,56 @@ export const computeRouteMapAdjustStations = (lines, blackDots, stationCoords) =
 };
 
 /**
+ * 骨架專用站點分類（degree 拓撲）。**只給「路線圖轉換骨架」用，不影響路線圖載入顯示。**
+ * 規則：同一骨架路線上，除頭尾外不該有紅點 →
+ *   🔴 connect 只在「真正分歧」(degree≥3)；🔵 terminal 在端點(degree≤1)；
+ *   其餘 degree-2「直通站」（含多線共軌並行通過）一律 🖤 黑（之後沿邊內插放回，不冒紅）。
+ * degree 以「每條線上相鄰站」計，共軌的相同前後站會合併 → 並行通過站 degree=2 → 黑。
+ */
+export const computeRouteMapAdjustSkeletonStations = (lines, blackDots, stationCoords) => {
+  const safeLines = Array.isArray(lines)
+    ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
+    : [];
+  if (!Array.isArray(stationCoords) || !stationCoords.length) {
+    return computeRouteMapAdjustStations(lines, blackDots, stationCoords); // 無站點座標 → 退回原規則
+  }
+  const ON = 1e-6;
+  // 每條線上的站點依投影位置排序 → 相鄰者互為鄰居；degree = 不同鄰居站數。
+  // ⚠️ 不用「線段端點」當端點：一條線被切成多段、段與段的接點其 degree=2（1-1 相連），
+  //    應接成一條連續骨頭、該點變黑，而非當端點斷開。真端點只有 degree=1。
+  const neighbors = stationCoords.map(() => new Set());
+  for (const l of safeLines) {
+    const on = [];
+    stationCoords.forEach((s, si) => {
+      if (!Array.isArray(s) || s.length < 2) return;
+      const pr = projectOnPolyline(l.latlngs, s);
+      if (pr && pr.perpDist <= ON) on.push({ si, pos: pr.pos });
+    });
+    on.sort((a, b) => a.pos - b.pos);
+    for (let k = 0; k < on.length; k++) {
+      if (k > 0 && on[k - 1].si !== on[k].si) neighbors[on[k].si].add(on[k - 1].si);
+      if (k < on.length - 1 && on[k + 1].si !== on[k].si) neighbors[on[k].si].add(on[k + 1].si);
+    }
+    if (l.closed && on.length >= 2) {
+      const a = on[0].si;
+      const z = on[on.length - 1].si;
+      if (a !== z) { neighbors[a].add(z); neighbors[z].add(a); }
+    }
+  }
+  const t = [];
+  const c = [];
+  const b = [];
+  stationCoords.forEach((s, si) => {
+    if (!Array.isArray(s) || s.length < 2) return;
+    const deg = neighbors[si].size;
+    if (deg >= 3) c.push(s); // 🔴 真正分歧
+    else if (deg <= 1) t.push(s); // 🔵 真端點（degree 1）
+    else b.push(s); // 🖤 degree-2「1-1 相連」直通（含共軌、被切段接點）→ 黑、串接成一條骨頭
+  });
+  return { terminals: dedupePoints(t), connects: dedupePoints(c), blacks: dedupePoints(b) };
+};
+
+/**
  * 逐路線、依序（起點→終點）列出該路線上的站點。
  * 站點型別：'terminal'（端點，藍）｜'connect'（交點，紅）｜'black'（一般，黑）。
  */
@@ -575,8 +625,9 @@ export const buildRouteMapAdjustSkeleton = (lines, blackDots = null, stationCoor
   const key = (p) => `${round(p[0])},${round(p[1])}`;
   const ON_TOL = 1e-6;
 
-  // 0) 原本站點分類（端點🔵／交點🔴）：這些是「本來的結構」，骨架務必保留為節點。
-  const { terminals: stationTerminals, connects: stationConnects } = computeRouteMapAdjustStations(
+  // 0) 骨架站點分類（degree 拓撲）：端點🔵(degree≤1)／真正分歧🔴(degree≥3) 保留為節點；
+  //    degree-2 直通站（含共軌並行）不強制成節點 → 會被下方 degree-2 收縮成黑點（除頭尾外不冒紅）。
+  const { terminals: stationTerminals, connects: stationConnects } = computeRouteMapAdjustSkeletonStations(
     safeLines,
     blackDots,
     stationCoords
@@ -951,12 +1002,12 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
   // 與骨架渲染器一致的「底色＋原色」畫法：
   //   color    ＝ 路線原來的顏色（主線色，畫在上面）
   //   hl_color ＝ 🔴 合併(共線)／🔵 頭尾共點／🟢 環線 之底色高亮（墊在主線底下；無則空字串）
-  const routeColorOf = (e) => e.routes?.[0]?.color || '#3949ab';
-  const hlColorOf = (e) =>
-    e.isMerged ? '#ff1744' : e.isHeadTailShared ? '#1e88e5' : e.isLoop ? '#00c853' : '';
-  // 點色：與骨架渲染器完全一致（🟣 切斷／🟡 交叉／🔴 connect／🔵 terminal／⚫ 其餘灰）
+  // 骨架：所有路線一律黑色、不用 highlight 底色（共線/環線/頭尾共點不再上色）。
+  const routeColorOf = () => '#000000';
+  const hlColorOf = () => '';
+  // 點色：只有 🔴 交叉/分歧（交叉點重算）／🔵 端點／🖤 其餘（路線中的點皆黑）。
   const llKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
-  const { terminals, connects, blacks } = computeRouteMapAdjustStations(
+  const { terminals, connects, blacks } = computeRouteMapAdjustSkeletonStations(
     lines,
     blackDots,
     Object.keys(stationMeta || {}).map((k) => k.split(',').map(Number))
@@ -964,12 +1015,10 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
   const terminalKeys = new Set((terminals || []).map((p) => llKey(p[0], p[1])));
   const connectKeys = new Set((connects || []).map((p) => llKey(p[0], p[1])));
   const nodeColor = (n) => {
-    if (n.isPurple) return '#9c27b0';
-    if (n.isCross) return '#ffd600';
     const k = llKey(n.latlng[0], n.latlng[1]);
-    if (connectKeys.has(k)) return '#ff0000';
-    if (terminalKeys.has(k)) return '#1565c0';
-    return '#555555';
+    if (n.isCross || connectKeys.has(k)) return '#ff0000'; // 🔴 交叉點 / 分歧(degree≥3)
+    if (terminalKeys.has(k)) return '#1565c0'; // 🔵 端點
+    return '#000000'; // 🖤 其餘（含原紫點切斷點）→ 黑
   };
   const nodeRadius = (n) => (n.isCross ? 8 : n.isPurple ? 6 : 4);
   const features = [];

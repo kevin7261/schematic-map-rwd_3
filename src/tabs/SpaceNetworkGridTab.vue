@@ -2637,6 +2637,8 @@
       : null;
     const uniformGridRouteFamilyTab = isSpaceLayoutUniformGridViewerLayerId(layerTab);
     const activeTabLayer = dataStore.findLayerById(layerTab);
+    // 🔍 示意圖佈局層：線寬/點大小固定螢幕 pt、不隨 d3 zoom 縮放（vector-effect + 半徑 ÷ k）。
+    const isSchematicLayout = activeTabLayer?.isRouteSchematicLayer === true;
     const layoutUniformGridTooltipJr = uniformGridRouteFamilyTab
       ? buildEnrichedMapDrawnRowsForUniformGridTooltip(dataStore, layerTab, activeTabLayer)
       : null;
@@ -3900,6 +3902,15 @@
       .scaleExtent([0.1, 10]) // 縮放範圍：0.1x 到 10x
       .on('zoom', (event) => {
         zoomGroup.attr('transform', event.transform);
+        // 示意圖佈局：點半徑 ÷ k，使螢幕大小恆定（線寬由 vector-effect:non-scaling-stroke 處理）。
+        if (isSchematicLayout) {
+          const kk = event.transform.k || 1;
+          zoomGroup.selectAll('circle').each(function () {
+            const sel = d3.select(this);
+            const r0 = +sel.attr('data-r0');
+            if (Number.isFinite(r0) && r0 > 0) sel.attr('r', r0 / kk);
+          });
+        }
         if (useSchematicCellCenterGrid && isTaipeiEfinalSpaceLayerTab(layerTab)) {
           refreshSpaceNetworkMinCellDimensions();
         }
@@ -5380,6 +5391,7 @@
         .attr('stroke', baseStroke)
         .attr('fill', 'none')
         .attr('stroke-width', baseStrokeW)
+        .style('vector-effect', isSchematicLayout ? 'non-scaling-stroke' : null)
         .attr('opacity', 0.9)
         .attr('stroke-linecap', 'round')
         .attr('stroke-linejoin', 'round')
@@ -8718,9 +8730,11 @@
         .attr('cx', plotRemapSvgX(xScale(drawX)))
         .attr('cy', plotRemapSvgY(yScale(drawY)))
         .attr('r', radius)
+        .attr('data-r0', isSchematicLayout ? radius : null)
         .attr('fill', fillColor)
         .attr('stroke', strokeColor)
         .attr('stroke-width', strokeWidth)
+        .style('vector-effect', isSchematicLayout ? 'non-scaling-stroke' : null)
         .attr(
           'class',
           [

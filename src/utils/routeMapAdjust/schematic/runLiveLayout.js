@@ -10,7 +10,7 @@
 
 import { resolveSchematicInput } from './input.js';
 import { buildSchematicGraph, splitHighDegreeNodes, applyCoordsToSkeleton } from './graph.js';
-import { writeSchematicResultToLayer, reinsertBlackStations } from './assemble.js';
+import { writeSchematicResultToLayer, reinsertBlackStations, injectEdgeBends } from './assemble.js';
 import { showSolveOverlay } from './solveOverlay.js';
 
 export async function runLiveLayout(layerId, profileId, title) {
@@ -49,6 +49,7 @@ export async function runLiveLayout(layerId, profileId, title) {
   overlay.setStatus('產生圖層資料…');
   const graph = splitHighDegreeNodes(buildSchematicGraph(input.skeletonFlat), 8);
   const optimizedSkeleton = applyCoordsToSkeleton(input.skeletonFlat, graph, result.coords);
+  injectEdgeBends(optimizedSkeleton, graph, result.edgePaths); // ⑥ Bast 邊內彎折(其餘層 edgePaths=undefined,不影響)
   const fullFlat = reinsertBlackStations(optimizedSkeleton, input.sections);
   const v = result.violations || {};
   const write = writeSchematicResultToLayer(layerId, fullFlat, {

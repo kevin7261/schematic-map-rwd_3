@@ -70,8 +70,11 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
   };
 
   if (direct[profileId]) {
-    const coords = direct[profileId]();
-    return { ok: true, coords, violations: countViolations(graph, coords), status: profileId };
+    const r = direct[profileId]();
+    // ⑥ Bast 回傳 { coords, edgePaths }(邊內彎折幾何);其餘回傳 coords 陣列。
+    const coords = Array.isArray(r) ? r : r.coords;
+    const edgePaths = Array.isArray(r) ? undefined : r.edgePaths;
+    return { ok: true, coords, edgePaths, violations: countViolations(graph, coords), status: profileId };
   }
 
   // ③ MILP：Nöllenburg & Wolff (2011) 精確八方向求解。失敗就誠實回報「未產出」，

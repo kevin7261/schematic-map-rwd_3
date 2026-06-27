@@ -13,6 +13,37 @@ import { watch } from 'vue';
 
 const nodeFill = (tags) => tags?.node_class_color || '#555555';
 
+const esc = (s) =>
+  String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+const rowHtml = (k, v) =>
+  v == null || v === '' ? '' : `<div><span style="color:#888">${esc(k)}</span> ${esc(v)}</div>`;
+
+// 線 tooltip：與路線圖 hover 相同樣式（route_name/route_id/railway/color）
+const wayTooltipHtml = (tags) =>
+  `<div style="font-size:12px;line-height:1.5">` +
+  rowHtml('route_name', tags.route_name) +
+  rowHtml('route_id', tags.route_id) +
+  rowHtml('railway', tags.railway) +
+  rowHtml('color', tags.color) +
+  `</div>`;
+
+// 點 tooltip：與路線圖站點 hover 相同樣式（station_name/station_id/type/route_name_list）
+const nodeTooltipHtml = (tags) => {
+  const list = Array.isArray(tags.route_name_list)
+    ? tags.route_name_list.filter(Boolean)
+    : [];
+  return (
+    `<div style="font-size:12px;line-height:1.5">` +
+    rowHtml('station_name', tags.station_name) +
+    rowHtml('station_id', tags.station_id) +
+    rowHtml('type', tags.node_kind === 'black' ? '一般 normal' : tags.type) +
+    (list.length
+      ? `<div><span style="color:#888">route_name_list</span> ${esc(list.join('、'))}</div>`
+      : '') +
+    `</div>`
+  );
+};
+
 export function mountSchematicSkeleton(el, dataStore) {
   if (!el) return { invalidateSize: () => {}, destroy: () => {} };
   if (el._leaflet_id) delete el._leaflet_id;
@@ -68,6 +99,7 @@ export function mountSchematicSkeleton(el, dataStore) {
             opacity: 0.9,
             interactive: true,
           });
+          pl.bindTooltip(wayTooltipHtml(tags), { sticky: true });
           pl.on('mouseover', () => pl.setStyle({ weight: 8 }));
           pl.on('mouseout', () => pl.setStyle({ weight: 4 }));
           pl.addTo(lineGroup);
@@ -77,7 +109,7 @@ export function mountSchematicSkeleton(el, dataStore) {
         const [lng, lat] = g.coordinates || [];
         if (lng == null || lat == null) continue;
         const r = Number(tags.node_class_r) || 5;
-        L.circleMarker([lat, lng], {
+        const m = L.circleMarker([lat, lng], {
           radius: r,
           color: '#ffffff', // 白色 1px border
           weight: 1,
@@ -85,7 +117,11 @@ export function mountSchematicSkeleton(el, dataStore) {
           fillOpacity: 1,
           interactive: true,
           pane: 'schDots',
-        }).addTo(dotGroup);
+        });
+        m.bindTooltip(nodeTooltipHtml(tags), { sticky: true });
+        m.on('mouseover', () => m.setRadius(r + 3));
+        m.on('mouseout', () => m.setRadius(r));
+        m.addTo(dotGroup);
         pts.push([lat, lng]);
       }
     }

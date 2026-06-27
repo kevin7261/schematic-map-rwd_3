@@ -10,6 +10,7 @@ import 'leaflet/dist/leaflet.css';
 import { watch } from 'vue';
 import {
   computeRouteMapAdjustStations,
+  computeRouteMapAdjustSkeletonStations,
   computeRouteMapAdjustSharedEndpointSegments,
   computeRouteMapAdjustLoopRoutes,
 } from './routeStations.js';
@@ -355,9 +356,9 @@ export function mountRouteMapAdjust(el, dataStore) {
     skeletonGroup.clearLayers();
     const sk = layer.routeMapAdjustSkeleton;
     if (!sk) return;
-    // 🔵🔴 原本的端點（藍）／交點（紅）站點在骨架圖也要照原色畫，而非一律灰黑點。
-    //  🖤 黑點（一般中間站）在骨架圖也要照原位置畫出，不可因骨架化而消失。
-    const { terminals, connects, blacks } = computeRouteMapAdjustStations(
+    // 骨架站點分類（degree 拓撲）：紅 = 交叉/分歧(degree≥3)、藍 = 端點(degree≤1)、其餘皆黑。
+    //   共軌並行通過的中段站 degree=2 → 黑（同一骨架路線除頭尾外不出現紅點）。
+    const { terminals, connects, blacks } = computeRouteMapAdjustSkeletonStations(
       layer.routeMapAdjustLines,
       layer.routeMapAdjustBlackDots,
       Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) => k.split(',').map(Number))
@@ -367,30 +368,10 @@ export function mountRouteMapAdjust(el, dataStore) {
     for (const e of sk.edges || []) {
       const path = Array.isArray(e.path) ? e.path : [];
       if (path.length < 2) continue;
-      // 與一般檢視一致：🔴 合併(共線)／🔵 頭尾共點(分歧)／🟢 環線 以紅/藍/綠「底色」墊在路線底下，
-      //                上面才畫路線原來的顏色；其餘邊只畫路線原色。
-      const routeColor = e.routes?.[0]?.color || '#3949ab';
-      const hl = e.isMerged
-        ? '#ff1744'
-        : e.isHeadTailShared
-          ? '#1e88e5'
-          : e.isLoop
-            ? '#00c853'
-            : null;
-      if (hl) {
-        L.polyline(path, {
-          color: hl,
-          weight: 12,
-          opacity: 0.85,
-          lineCap: 'round',
-          lineJoin: 'round',
-          interactive: false,
-          pane: 'srmaUnder', // 墊在路線底下，上面才畫路線原來的顏色
-        }).addTo(skeletonGroup);
-      }
-      const baseWeight = 4;
+      // 骨架：所有路線一律黑色、不畫 highlight 底色（共線/環線/頭尾共點不再上色）。
+      const baseWeight = 3;
       const pl = L.polyline(path, {
-        color: routeColor,
+        color: '#000000',
         weight: baseWeight,
         opacity: 0.9,
         interactive: true,
@@ -422,20 +403,12 @@ export function mountRouteMapAdjust(el, dataStore) {
     // 節點：🟣 切斷處(紫) → 紫、大；🟡 新加交叉 → 黃、大；其餘 → 灰、一般
     for (const n of sk.nodes || []) {
       if (!n || !Array.isArray(n.latlng)) continue;
-      let fill = '#555555';
-      let baseR = 4;
       const nk = llKey(n.latlng[0], n.latlng[1]);
-      if (n.isPurple) {
-        fill = '#9c27b0';
-        baseR = 6;
-      } else if (n.isCross) {
-        fill = '#ffd600';
-        baseR = 8;
-      } else if (connectKeys.has(nk)) {
-        fill = '#ff0000'; // 🔴 交點（connect）
-      } else if (terminalKeys.has(nk)) {
-        fill = '#1565c0'; // 🔵 端點（terminal）
-      }
+      // 骨架：點只有 🔴 交叉點/分歧（isCross 或 degree≥3）／🔵 端點／🖤 其餘（含原紫切斷點）。
+      const baseR = 4;
+      let fill = '#000000';
+      if (n.isCross || connectKeys.has(nk)) fill = '#ff0000';
+      else if (terminalKeys.has(nk)) fill = '#1565c0';
       const m = L.circleMarker(n.latlng, {
         radius: baseR,
         color: '#ffffff', // 白色 1px border
