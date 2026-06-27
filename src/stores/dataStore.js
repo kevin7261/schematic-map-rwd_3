@@ -341,6 +341,11 @@ export const useDataStore = defineStore(
             routeMapAdjustShowNames: false,
             upperViewTabs: ['route-map-adjust'],
           },
+        ],
+      },
+      {
+        groupName: '示意圖佈局',
+        groupLayers: [
           {
             /** 示意圖佈局 #1（從路線圖調整載入）：Stroke-based，程式同 schematic_stroke。 */
             layerId: 'schematic_rma_stroke',
@@ -651,6 +656,11 @@ export const useDataStore = defineStore(
               'dashboard',
             ],
           },
+        ],
+      },
+      {
+        groupName: '路線正規化',
+        groupLayers: [
           {
             /** MILP結果正規化（RMA）：讀 ③ MILP（schematic_rma_milp）結果（或匯入下載 JSON）並做保拓樸座標正規化。 */
             layerId: 'schematic_rma_milp_read',
@@ -796,6 +806,11 @@ export const useDataStore = defineStore(
               'dashboard',
             ],
           },
+        ],
+      },
+      {
+        groupName: '路網網格',
+        groupLayers: [
           {
             /** 路網網格（RMA）：與「版面網絡網格 → 路網網格」同檢視／繪製／UI，資料源自 RMA「先直後橫」(schematic_rma_toward_center_vh)。 */
             layerId: 'layout_network_grid_from_vh_draw_rma',
