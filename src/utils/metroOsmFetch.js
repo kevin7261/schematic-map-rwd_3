@@ -289,12 +289,20 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     if (NOISE_RE.test(nm)) return true;
     return false;
   };
+  // 🚇 站名線碼後綴正規化：OSM 部分地區把線碼寫進站名（如新加坡 "Tampines (DT32)"/"Tampines (EW2)"、
+  //    卡拉卡斯 "Independencia (L2)"），導致同一轉乘站因名稱不同而未被同名合併。去掉結尾的線碼括號
+  //    （大寫字母 1-3 + 數字，如 DT32/EW2/NS1/L2）後，轉乘站即可正確併為單一站。僅剔線碼樣式，不動
+  //    其他括號內容（如方位/中英對照）。
+  const stripStationCode = (s) =>
+    String(s || '').replace(/\s*[（(][A-Z]{1,3}\d+[)）]\s*$/, '').trim();
   // 🇨🇳 繁體優先：中國等地 OSM 多為簡體 name，若有 name:zh-Hant/zh-TW 則優先採用（符合「全繁體」規範）。
   const nameOf = (tags) =>
-    (tags &&
-      (tags['name:zh-Hant'] || tags['name:zh-hant'] || tags['name:zh-TW'] || tags['name:zh_Hant'])) ||
-    (tags && tags.name) ||
-    '';
+    stripStationCode(
+      (tags &&
+        (tags['name:zh-Hant'] || tags['name:zh-hant'] || tags['name:zh-TW'] || tags['name:zh_Hant'])) ||
+        (tags && tags.name) ||
+        '',
+    );
   // 🚆 特別納入指定的鐵道(route=train)路線（per-city，如東京要含 JR 山手線/中央線）：
   //    這些線名符合者強制納入，繞過跨境/直通/營運者白名單等過濾。
   const includeRe = opts.includeRail ? new RegExp(opts.includeRail) : null;
@@ -622,7 +630,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   built.sort((a, b) => b.latlngs.length - a.latlngs.length);
   const lineDefs = [];
   const keptKeys = [];
-  const keptStationKeys = new Set(); // 已保留各線之車站鍵集合（供分支保護用）
+  const keptStationSets = []; // 與 keptKeys 平行：各已保留線「自身」的車站鍵集合
   const stationKeysOf = (l) =>
     l.canon ? l.canon.map((s2) => keyOf(s2.c)) : l.latlngs.map(keyOf);
   for (const l of built) {
@@ -637,18 +645,23 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       const inN = l.latlngs.filter((c) => inBbox(c[0], c[1])).length;
       if (inN / l.latlngs.length < 0.5) continue;
     }
-    // 分支保護：只要此線帶有「尚未出現過的車站」，即為真實分支（如倫敦 District 的 Richmond/Kew、
-    // Northern 的 Mill Hill East），縱使與主線共用長段主幹而頂點重疊 ≥80%，也不可當重複線剔除。
-    // 唯有完全不新增車站者（純雙向/重複變體）才套用下方 ≥80% 互疊去重。
+    // 分支保護：與某條已保留線頂點重疊 ≥80%（雙向皆達）才視為「同一線的重複/變體」候選；
+    // 但唯有「相對該重疊線完全不新增車站」者才真正剔除（純雙向/重複變體）。只要相對該線帶有
+    // 它所沒有的車站，即為真實分支須保留（如倫敦 District 的 Richmond/Kew、Northern 的 Mill Hill
+    // East，及新加坡 Circle 線往 Marina Bay 的 CE 延伸支）。⚠️ 比對須「相對重疊的那條線自身的
+    // 車站集」而非全域已保留車站集——否則當分支新增的站剛好是轉乘站（已隨他線出現過）時會誤判
+    // 為無新站而被剔除。
     const stKeys = stationKeysOf(l);
-    const addsNewStation = stKeys.some((k) => !keptStationKeys.has(k));
     const ks = new Set(l.latlngs.map(keyOf));
     let dup = false;
-    if (!addsNewStation) {
-      for (const kk of keptKeys) {
-        let hit = 0;
-        for (const k of ks) if (kk.has(k)) hit++;
-        if (hit / ks.size >= 0.8 && hit / kk.size >= 0.8) {
+    for (let i = 0; i < keptKeys.length; i++) {
+      const kk = keptKeys[i];
+      let hit = 0;
+      for (const k of ks) if (kk.has(k)) hit++;
+      if (hit / ks.size >= 0.8 && hit / kk.size >= 0.8) {
+        const keptSt = keptStationSets[i];
+        const addsNewVsThis = stKeys.some((k) => !keptSt.has(k));
+        if (!addsNewVsThis) {
           dup = true;
           break;
         }
@@ -657,7 +670,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     if (dup) continue;
     lineDefs.push(l);
     keptKeys.push(ks);
-    for (const k of stKeys) keptStationKeys.add(k);
+    keptStationSets.push(new Set(stKeys));
   }
 
   const metaTally = new Map();

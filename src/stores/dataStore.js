@@ -342,6 +342,60 @@ export const useDataStore = defineStore(
             routeMapAdjustShowNames: false,
             upperViewTabs: ['route-map-adjust'],
           },
+          {
+            /** 🗺️ 路線圖調整直線骨架（route_map_adjust_straight）— 從「選擇路線圖」載入路線後（之後可）調整。
+             *  與 route_map_adjust 完全獨立（程式集中於 src/utils/routeMapAdjust/ 之複製版）。 */
+            layerId: 'route_map_adjust_straight',
+            layerName: '路線圖轉換直線骨架',
+            visible: false,
+            isLoading: false,
+            isLoaded: true,
+            colorName: 'indigo',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            layoutGridJsonData: null,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: null,
+            isDataLayer: false,
+            hideFromMap: true,
+            display: true,
+            /** 🏷️ 標記為「路線圖轉換直線骨架」圖層 */
+            isRouteMapAdjustStraightLayer: true,
+            /** ✏️ 調整中之路線：[{ color, latlngs:[[lat,lng],...], routeName?, routeId?, ... }, ...] */
+            routeMapAdjustLines: [],
+            /** ⚫ 一般黑點（中間站）：[[lat, lng], ...] */
+            routeMapAdjustBlackDots: [],
+            /** 🟡 交叉站點（cross）：路線幾何交叉但無站點處，[[lat, lng], ...] */
+            routeMapAdjustCrossStations: [],
+            /** 🔶 共線段：被 ≥2 路線共用（重疊）之線段，[{a,b,routes:[屬性...]}...]（載入後預設計算） */
+            routeMapAdjustSharedSegments: [],
+            /** 🦴 骨架圖：{ nodes:[[lat,lng]...], edges:[{a,b,routeCount}...], crossNodes:[[lat,lng]...] }｜null */
+            routeMapAdjustSkeleton: null,
+            /** 🦴 拉直後路線（紅/藍錨點間直線；建骨架時產生，還原骨架時清除） */
+            routeMapAdjustStraightenedLines: null,
+            /** ⚫ 拉直後黑點（各紅/藍段上平均分配；建骨架時產生） */
+            routeMapAdjustStraightenedBlackDots: null,
+            /** 拉直後站點中繼（黑點位移後更新鍵） */
+            routeMapAdjustStraightenedStationMeta: null,
+            /** 站點中繼資料：{ '${lat},${lng}': { id, name, osmId } } */
+            routeMapAdjustStationMeta: null,
+            /** 資料來源標籤 */
+            routeMapAdjustSource: null,
+            /** 🏷️ 是否在地圖上常駐顯示車站名 */
+            routeMapAdjustShowNames: false,
+            upperViewTabs: ['route-map-adjust-straight'],
+          },
         ],
       },
       {
@@ -3038,6 +3092,12 @@ export const useDataStore = defineStore(
       routeMapAdjustFitTrigger.value += 1;
     };
 
+    /** 🗺️「路線圖轉換直線骨架」(route_map_adjust_straight) 一次性 fitBounds 觸發器 */
+    const routeMapAdjustStraightFitTrigger = ref(0);
+    const requestRouteMapAdjustStraightFit = () => {
+      routeMapAdjustStraightFitTrigger.value += 1;
+    };
+
     /** 🗺️ 三個示意圖佈局圖層（schematic_rma_*）獨立顯示：目前要畫的圖層 id + 重繪 tick */
     const routeSchematicActiveLayerId = ref(null);
     const routeSchematicTick = ref(0);
@@ -3597,6 +3657,8 @@ export const useDataStore = defineStore(
       requestSelectRouteMapFit,
       routeMapAdjustFitTrigger,
       requestRouteMapAdjustFit,
+      routeMapAdjustStraightFitTrigger,
+      requestRouteMapAdjustStraightFit,
       routeSchematicActiveLayerId,
       routeSchematicTick,
       setRouteSchematicActiveLayer,

@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
 
 import { resolveSchematicInput } from './input.js';
-import { buildSchematicGraph, splitHighDegreeNodes, applyCoordsToSkeleton, initialCoords } from './graph.js';
-import { analyzeRotationStructure, fixRotationStructure } from './rotationStructure.js';
+import { buildSchematicGraph, splitHighDegreeNodes, applyCoordsToSkeleton } from './graph.js';
+import { analyzeRotationStructure, fixRotationStructure, dumpAllJunctions } from './rotationStructure.js';
 import {
   writeSchematicResultToLayer,
   reinsertBlackStations,
@@ -24,7 +24,9 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   }
 
   const graph = splitHighDegreeNodes(buildSchematicGraph(input.skeletonFlat), 8);
-  const refCoordsSnapshot = isMilp ? initialCoords(graph) : null;
+  const refFullFlatSnapshot = isMilp
+    ? reinsertBlackStations(JSON.parse(JSON.stringify(input.skeletonFlat)), input.sections)
+    : null;
 
   const overlay = showSolveOverlay(title || '示意圖佈局計算中…');
 
@@ -62,18 +64,34 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   let layoutCoords = result.coords.map((c) => [c[0], c[1]]);
   let structCheck = null;
   let rotationStructureCheck = null;
+  let optimizedSkeleton = applyCoordsToSkeleton(input.skeletonFlat, graph, layoutCoords);
+  injectEdgeBends(optimizedSkeleton, graph, result.edgePaths);
+  let outFullFlat = reinsertBlackStations(optimizedSkeleton, input.sections);
 
   if (isMilp) {
-    const initialStructCheck = analyzeRotationStructure(graph, refCoordsSnapshot, layoutCoords);
+    const initialStructCheck = analyzeRotationStructure(refFullFlatSnapshot, outFullFlat);
     structCheck = initialStructCheck;
     let fixedIterations = 0;
+    try {
+      console.log('[入射方向順序] 全分歧點 ref/out 環序：', dumpAllJunctions(refFullFlatSnapshot, outFullFlat));
+    } catch (e) {
+      void e;
+    }
     if (!initialStructCheck.preserved) {
       overlay.setStatus(`入射方向順序校正（${initialStructCheck.violationCount} 處）…`);
-      const fixed = fixRotationStructure(graph, refCoordsSnapshot, layoutCoords);
+      const fixed = fixRotationStructure(
+        refFullFlatSnapshot,
+        optimizedSkeleton,
+        input.sections,
+        graph,
+        layoutCoords
+      );
       structCheck = fixed.check;
       fixedIterations = fixed.iterations || 0;
-      if (fixed.ok) layoutCoords = fixed.coords.map((c) => [c[0], c[1]]);
-      else console.warn('[入射方向順序校正]', fixed);
+      if (fixed.outConnectSkeleton) optimizedSkeleton = fixed.outConnectSkeleton;
+      layoutCoords = fixed.coords.map((c) => [c[0], c[1]]);
+      outFullFlat = reinsertBlackStations(optimizedSkeleton, input.sections);
+      if (!fixed.ok) console.warn('[入射方向順序校正]', fixed);
     }
     rotationStructureCheck = {
       layoutDone: true,
@@ -87,9 +105,7 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
     };
   }
 
-  const optimizedSkeleton = applyCoordsToSkeleton(input.skeletonFlat, graph, layoutCoords);
-  injectEdgeBends(optimizedSkeleton, graph, result.edgePaths);
-  const fullFlat = reinsertBlackStations(optimizedSkeleton, input.sections);
+  const fullFlat = outFullFlat;
   const corridor = resolveSharedCorridorDrawing(fullFlat, graph);
 
   const meta = {

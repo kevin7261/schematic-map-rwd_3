@@ -27,6 +27,7 @@
   } from '@/utils/leafletDrawStations.js';
   import { useSelectRouteMapCatalog } from '@/utils/selectRouteMap/cityCatalog.js';
   import { useRouteMapAdjust } from '@/utils/routeMapAdjust/loadFromSelectRouteMap.js';
+  import { useRouteMapAdjustStraight } from '@/utils/routeMapAdjust/loadFromSelectRouteMapStraight.js';
   import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
   import {
     LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
@@ -3497,6 +3498,29 @@
     routeMapAdjustStationLabel: rmaStationLabel,
   } = useRouteMapAdjust(dataStore);
 
+  // 🗺️「路線圖轉換直線骨架」(route_map_adjust_straight) 載入面板 — 獨立複製版
+  const {
+    hasSourceRoutes: rmasHasSource,
+    isLoading: rmasLoading,
+    loadFromSelectRouteMap: rmasLoadFromSelect,
+    clearRouteMapAdjustStraight: rmasClear,
+    routeMapAdjustCrossList: rmasCrossList,
+    sharedSegmentList: rmasSharedList,
+    sharedEndpointList: rmasEndpointList,
+    loopRouteList: rmasLoopList,
+    hasSkeleton: rmasHasSkeleton,
+    toggleSkeleton: rmasToggleSkeleton,
+    skeletonStats: rmasSkeletonStats,
+    routeMapAdjustSource: rmasSource,
+    showStationNames: rmasShowNames,
+    routeMapAdjustStats: rmasStats,
+    routeMapAdjustRouteList: rmasRouteList,
+    routeMapAdjustStationColor: rmasStationColor,
+    routeMapAdjustRouteColor: rmasRouteColor,
+    routeMapAdjustRouteName: rmasRouteName,
+    routeMapAdjustStationLabel: rmasStationLabel,
+  } = useRouteMapAdjustStraight(dataStore);
+
   /** 📥「示意圖佈局」：把「路線圖轉換骨架」的**骨架**轉成 geojson（way 顏色＝骨架分類色）寫入此圖層之 geojsonData */
   const loadRouteAdjustIntoSchematic = (layer) => {
     if (!layer) return;
@@ -3518,6 +3542,38 @@
     if (!layer.visible) layer.visible = true;
     dataStore.setRouteSchematicActiveLayer(layer.layerId); // 獨立顯示：畫此圖層的骨架
     window.alert(`已載入骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`);
+  };
+
+  /** 📥「示意圖佈局」：把「路線圖轉換直線骨架」的骨架轉成 geojson 寫入此圖層之 geojsonData */
+  const loadRouteAdjustStraightIntoSchematic = (layer) => {
+    if (!layer) return;
+    const adj = dataStore.findLayerById('route_map_adjust_straight');
+    const sk = adj?.routeMapAdjustSkeleton;
+    const edges = Array.isArray(sk?.edges) ? sk.edges : [];
+    if (!edges.length) {
+      window.alert('「路線圖轉換直線骨架」尚未建立骨架，請先到「路線圖轉換直線骨架」按「變成骨架」。');
+      return;
+    }
+    const lines = Array.isArray(adj.routeMapAdjustStraightenedLines)
+      ? adj.routeMapAdjustStraightenedLines
+      : Array.isArray(adj.routeMapAdjustLines)
+        ? adj.routeMapAdjustLines
+        : [];
+    const blackDots = Array.isArray(adj.routeMapAdjustStraightenedBlackDots)
+      ? adj.routeMapAdjustStraightenedBlackDots
+      : Array.isArray(adj.routeMapAdjustBlackDots)
+        ? adj.routeMapAdjustBlackDots
+        : [];
+    const stationMeta =
+      adj.routeMapAdjustStraightenedStationMeta || adj.routeMapAdjustStationMeta || null;
+    const fc = routeMapAdjustSkeletonToGeoJson(sk, lines, blackDots, stationMeta);
+    layer.geojsonData = fc;
+    layer.isLoaded = true;
+    if (!layer.visible) layer.visible = true;
+    dataStore.setRouteSchematicActiveLayer(layer.layerId);
+    window.alert(
+      `已載入直線骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`
+    );
   };
 
   /** 🗺️ Leaflet 畫線圖層物件 */
@@ -9844,7 +9900,7 @@
         >
           <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
           <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
-            從「路線圖轉換骨架」載入骨架作為輸入，再按「開始執行」計算示意圖佈局。
+            從「路線圖轉換骨架」或「路線圖轉換直線骨架」載入骨架作為輸入，再按「開始執行」計算示意圖佈局。
           </div>
           <button
             type="button"
@@ -9852,6 +9908,13 @@
             @click="loadRouteAdjustIntoSchematic(layer)"
           >
             從路線圖轉換骨架載入
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            @click="loadRouteAdjustStraightIntoSchematic(layer)"
+          >
+            從路線圖轉換直線骨架載入
           </button>
           <div v-if="layer.geojsonData && layer.geojsonData.features" class="my-font-size-xs text-muted pb-2">
             已載入輸入：{{ layer.geojsonData.features.length }} 個 features
@@ -9874,7 +9937,7 @@
               v-if="layer.dashboardData.rotationStructureCheck.preserved && !layer.dashboardData.rotationStructureCheck.detectedCount"
               class="text-muted"
             >
-              與讀入骨架一致（≥3 路線分支之 360° 環序正確）
+              與讀入骨架一致（≥3 分支之 360° 環序，另一端點順序正確）
             </div>
             <div v-else class="text-muted pb-1">
               <span v-if="layer.dashboardData.rotationStructureCheck.preserved">
@@ -10355,6 +10418,278 @@
                       :style="{ width: '16px', height: '5px', backgroundColor: rmaRouteColor(ri) }"
                     ></span>
                     {{ rmaRouteName(ri) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pb-2"></div>
+          </div>
+        </div>
+
+        <!-- 🗺️ 路線圖轉換直線骨架（route_map_adjust_straight）：從選擇路線圖載入（獨立複製，與其他圖層不共用） -->
+        <div v-if="layer.isRouteMapAdjustStraightLayer" class="pb-3 mb-3 border-bottom">
+          <div class="my-title-xs-gray pb-2">來源</div>
+          <div class="d-flex gap-2 pb-1">
+            <button
+              type="button"
+              class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+              :disabled="!rmasHasSource || rmasLoading"
+              title="把「選擇路線圖」目前載入的路線複製一份到本圖層"
+              @click="rmasLoadFromSelect"
+            >
+              {{ rmasLoading ? '載入中…' : '從選擇路線圖載入' }}
+            </button>
+            <button
+              type="button"
+              class="btn rounded-pill border-0 my-btn-red my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+              @click="rmasClear"
+            >
+              清除
+            </button>
+          </div>
+          <div v-if="!rmasHasSource" class="text-muted my-font-size-xs pb-2">
+            「選擇路線圖」目前尚無路線，請先到「選擇路線圖」載入城市路線。
+          </div>
+          <div v-if="rmasSource" class="text-muted my-font-size-xs pb-3" style="line-height: 1.45">
+            資料來源：{{ rmasSource }}
+          </div>
+
+          <!-- 🦴 紅/藍錨點間拉直後再變成骨架 -->
+          <div class="my-title-xs-gray pb-2">骨架</div>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            :class="rmasHasSkeleton ? 'my-btn-red' : 'my-btn-green'"
+            :disabled="rmasStats.routes === 0"
+            title="紅/藍錨點間拉直；頭尾同點（環線）在 1/3、2/3 加轉折點；黑點平均分配在直線上，再合併成骨架。再按一次還原。"
+            @click="rmasToggleSkeleton"
+          >
+            {{ rmasHasSkeleton ? '還原（取消骨架）' : '變成骨架' }}
+          </button>
+          <template v-if="rmasSkeletonStats.built">
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span>節點</span><span>{{ rmasSkeletonStats.nodes }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span>邊（去重後）</span><span>{{ rmasSkeletonStats.edges }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-2">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #ff6d00"
+                ></span>
+                交叉生成節點
+              </span>
+              <span>{{ rmasSkeletonStats.crossNodes }}</span>
+            </div>
+          </template>
+
+          <!-- 🏷️ 顯示車站名開關 -->
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="my-content-sm-black">顯示車站名</div>
+            <div class="layer-toggle" @click.stop>
+              <input type="checkbox" id="switch-route-map-adjust-straight-names" v-model="rmasShowNames" />
+              <label for="switch-route-map-adjust-straight-names"></label>
+            </div>
+          </div>
+
+          <!-- 紅/黃/綠/藍 highlight 清單：整塊限高 320pt，內容過長可捲動 -->
+          <div style="max-height: 320pt; overflow-y: auto">
+          <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
+          <div class="my-title-xs-gray pb-2">
+            共線段（重疊）
+            <span class="text-muted">· 預設於地圖以紅色底色高亮</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block me-2"
+                style="width: 14px; height: 8px; background-color: #ff1744"
+              ></span>
+              共線段數
+            </span>
+            <span>{{ rmasSharedList.length }}</span>
+          </div>
+          <div v-if="rmasSharedList.length === 0" class="my-font-size-xs pb-3">
+            無共線段（沒有多條路線共用同一段）。
+          </div>
+          <div
+            v-for="s in rmasSharedList"
+            :key="s.index"
+            class="d-flex align-items-center my-font-size-xs pb-1"
+          >
+            <span class="me-2" style="min-width: 18px">{{ s.index + 1 }}.</span>
+            <span>{{ s.routeCount }} 路線：{{ s.routeNames.join('、') }}</span>
+          </div>
+          <div v-if="rmasSharedList.length" class="pb-2"></div>
+
+          <!-- 🟡 交叉站點 cross（黃，預設顯示） -->
+          <div class="my-title-xs-gray pb-2">
+            交叉站點（cross）
+            <span class="text-muted">· 路線幾何交叉但無站點處，地圖以黃色 halo 高亮</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #ffd600"
+              ></span>
+              cross 數
+            </span>
+            <span>{{ rmasCrossList.length }}</span>
+          </div>
+          <div v-if="rmasCrossList.length === 0" class="my-font-size-xs pb-3">
+            無交叉站點（沒有路線幾何交叉但無站點之處）。
+          </div>
+          <div
+            v-for="c in rmasCrossList"
+            :key="c.index"
+            class="d-flex align-items-center my-font-size-xs pb-1"
+          >
+            <span class="me-2" style="min-width: 18px">{{ c.index + 1 }}.</span>
+            <span
+              class="d-inline-block rounded-circle me-2"
+              style="width: 8px; height: 8px; background-color: #ffd600"
+            ></span>
+            <span>cross（{{ c.latlng[0].toFixed(5) }}, {{ c.latlng[1].toFixed(5) }}）</span>
+          </div>
+          <div v-if="rmasCrossList.length" class="pb-2"></div>
+
+          <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
+          <div class="my-title-xs-gray pb-2">
+            頭尾同點（環線）
+            <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block me-2"
+                style="width: 14px; height: 8px; background-color: #00c853"
+              ></span>
+              環線數
+            </span>
+            <span>{{ rmasLoopList.length }}</span>
+          </div>
+          <div v-if="rmasLoopList.length === 0" class="my-font-size-xs pb-3">
+            無環線（沒有頭尾為同一點的路線）。
+          </div>
+          <div
+            v-for="e in rmasLoopList"
+            :key="e.index"
+            class="d-flex align-items-center my-font-size-xs pb-1"
+          >
+            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+            <span>{{ e.routeName }}</span>
+          </div>
+          <div v-if="rmasLoopList.length" class="pb-2"></div>
+
+          <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
+          <div class="my-title-xs-gray pb-2">
+            頭尾共點
+            <span class="text-muted">· 頭尾兩端皆為紅點（交點）之路線段，地圖以藍色線高亮</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block me-2"
+                style="width: 14px; height: 8px; background-color: #1e88e5"
+              ></span>
+              線段數
+            </span>
+            <span>{{ rmasEndpointList.length }}</span>
+          </div>
+          <div v-if="rmasEndpointList.length === 0" class="my-font-size-xs pb-3">
+            無此類線段（沒有頭尾兩端皆為紅點之路線段）。
+          </div>
+          <div
+            v-for="e in rmasEndpointList"
+            :key="e.index"
+            class="d-flex align-items-center my-font-size-xs pb-1"
+          >
+            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+            <span>{{ e.routeName }}（紅點×{{ e.aRouteCount }} → 紅點×{{ e.bRouteCount }}）</span>
+          </div>
+          <div v-if="rmasEndpointList.length" class="pb-2"></div>
+
+          </div>
+
+          <!-- 目前路線／站點 + 明細：整塊限高 320pt，內容過長可捲動 -->
+          <div style="max-height: 320pt; overflow-y: auto">
+          <!-- 目前路線／站點統計 -->
+          <div class="my-title-xs-gray pb-2">目前路線／站點</div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span>路線</span><span>{{ rmasStats.routes }} 條</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #ff0000"
+              ></span>
+              connect（交點）
+            </span>
+            <span>{{ rmasStats.connect }}</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-1">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #1565c0"
+              ></span>
+              terminal（端點）
+            </span>
+            <span>{{ rmasStats.terminal }}</span>
+          </div>
+          <div class="d-flex justify-content-between my-font-size-xs pb-3">
+            <span class="d-flex align-items-center">
+              <span
+                class="d-inline-block rounded-circle me-2"
+                style="width: 10px; height: 10px; background-color: #000000"
+              ></span>
+              一般（黑點）
+            </span>
+            <span>{{ rmasStats.black }}</span>
+          </div>
+
+
+          <!-- 各路線站點（依序：起點 → 終點） -->
+          <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
+          <div v-if="rmasRouteList.length === 0" class="my-font-size-xs pb-3">尚未載入任何路線</div>
+          <div v-for="route in rmasRouteList" :key="route.routeIndex" class="pb-2">
+            <div class="d-flex align-items-center my-font-size-xs pb-1">
+              <span
+                class="d-inline-block rounded-pill me-2"
+                :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
+              ></span>
+              {{ rmasRouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
+                route.stations.length
+              }}
+              站）
+            </div>
+            <div class="ps-3">
+              <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
+                <div class="d-flex align-items-center">
+                  <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
+                  <span
+                    class="d-inline-block rounded-circle me-2"
+                    :style="{ width: '8px', height: '8px', backgroundColor: rmasStationColor(st.type) }"
+                  ></span>
+                  <span>{{ st.name || rmasStationLabel(st.type) }}</span>
+                </div>
+                <!-- 交會路線：第二行、縮排顯示 -->
+                <div
+                  v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
+                  class="d-flex align-items-center flex-wrap ps-4 pt-1"
+                >
+                  <span class="me-1">· 交會</span>
+                  <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
+                    <span
+                      class="d-inline-block rounded-pill me-1"
+                      :style="{ width: '16px', height: '5px', backgroundColor: rmasRouteColor(ri) }"
+                    ></span>
+                    {{ rmasRouteName(ri) }}
                   </span>
                 </div>
               </div>
