@@ -101,16 +101,44 @@ export function mountSchematicSkeleton(el, dataStore) {
               pane: 'schUnder',
             }).addTo(lineGroup);
           }
-          const pl = L.polyline(latlngs, {
-            color: tags.color || '#666666',
-            weight: 4,
-            opacity: 0.9,
-            interactive: true,
-          });
-          pl.bindTooltip(wayTooltipHtml(tags), { sticky: true });
-          pl.on('mouseover', () => pl.setStyle({ weight: 8 }));
-          pl.on('mouseout', () => pl.setStyle({ weight: 4 }));
-          pl.addTo(lineGroup);
+          // 顏色：1 種→實線；≥2 種→同一路徑疊畫多條虛線、dash 交錯，所有顏色同時呈現
+          const colors = String(tags.route_colors || '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const baseW = 4;
+          if (colors.length >= 2) {
+            const N = colors.length;
+            const dashLen = 8;
+            const dashArray = `${dashLen} ${dashLen * (N - 1)}`;
+            const pls = colors.map((c, i) =>
+              L.polyline(latlngs, {
+                color: c,
+                weight: baseW,
+                opacity: 0.95,
+                interactive: true,
+                dashArray,
+                dashOffset: String(dashLen * i),
+              })
+            );
+            pls.forEach((pl) => {
+              pl.bindTooltip(wayTooltipHtml(tags), { sticky: true });
+              pl.on('mouseover', () => pls.forEach((q) => q.setStyle({ weight: baseW + 4 })));
+              pl.on('mouseout', () => pls.forEach((q) => q.setStyle({ weight: baseW })));
+              pl.addTo(lineGroup);
+            });
+          } else {
+            const pl = L.polyline(latlngs, {
+              color: tags.color || '#666666',
+              weight: baseW,
+              opacity: 0.9,
+              interactive: true,
+            });
+            pl.bindTooltip(wayTooltipHtml(tags), { sticky: true });
+            pl.on('mouseover', () => pl.setStyle({ weight: 8 }));
+            pl.on('mouseout', () => pl.setStyle({ weight: 4 }));
+            pl.addTo(lineGroup);
+          }
           for (const ll of latlngs) pts.push(ll);
         }
       } else if (g?.type === 'Point') {

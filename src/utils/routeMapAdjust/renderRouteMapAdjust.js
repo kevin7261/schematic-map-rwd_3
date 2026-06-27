@@ -378,13 +378,34 @@ export function mountRouteMapAdjust(el, dataStore) {
   };
 
   // 🔵 頭尾共點：以藍色粗線標示「端點 → 下一個交叉點」之間的整段子路徑（底色，墊在路線底下）
-  //    並在 1/2 處放紫點（切斷位置）
+  //    並在 1/2 處放紫點（切斷位置）；但**同一對端點之分歧群組中最短的那條不放紫點**（保持直線，其餘才彎折）。
   const renderEndpoints = () => {
     endpointGroup.clearLayers();
     const bset = blackStationPts();
-    const segs = computeRouteMapAdjustSharedEndpointSegments(layer.routeMapAdjustLines);
-    for (const s of segs) {
-      if (!Array.isArray(s.path) || s.path.length < 2) continue;
+    const segs = computeRouteMapAdjustSharedEndpointSegments(layer.routeMapAdjustLines).filter(
+      (s) => Array.isArray(s.path) && s.path.length >= 2
+    );
+    const pathLen = (p) => {
+      let d = 0;
+      for (let i = 1; i < p.length; i++) d += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]);
+      return d;
+    };
+    const endKey = (q) => `${(+q[0]).toFixed(6)},${(+q[1]).toFixed(6)}`;
+    const pairKeyOf = (p) => {
+      const a = endKey(p[0]);
+      const b = endKey(p[p.length - 1]);
+      return a < b ? `${a}|${b}` : `${b}|${a}`;
+    };
+    // 每對端點分歧群組 → 找最短的那條（其 index），該條不放紫點
+    const shortestByPair = new Map(); // pairKey -> { idx, len }
+    segs.forEach((s, idx) => {
+      const k = pairKeyOf(s.path);
+      const len = pathLen(s.path);
+      const cur = shortestByPair.get(k);
+      if (!cur || len < cur.len - 1e-12) shortestByPair.set(k, { idx, len });
+    });
+    const skipPurpleIdx = new Set([...shortestByPair.values()].map((v) => v.idx));
+    segs.forEach((s, idx) => {
       L.polyline(s.path, {
         color: '#1e88e5', // 藍色底色高亮，標示頭尾共點之子路徑
         weight: 12,
@@ -394,8 +415,9 @@ export function mountRouteMapAdjust(el, dataStore) {
         interactive: false,
         pane: 'srmaUnder', // 墊在路線底下
       }).addTo(endpointGroup);
-      addPurpleCuts(endpointGroup, s.path, [1 / 2], bset); // 🟣 藍線：最接近 1/2 的車站
-    }
+      // 🟣 藍線：最接近 1/2 的車站放紫點；該對端點中最短的那條跳過（不放）
+      if (!skipPurpleIdx.has(idx)) addPurpleCuts(endpointGroup, s.path, [1 / 2], bset);
+    });
   };
 
   // 🟢 頭尾同點（環線）：單一路線頭尾為同一點，以綠色粗線標示整條（底色，墊在路線底下）
@@ -475,18 +497,54 @@ export function mountRouteMapAdjust(el, dataStore) {
     for (const e of sk.edges || []) {
       const path = Array.isArray(e.path) ? e.path : [];
       if (path.length < 2) continue;
-      // 骨架：所有路線一律黑色、不畫 highlight 底色（共線/環線/頭尾共點不再上色）。
+      // 骨架邊顏色：取該邊所有路線之「不同顏色」。
+      //   1 種顏色（單一路線）→ 實線畫該顏色；
+      //   ≥2 種顏色（多路線共線）→ 同一路徑疊畫多條虛線、dash 交錯，讓所有顏色同時呈現。
       const baseWeight = 3;
-      const pl = L.polyline(path, {
-        color: '#000000',
-        weight: baseWeight,
-        opacity: 0.9,
-        interactive: true,
-      });
-      pl.bindTooltip(skeletonEdgeTooltip(e), { sticky: true });
-      pl.on('mouseover', () => pl.setStyle({ weight: baseWeight + 4 }));
-      pl.on('mouseout', () => pl.setStyle({ weight: baseWeight }));
-      pl.addTo(skeletonGroup);
+      const colors = [];
+      const seenC = new Set();
+      for (const r of e.routes || []) {
+        const c = r?.color || null;
+        if (c && !seenC.has(c)) {
+          seenC.add(c);
+          colors.push(c);
+        }
+      }
+      if (colors.length === 0) colors.push('#000000');
+
+      if (colors.length === 1) {
+        const pl = L.polyline(path, {
+          color: colors[0],
+          weight: baseWeight,
+          opacity: 0.9,
+          interactive: true,
+        });
+        pl.bindTooltip(skeletonEdgeTooltip(e), { sticky: true });
+        pl.on('mouseover', () => pl.setStyle({ weight: baseWeight + 4 }));
+        pl.on('mouseout', () => pl.setStyle({ weight: baseWeight }));
+        pl.addTo(skeletonGroup);
+      } else {
+        // 多色交錯：dash=dashLen、gap=dashLen*(N-1)，第 i 色 offset=dashLen*i → N 色剛好無縫平鋪整條線
+        const N = colors.length;
+        const dashLen = 8;
+        const dashArray = `${dashLen} ${dashLen * (N - 1)}`;
+        const pls = colors.map((c, i) =>
+          L.polyline(path, {
+            color: c,
+            weight: baseWeight,
+            opacity: 0.95,
+            interactive: true,
+            dashArray,
+            dashOffset: String(dashLen * i),
+          })
+        );
+        pls.forEach((pl) => {
+          pl.bindTooltip(skeletonEdgeTooltip(e), { sticky: true });
+          pl.on('mouseover', () => pls.forEach((q) => q.setStyle({ weight: baseWeight + 4 })));
+          pl.on('mouseout', () => pls.forEach((q) => q.setStyle({ weight: baseWeight })));
+          pl.addTo(skeletonGroup);
+        });
+      }
     }
     // 🖤 黑點站（一般中間站）：骨架化後仍照原位置畫出（不可消失）。先畫，讓端點/交點/交叉節點疊在其上。
     const routesAtCoord = buildRoutesAtCoord();
@@ -516,7 +574,7 @@ export function mountRouteMapAdjust(el, dataStore) {
       let fill = '#000000';
       if (n.isCross) fill = '#ffd600';
       else if (n.isPurple) fill = '#9c27b0';
-      else if (connectKeys.has(nk)) fill = '#ff0000';
+      else if (connectKeys.has(nk) || n.isRouteJunction) fill = '#ff0000';
       else if (terminalKeys.has(nk)) fill = '#1565c0';
       const m = L.circleMarker(n.latlng, {
         radius: baseR,

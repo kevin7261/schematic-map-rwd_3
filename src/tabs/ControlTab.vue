@@ -9830,7 +9830,7 @@
       >
         <!-- 🗺️ 示意圖佈局（從路線圖調整）：載入 + 執行（僅①②③演算法層） -->
         <div
-          v-if="layer.isRouteSchematicLayer && ['schematic_rma_stroke', 'schematic_rma_hillclimb', 'schematic_rma_milp', 'schematic_rma_force', 'schematic_rma_wangchi', 'schematic_rma_bast', 'schematic_rma_merrick'].includes(layer.layerId)"
+          v-if="layer.isRouteSchematicLayer && ['schematic_rma_stroke', 'schematic_rma_hillclimb', 'schematic_rma_milp', 'schematic_rma_force', 'schematic_rma_wangchi', 'schematic_rma_bast', 'schematic_rma_merrick', 'schematic_rma_sat'].includes(layer.layerId)"
           class="pb-3 mb-3 border-bottom"
         >
           <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
@@ -11550,6 +11550,13 @@
             @click="importLayoutResultIntoMilpReadRma('schematic_rma_merrick')"
           >
             從⑦（Path Simplification）匯入
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-red my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            @click="importLayoutResultIntoMilpReadRma('schematic_rma_sat')"
+          >
+            從⑧（SAT）匯入
           </button>
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
             匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP（RMA）結果。後續步驟（往中心聚集 先橫後直／先直後橫）在下方各圖層。

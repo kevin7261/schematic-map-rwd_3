@@ -134,6 +134,7 @@ import { executeForce as executeForceRma } from '../utils/routeMapAdjust/schemat
 import { executeWangChi as executeWangChiRma } from '../utils/routeMapAdjust/schematic/leastSquares/executeWangChi.js';
 import { executeBast as executeBastRma } from '../utils/routeMapAdjust/schematic/gridGraph/executeBast.js';
 import { executeMerrick as executeMerrickRma } from '../utils/routeMapAdjust/schematic/pathSimplify/executeMerrick.js';
+import { executeSat as executeSatRma } from '../utils/routeMapAdjust/schematic/sat/executeSat.js';
 import { executeReadMilpResult as executeReadMilpResultRma } from '../utils/routeMapAdjust/schematic/milp/readMilpResult.js';
 import { assignOsm2LayerViewerFields } from '../utils/layers/osm_2_geojson_2_json/layerMerge.js';
 import {
@@ -638,6 +639,51 @@ export const useDataStore = defineStore(
             osmFileName: null,
             jsonFileName: null,
             executeFunction: executeMerrickRma,
+            /** 「拉直」步驟產出的 connect 直邊骨架 { skeletonFlat, sections, meta }，供「開始執行」取用 */
+            straightenedInput: null,
+            isDataLayer: true,
+            hideFromMap: true,
+            display: true,
+            highlightedSegmentIndex: null,
+            squareGridCellsTaipeiTest3: false,
+            dataOSM: null,
+            dataGeojson: null,
+            dataJson: null,
+            isRouteSchematicLayer: true,
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
+          },
+          {
+            /** 示意圖佈局 #8（從路線圖調整載入）：Fuchs (2022) SAT-based octilinear（精確八方向 MaxSAT）。 */
+            layerId: 'schematic_rma_sat',
+            layerName: '⑧ 示意圖佈局（SAT）',
+            visible: false,
+            isLoading: false,
+            isLoaded: false,
+            colorName: 'red',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            spaceNetworkGridJsonData_SectionData: null,
+            spaceNetworkGridJsonData_ConnectData: null,
+            spaceNetworkGridJsonData_StationData: null,
+            showStationPlacement: true,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: executeSatRma,
             /** 「拉直」步驟產出的 connect 直邊骨架 { skeletonFlat, sections, meta }，供「開始執行」取用 */
             straightenedInput: null,
             isDataLayer: true,

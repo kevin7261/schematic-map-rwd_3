@@ -13,7 +13,9 @@ import { buildSchematicGraph, splitHighDegreeNodes, applyCoordsToSkeleton } from
 import { writeSchematicResultToLayer, reinsertBlackStations, injectEdgeBends } from './assemble.js';
 import { showSolveOverlay } from './solveOverlay.js';
 
-export async function runLiveLayout(layerId, profileId, title) {
+export async function runLiveLayout(layerId, profileId, title, opts = {}) {
+  // SAT(⑧) 之 logic-solver 為同步且無內部時限,大骨架可能不返回 → 由主執行緒 wall-clock 終止 worker。
+  const maxWallMs = opts.maxWallMs ?? (profileId === 'sat' ? 180000 : 0);
   const input = resolveSchematicInput(layerId);
   if (!input.ok) {
     if (typeof window !== 'undefined' && window.alert) window.alert('[未產出]\n' + input.message);
@@ -30,12 +32,19 @@ export async function runLiveLayout(layerId, profileId, title) {
       resolve({ ok: false, message: 'Web Worker 建立失敗：' + (e?.message || e) });
       return;
     }
+    let killTimer = null;
+    const finish = (res) => { if (killTimer) clearTimeout(killTimer); worker.terminate(); resolve(res); };
+    if (maxWallMs > 0) {
+      killTimer = setTimeout(() => {
+        finish({ ok: false, message: `求解逾時（超過 ${Math.round(maxWallMs / 1000)} 秒）。此骨架對瀏覽器端 SAT 過大,請改用較小城市或 ③ MILP。` });
+      }, maxWallMs);
+    }
     worker.onmessage = (ev) => {
       const d = ev.data || {};
       if (d.type === 'progress') overlay.setStatus(d.msg);
-      else if (d.type === 'done') { worker.terminate(); resolve(d.result || { ok: false, message: '無結果' }); }
+      else if (d.type === 'done') { finish(d.result || { ok: false, message: '無結果' }); }
     };
-    worker.onerror = (err) => { worker.terminate(); resolve({ ok: false, message: 'Worker 錯誤：' + (err?.message || err) }); };
+    worker.onerror = (err) => { finish({ ok: false, message: 'Worker 錯誤：' + (err?.message || err) }); };
     worker.postMessage({ skeletonFlat: input.skeletonFlat, profileId });
   });
 
@@ -66,7 +75,10 @@ export async function runLiveLayout(layerId, profileId, title) {
   const fbNote = result.fallback
     ? '\n（精確 MILP 對瀏覽器太重，已自動改用啟發式八方向佈局保證產出）'
     : '';
-  const summary = `完成！耗時 ${secs.toFixed(1)} 秒\n八方向違規 ${v.nonocti ?? '?'}、新交叉 ${v.crossings ?? '?'}、新重疊 ${v.overlaps ?? '?'}、重合 ${v.clashes ?? '?'}${fbNote}`;
+  const satNote = result.status === 'sat-feasible'
+    ? '\n（⑧ SAT：已求得可行八方向+平面+保拓樸佈局；MaxSAT 最佳化超出瀏覽器記憶體故未進一步最佳化）'
+    : '';
+  const summary = `完成！耗時 ${secs.toFixed(1)} 秒\n八方向違規 ${v.nonocti ?? '?'}、新交叉 ${v.crossings ?? '?'}、新重疊 ${v.overlaps ?? '?'}、重合 ${v.clashes ?? '?'}${fbNote}${satNote}`;
   if (typeof window !== 'undefined' && window.alert) window.alert(summary);
   return { ok: true, message: summary, stats: write.stats };
 }

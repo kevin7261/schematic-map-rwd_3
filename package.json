@@ -44,6 +44,7 @@
     "elkjs": "^0.11.1",
     "highs": "^1.14.2",
     "leaflet": "^1.9.4",
+    "logic-solver": "^2.0.1",
     "pinia": "^2.1.0",
     "vue": "^3.2.13",
     "vue-router": "^4.5.1"

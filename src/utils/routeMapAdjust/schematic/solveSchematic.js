@@ -20,13 +20,17 @@ import { runForceDirected } from './forceDirected/forceCore.js';
 import { runWangChi } from './leastSquares/wangChiCore.js';
 import { runBastGrid } from './gridGraph/bastGridCore.js';
 import { runMerrick } from './pathSimplify/merrickCore.js';
+import { runSat } from './sat/satCore.js';
 import { runOctilinearLayout } from './milp/runOctilinearLayout.js';
 import { countViolations } from './repair.js';
 
 // MILP（③）目標權重：S1 彎折 / S2 相對位置 / S3 長度（Nöllenburg & Wolff 2011，§4.8 Eq.15）。
 const MILP_WEIGHTS = { wBend: 1.5, wRpos: 1.5, wLen: 0.1 };
 
-const KNOWN_PROFILES = new Set(['stroke', 'hillclimb', 'milp', 'force', 'wangchi', 'bast', 'merrick']);
+const KNOWN_PROFILES = new Set(['stroke', 'hillclimb', 'milp', 'force', 'wangchi', 'bast', 'merrick', 'sat']);
+
+// SAT（⑧）目標權重：f1 彎折 / f2 相對位置 / f3 邊長（Fuchs 2022，§3.4；論文預設皆 1，實驗用 (3,2,1)）。
+const SAT_WEIGHTS = { f1: 3, f2: 2, f3: 1 };
 
 /**
  * @param {Array} skeletonFlat connect 骨架（已縮放整數格）
@@ -75,6 +79,22 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
     const coords = Array.isArray(r) ? r : r.coords;
     const edgePaths = Array.isArray(r) ? undefined : r.edgePaths;
     return { ok: true, coords, edgePaths, violations: countViolations(graph, coords), status: profileId };
+  }
+
+  // ⑧ SAT：Fuchs (2022) 精確八方向 weighted-partial MaxSAT（logic-solver，完全照論文 SAT 模型）。
+  //    與 ③ MILP 同契約:小骨架可解、大城市誠實逾時（worker 由主執行緒 wall-clock 終止）。
+  if (profileId === 'sat') {
+    report('SAT 精確八方向求解（Fuchs 2022）…');
+    const r = runSat(graph, coords0, {
+      weights: SAT_WEIGHTS,
+      optimize: true,
+      maxPlanarIter: 8,
+      onProgress: report,
+    });
+    if (!r.ok) {
+      return { ok: false, status: 'sat-failed', message: (r.message || 'SAT 求解未產出') + '\n（依論文忠實度要求,不以啟發式冒充 SAT）' };
+    }
+    return { ok: true, coords: r.coords, violations: countViolations(graph, r.coords), h4Pairs: r.h4Pairs, status: r.status };
   }
 
   // ③ MILP：Nöllenburg & Wolff (2011) 精確八方向求解（完全照論文,不加 fallback/簡化)。

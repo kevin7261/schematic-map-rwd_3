@@ -738,9 +738,29 @@ export const buildRouteMapAdjustSkeleton = (lines, blackDots = null, stationCoor
   });
 
   const degree = (k) => adj.get(k)?.size || 0;
+  // 某節點 k 對某鄰居 nbk 之邊上的 route_name 集合
+  const routeNamesOnEdge = (k, nbk) => {
+    const m = adj.get(k)?.get(nbk);
+    const s = new Set();
+    if (m) for (const a of m.values()) s.add(a.routeName ?? a.routeId ?? String(a.routeIndex));
+    return s;
+  };
+  // degree-2 但「兩側 route_name 不同」→ 視為紅點（不同路線交接/轉乘），收縮串接時須保留，不可把兩條不同路線串成一條。
+  const isDiffRouteNameJunction = (k) => {
+    const nbr = adj.get(k);
+    if (!nbr || nbr.size !== 2) return false;
+    const [a, b] = [...nbr.keys()];
+    const sa = routeNamesOnEdge(k, a);
+    const sb = routeNamesOnEdge(k, b);
+    if (sa.size !== sb.size) return true;
+    for (const x of sa) if (!sb.has(x)) return true;
+    return false;
+  };
   // 交叉點／端點／分歧點，以及「本來的」端點(🔵)／交點(🔴)站點，皆為真實節點：
   //   收縮 degree-2 過路點時絕不可穿越，保留原本結構（相交點不消失、路線不被誤接）。
-  const isReal = (k) => degree(k) !== 2 || crossKeys.has(k) || forcedNodeKeys.has(k);
+  //   另：degree-2 但兩側 route_name 不同者亦保留為紅點。
+  const isReal = (k) =>
+    degree(k) !== 2 || crossKeys.has(k) || forcedNodeKeys.has(k) || isDiffRouteNameJunction(k);
   const mkey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
   const microSeen = new Set();
   const edgesOut = [];
@@ -894,6 +914,7 @@ export const buildRouteMapAdjustSkeleton = (lines, blackDots = null, stationCoor
         latlng: vert.get(k),
         routes: [...nodeRoutes.get(k).values()],
         isCross: crossKeys.has(k),
+        isRouteJunction: isDiffRouteNameJunction(k), // 🔴 不同 route_name 交接之 degree-2 紅點
       })),
       ...purpleNodes,
     ],
@@ -1015,11 +1036,24 @@ export const routeMapAdjustToOsmRouteGeoJson = (lines, blackDots, stationMeta = 
 export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stationMeta) => {
   const edges = Array.isArray(skeleton?.edges) ? skeleton.edges : [];
   const nodes = Array.isArray(skeleton?.nodes) ? skeleton.nodes : [];
-  // 與骨架渲染器一致的「底色＋原色」畫法：
-  //   color    ＝ 路線原來的顏色（主線色，畫在上面）
-  //   hl_color ＝ 🔴 合併(共線)／🔵 頭尾共點／🟢 環線 之底色高亮（墊在主線底下；無則空字串）
-  // 骨架：所有路線一律黑色、不用 highlight 底色（共線/環線/頭尾共點不再上色）。
-  const routeColorOf = () => '#000000';
+  // 骨架邊顏色：取該邊所有路線之「不同顏色」。
+  //   1 種顏色（單一路線）→ color 即該色；≥2 種→ color 留黑，route_colors 帶全部顏色供交錯畫。
+  const distinctColorsOf = (e) => {
+    const out = [];
+    const seen = new Set();
+    for (const r of e.routes || []) {
+      const c = r?.color || null;
+      if (c && !seen.has(c)) {
+        seen.add(c);
+        out.push(c);
+      }
+    }
+    return out;
+  };
+  const routeColorOf = (e) => {
+    const cols = distinctColorsOf(e);
+    return cols.length === 1 ? cols[0] : '#000000';
+  };
   const hlColorOf = () => '';
   // 點色：只有 🔴 交叉/分歧（交叉點重算）／🔵 端點／🖤 其餘（路線中的點皆黑）。
   const llKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
@@ -1034,7 +1068,7 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
     const k = llKey(n.latlng[0], n.latlng[1]);
     if (n.isCross) return '#ffd600'; // 🟡 交叉點（與原本黃點一致）
     if (n.isPurple) return '#9c27b0'; // 🟣 切斷點（與原本紫點一致）
-    if (connectKeys.has(k)) return '#ff0000'; // 🔴 分歧(degree≥3)
+    if (connectKeys.has(k) || n.isRouteJunction) return '#ff0000'; // 🔴 分歧(degree≥3)／不同 route_name 交接
     if (terminalKeys.has(k)) return '#1565c0'; // 🔵 端點
     return '#000000'; // 🖤 其餘 → 黑
   };
@@ -1052,7 +1086,8 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
         tags: {
           route_id: String(i + 1),
           route_name: e.routes?.[0]?.routeName || `骨架邊 ${i + 1}`,
-          color: routeColorOf(e), // 主線繪製色（骨架一律黑）
+          color: routeColorOf(e), // 單一路線→該色；多色→黑（交錯由 route_colors 畫）
+          route_colors: distinctColorsOf(e).join(','), // 該邊所有不同顏色（≥2 色交錯畫）
           route_color: e.routes?.[0]?.color || '', // 真正的路線顏色（hover 顯示用）
           hl_color: hlColorOf(e), // 共線/環線/頭尾共點底色（墊在底下；無則空）
           railway: 'subway',

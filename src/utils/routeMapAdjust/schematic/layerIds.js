@@ -1,5 +1,5 @@
 /**
- * 七個「示意圖佈局」比較圖層的 layerId（照原編號排序）。
+ * 八個「示意圖佈局」比較圖層的 layerId（照原編號排序）。
  *  #1 Li & Dong (2010)              — stroke-based 示意圖方法（octilinear，8 方向）
  *  #2 Stott & Rodgers (2011)        — Hill Climbing 多準則最佳化
  *  #3 Nöllenburg & Wolff (2011)     — MILP（octilinear，HiGHS 求解）
@@ -7,6 +7,7 @@
  *  #5 Wang & Chi (2011)             — Focus+Context 最小二乘變形（Ω_ℓ/Ω_m/Ω_g → Ω_o）
  *  #6 Bast, Brosi & Storandt (2020) — Octilinear Grid Graph 最短路近似
  *  #7 Merrick & Gudmundsson (2007)  — C-directed 路徑簡化
+ *  #8 Fuchs (2022)                  — SAT-based octilinear（CNF 直譯 + weighted-partial MaxSAT）
  *
  * 各圖層共用建圖/骨架/渲染，只最佳化 connect 紅藍骨架，黑點最後沿邊內插放回。
  */
@@ -23,6 +24,8 @@ export const SCHEMATIC_WANGCHI_LAYER_ID = 'schematic_rma_wangchi';
 export const SCHEMATIC_BAST_LAYER_ID = 'schematic_rma_bast';
 /** #7 Merrick & Gudmundsson (2007) C-directed 路徑簡化 */
 export const SCHEMATIC_MERRICK_LAYER_ID = 'schematic_rma_merrick';
+/** #8 Fuchs (2022) SAT-based octilinear（logic-solver weighted-partial MaxSAT，精確八方向） */
+export const SCHEMATIC_SAT_LAYER_ID = 'schematic_rma_sat';
 
 /** 衍生圖層：MILP結果正規化（RMA）— 讀 ③ MILP（schematic_rma_milp）結果並做保拓樸座標正規化。 */
 export const SCHEMATIC_MILP_READ_LAYER_ID = 'schematic_rma_milp_read';
