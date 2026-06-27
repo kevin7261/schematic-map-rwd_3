@@ -53,7 +53,8 @@ export async function runLiveLayout(layerId, profileId, title) {
   const v = result.violations || {};
   const write = writeSchematicResultToLayer(layerId, fullFlat, {
     ...input.meta, ...v, h4Pairs: result.h4Pairs, sepPairs: result.sepPairs, milpStatus: result.status,
-    algo: `${title || profileId}（即時精確八方向求解）`,
+    // 各圖層據實標示其演算法（只有 ③ MILP 是精確求解；①② 為啟發式/直接式）。
+    algo: title || profileId,
   });
 
   const secs = overlay.close();

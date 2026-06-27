@@ -1,8 +1,15 @@
 /* eslint-disable no-console */
 
 /**
- * Worker-safe 求解（不依賴 dataStore）：connect 骨架 → 精確八方向佈局座標。
- * 三個 profile 共用精確硬約束引擎，差別在目標權重 + 方向偏好（各論文精神）。
+ * Worker-safe 求解（不依賴 dataStore）：connect 骨架 → 各演算法的示意圖佈局座標。
+ *
+ * ⚠️ 重要（論文忠實度）：每個圖層**各自輸出自己論文演算法的座標**，彼此獨立，
+ * 不再共用同一顆 MILP 引擎、也不再用啟發式結果冒充 MILP。
+ *   ① stroke    → Li & Dong (2010) stroke-based（runStrokeOnGraph 自己的座標）
+ *   ② hillclimb → Stott et al. (2011) 多準則 hill climbing（runHillClimb 自己的座標）
+ *   ③ milp      → Nöllenburg & Wolff (2011) MILP 精確求解（runOctilinearLayout）
+ * 其餘 force / wangchi 為附加方法，同樣各自輸出自己的座標。
+ *
  * 由 schematicWorker.js 在 Web Worker 內呼叫（避免凍結主執行緒 → overlay 計時可動）。
  */
 
@@ -10,39 +17,59 @@ import { buildSchematicGraph, splitHighDegreeNodes, initialCoords } from './grap
 import { runStrokeOnGraph } from './stroke/strokeCore.js';
 import { runHillClimb } from './hillClimb/hillClimbCore.js';
 import { runForceDirected } from './forceDirected/forceCore.js';
-import { runOctilinearLayout, computePreferredDirs } from './milp/runOctilinearLayout.js';
+import { runWangChi } from './leastSquares/wangChiCore.js';
+import { runOctilinearLayout } from './milp/runOctilinearLayout.js';
 import { countViolations } from './repair.js';
 
-const PROFILES = {
-  stroke: { init: 'stroke', weights: { wBend: 2, wRpos: 1, wLen: 0.05 } },
-  hillclimb: { init: 'hill', weights: { wBend: 1, wRpos: 2, wLen: 0.1 } },
-  milp: { init: 'geo', weights: { wBend: 1.5, wRpos: 1.5, wLen: 0.1 } },
-  force: { init: 'force', weights: { wBend: 1, wRpos: 1.5, wLen: 0.15 } },
-};
+// MILP（③）目標權重：S1 彎折 / S2 相對位置 / S3 長度（Nöllenburg & Wolff 2011，§4.8 Eq.15）。
+const MILP_WEIGHTS = { wBend: 1.5, wRpos: 1.5, wLen: 0.1 };
+
+const KNOWN_PROFILES = new Set(['stroke', 'hillclimb', 'milp', 'force', 'wangchi']);
 
 /**
  * @param {Array} skeletonFlat connect 骨架（已縮放整數格）
- * @param {string} profileId  stroke|hillclimb|milp|force
+ * @param {string} profileId  stroke|hillclimb|milp|force|wangchi
  * @param {(msg:string)=>void} onProgress 進度回報（worker 轉發給主執行緒）
  * @returns {Promise<{ ok, coords?, violations?, h4Pairs?, sepPairs?, status?, message? }>}
  */
 export async function solveSchematic(skeletonFlat, profileId, onProgress) {
-  const prof = PROFILES[profileId];
-  if (!prof) return { ok: false, message: '未知 profile：' + profileId };
+  if (!KNOWN_PROFILES.has(profileId)) return { ok: false, message: '未知 profile：' + profileId };
   const report = typeof onProgress === 'function' ? onProgress : () => {};
 
   const graph = splitHighDegreeNodes(buildSchematicGraph(skeletonFlat), 8);
   const coords0 = initialCoords(graph);
 
-  report('計算方向偏好（' + profileId + '）…');
-  let preferredDirs = null;
-  if (prof.init === 'stroke') preferredDirs = computePreferredDirs(graph, runStrokeOnGraph(graph, coords0, {}));
-  else if (prof.init === 'hill') preferredDirs = computePreferredDirs(graph, runHillClimb(graph, coords0, {}).coords);
-  else if (prof.init === 'force') preferredDirs = computePreferredDirs(graph, runForceDirected(graph, coords0, {}));
+  // 啟發式 / 直接式圖層：各自輸出自己演算法的座標（不接 MILP）。
+  const direct = {
+    stroke: () => {
+      report('Stroke 直線化（Li & Dong 2010）…');
+      return runStrokeOnGraph(graph, coords0, {});
+    },
+    hillclimb: () => {
+      report('Hill Climbing 多準則最佳化（Stott et al. 2011）…');
+      return runHillClimb(graph, coords0, {}).coords;
+    },
+    force: () => {
+      report('Force-directed 佈局…');
+      return runForceDirected(graph, coords0, {});
+    },
+    wangchi: () => {
+      report('Wang & Chi 最小平方佈局…');
+      return runWangChi(graph, coords0, {});
+    },
+  };
 
+  if (direct[profileId]) {
+    const coords = direct[profileId]();
+    return { ok: true, coords, violations: countViolations(graph, coords), status: profileId };
+  }
+
+  // ③ MILP：Nöllenburg & Wolff (2011) 精確八方向求解。失敗就誠實回報「未產出」，
+  //    **不**用啟發式冒充（論文忠實度要求）。
+  report('MILP 精確八方向求解（Nöllenburg & Wolff 2011）…');
   const layout = await runOctilinearLayout(graph, {
-    weights: prof.weights,
-    preferredDirs,
+    weights: MILP_WEIGHTS,
+    preferredDirs: null, // S2 以地理最近八方向為偏好（論文 §4.6）
     timeLimit: 30,
     maxTimeLimit: 60,
     maxH4Iter: 8,
@@ -50,31 +77,12 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
     onProgress: report,
   });
 
-  // ✅ 保證產出：精確 MILP 對瀏覽器太重（退化/超時）時，**不再丟「未產出」**，
-  // 改用啟發式整數佈局（hill-climb，必要時退回 stroke）當結果——永遠畫得出來。
   if (!layout.ok) {
-    report('精確求解過重，改用啟發式八方向佈局（保證產出）…');
-    let fbCoords = null;
-    try {
-      fbCoords = runHillClimb(graph, coords0, {}).coords;
-    } catch (e) {
-      console.warn('[solveSchematic] hill-climb 回退失敗，改用 stroke：', e?.message || e);
-    }
-    if (!fbCoords) {
-      try {
-        fbCoords = runStrokeOnGraph(graph, coords0, {});
-      } catch (e) {
-        console.warn('[solveSchematic] stroke 回退失敗，改用初始座標：', e?.message || e);
-      }
-    }
-    if (!fbCoords) fbCoords = coords0; // 最終保底：初始格座標
     return {
-      ok: true,
-      coords: fbCoords,
-      violations: countViolations(graph, fbCoords),
-      fallback: true,
-      status: 'fallback-heuristic',
-      message: layout.message,
+      ok: false,
+      status: 'milp-failed',
+      message: (layout.message || 'MILP 精確求解未產出（超時或不可行）') +
+        '\n（依論文忠實度要求，不以啟發式結果冒充 MILP；請放寬時限或縮小網路後重試）',
     };
   }
 

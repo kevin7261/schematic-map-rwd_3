@@ -131,6 +131,7 @@ import { executeStroke as executeStrokeRma } from '../utils/routeMapAdjust/schem
 import { executeHillClimb as executeHillClimbRma } from '../utils/routeMapAdjust/schematic/hillClimb/executeHillClimb.js';
 import { executeMilp as executeMilpRma } from '../utils/routeMapAdjust/schematic/milp/executeMilp.js';
 import { executeForce as executeForceRma } from '../utils/routeMapAdjust/schematic/forceDirected/executeForce.js';
+import { executeWangChi as executeWangChiRma } from '../utils/routeMapAdjust/schematic/leastSquares/executeWangChi.js';
 import { executeReadMilpResult as executeReadMilpResultRma } from '../utils/routeMapAdjust/schematic/milp/readMilpResult.js';
 import { assignOsm2LayerViewerFields } from '../utils/layers/osm_2_geojson_2_json/layerMerge.js';
 import {
@@ -495,6 +496,51 @@ export const useDataStore = defineStore(
             osmFileName: null,
             jsonFileName: null,
             executeFunction: executeForceRma,
+            /** 「拉直」步驟產出的 connect 直邊骨架 { skeletonFlat, sections, meta }，供「開始執行」取用 */
+            straightenedInput: null,
+            isDataLayer: true,
+            hideFromMap: true,
+            display: true,
+            highlightedSegmentIndex: null,
+            squareGridCellsTaipeiTest3: false,
+            dataOSM: null,
+            dataGeojson: null,
+            dataJson: null,
+            isRouteSchematicLayer: true,
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
+          },
+          {
+            /** 示意圖佈局 #5（從路線圖調整載入）：Wang & Chi (2011) Focus+Context 最小二乘變形。 */
+            layerId: 'schematic_rma_wangchi',
+            layerName: '⑤ 示意圖佈局（Least-Squares）',
+            visible: false,
+            isLoading: false,
+            isLoaded: false,
+            colorName: 'cyan',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            spaceNetworkGridJsonData_SectionData: null,
+            spaceNetworkGridJsonData_ConnectData: null,
+            spaceNetworkGridJsonData_StationData: null,
+            showStationPlacement: true,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: executeWangChiRma,
             /** 「拉直」步驟產出的 connect 直邊骨架 { skeletonFlat, sections, meta }，供「開始執行」取用 */
             straightenedInput: null,
             isDataLayer: true,

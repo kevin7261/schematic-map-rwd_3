@@ -1,8 +1,9 @@
 /**
- * 圖層 #2：Stott & Rodgers (2011) Hill Climbing（即時精確八方向求解）。
+ * 圖層 #2：Stott et al. (2011) Hill Climbing（多準則局部搜尋 + 群集跳脫局部最佳）。
  *
  * 按「執行」→ 在 Web Worker 即時求解（不預計算、中途不停止、算到完成），
- * 主執行緒顯示計時 overlay，完成跳出耗時。hill-climb 提供方向偏好（多準則精神）。
+ * 主執行緒顯示計時 overlay，完成跳出耗時。本圖層輸出 hill-climb 演算法自己的座標，
+ * 不接 MILP（論文忠實度要求）。
  */
 
 import { runLiveLayout } from '../runLiveLayout.js';
