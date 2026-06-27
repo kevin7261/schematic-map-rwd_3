@@ -18,17 +18,19 @@ import { runStrokeOnGraph } from './stroke/strokeCore.js';
 import { runHillClimb } from './hillClimb/hillClimbCore.js';
 import { runForceDirected } from './forceDirected/forceCore.js';
 import { runWangChi } from './leastSquares/wangChiCore.js';
+import { runBastGrid } from './gridGraph/bastGridCore.js';
+import { runMerrick } from './pathSimplify/merrickCore.js';
 import { runOctilinearLayout } from './milp/runOctilinearLayout.js';
 import { countViolations } from './repair.js';
 
 // MILP（③）目標權重：S1 彎折 / S2 相對位置 / S3 長度（Nöllenburg & Wolff 2011，§4.8 Eq.15）。
 const MILP_WEIGHTS = { wBend: 1.5, wRpos: 1.5, wLen: 0.1 };
 
-const KNOWN_PROFILES = new Set(['stroke', 'hillclimb', 'milp', 'force', 'wangchi']);
+const KNOWN_PROFILES = new Set(['stroke', 'hillclimb', 'milp', 'force', 'wangchi', 'bast', 'merrick']);
 
 /**
  * @param {Array} skeletonFlat connect 骨架（已縮放整數格）
- * @param {string} profileId  stroke|hillclimb|milp|force|wangchi
+ * @param {string} profileId  stroke|hillclimb|milp|force|wangchi|bast|merrick
  * @param {(msg:string)=>void} onProgress 進度回報（worker 轉發給主執行緒）
  * @returns {Promise<{ ok, coords?, violations?, h4Pairs?, sepPairs?, status?, message? }>}
  */
@@ -56,6 +58,14 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
     wangchi: () => {
       report('Wang & Chi 最小平方佈局…');
       return runWangChi(graph, coords0, {});
+    },
+    bast: () => {
+      report('Octilinear 格網最短路佈局（Bast et al. 2020）…');
+      return runBastGrid(graph, coords0, {});
+    },
+    merrick: () => {
+      report('C-directed 路徑簡化佈局（Merrick & Gudmundsson 2007）…');
+      return runMerrick(graph, coords0, {});
     },
   };
 
