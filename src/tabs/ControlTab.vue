@@ -9845,6 +9845,94 @@
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * 通用 JSON 下載：把任意 payload 以縮排 JSON 觸發瀏覽器下載。
+   * @param {*} payload
+   * @param {string} filename
+   */
+  const triggerJsonDownload = (payload, filename) => {
+    if (payload == null) return;
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  /**
+   * 「路線圖轉換骨架」(route_map_adjust)：下載骨架 GeoJSON。
+   * 與 loadRouteAdjustIntoSchematic 餵給示意圖佈局的輸入完全同格式（示意圖計算即讀此格式）。
+   */
+  const downloadRouteMapAdjustSkeletonJson = () => {
+    const adj = dataStore.findLayerById('route_map_adjust');
+    const sk = adj?.routeMapAdjustSkeleton;
+    const edges = Array.isArray(sk?.edges) ? sk.edges : [];
+    if (!edges.length) {
+      window.alert('「路線圖轉換骨架」尚未建立骨架，請先按「變成骨架」。');
+      return;
+    }
+    const fc = routeMapAdjustSkeletonToGeoJson(
+      sk,
+      Array.isArray(adj.routeMapAdjustLines) ? adj.routeMapAdjustLines : [],
+      Array.isArray(adj.routeMapAdjustBlackDots) ? adj.routeMapAdjustBlackDots : [],
+      adj.routeMapAdjustStationMeta || null
+    );
+    triggerJsonDownload(fc, 'route_map_adjust_skeleton.json');
+  };
+
+  /**
+   * 「路線圖轉換直線骨架」(route_map_adjust_straight)：下載骨架 GeoJSON。
+   * 與 loadRouteAdjustStraightIntoSchematic 餵給示意圖佈局的輸入完全同格式。
+   */
+  const downloadRouteMapAdjustStraightSkeletonJson = () => {
+    const adj = dataStore.findLayerById('route_map_adjust_straight');
+    const sk = adj?.routeMapAdjustSkeleton;
+    const edges = Array.isArray(sk?.edges) ? sk.edges : [];
+    if (!edges.length) {
+      window.alert('「路線圖轉換直線骨架」尚未建立骨架，請先按「變成骨架」。');
+      return;
+    }
+    const lines = Array.isArray(adj.routeMapAdjustStraightenedLines)
+      ? adj.routeMapAdjustStraightenedLines
+      : Array.isArray(adj.routeMapAdjustLines)
+        ? adj.routeMapAdjustLines
+        : [];
+    const blackDots = Array.isArray(adj.routeMapAdjustStraightenedBlackDots)
+      ? adj.routeMapAdjustStraightenedBlackDots
+      : Array.isArray(adj.routeMapAdjustBlackDots)
+        ? adj.routeMapAdjustBlackDots
+        : [];
+    const stationMeta =
+      adj.routeMapAdjustStraightenedStationMeta || adj.routeMapAdjustStationMeta || null;
+    const stationCoords = collectStraightSkeletonStationCoords(
+      adj.routeMapAdjustLines,
+      adj.routeMapAdjustBlackDots,
+      blackDots,
+      stationMeta
+    );
+    const fc = routeMapAdjustSkeletonToGeoJson(sk, lines, blackDots, stationMeta, stationCoords);
+    triggerJsonDownload(fc, 'route_map_adjust_straight_skeleton.json');
+  };
+
+  /**
+   * 「示意圖佈局」(schematic_rma_*)：下載目前載入的輸入骨架 GeoJSON。
+   * 與「路線圖轉換骨架／直線骨架」下載同格式（即示意圖計算所讀之格式）。
+   */
+  const downloadRouteSchematicInputJson = (layer) => {
+    if (!layer?.geojsonData?.features?.length) {
+      window.alert(
+        '此圖層尚未載入輸入骨架，請先「從路線圖轉換骨架載入」或「從路線圖轉換直線骨架載入」。'
+      );
+      return;
+    }
+    triggerJsonDownload(layer.geojsonData, `${layer.layerId}_input.json`);
+  };
+
 </script>
 
 <template>
@@ -9933,6 +10021,15 @@
             @click="executeLayerFunction"
           >
             {{ isExecuting ? '執行中…' : '開始執行' }}
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
+            :disabled="!layer.geojsonData || !layer.geojsonData.features || !layer.geojsonData.features.length"
+            title="下載目前載入的輸入骨架 GeoJSON（與路線圖轉換骨架／直線骨架同格式，即示意圖計算所讀之格式）"
+            @click="downloadRouteSchematicInputJson(layer)"
+          >
+            下載 JSON（輸入骨架）
           </button>
           <div
             v-if="layer.layerId === 'schematic_rma_milp' && layer.dashboardData?.rotationStructureCheck?.layoutDone"
@@ -10220,6 +10317,15 @@
               <span>{{ rmaSkeletonStats.crossNodes }}</span>
             </div>
           </template>
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-3"
+            :disabled="!rmaHasSkeleton"
+            title="下載骨架 GeoJSON（與示意圖佈局輸入同格式，即示意圖計算所讀之格式）"
+            @click="downloadRouteMapAdjustSkeletonJson"
+          >
+            下載 JSON（骨架）
+          </button>
 
           <!-- 🏷️ 顯示車站名開關 -->
           <div class="d-flex align-items-center justify-content-between mb-3">
@@ -10492,6 +10598,15 @@
               <span>{{ rmasSkeletonStats.crossNodes }}</span>
             </div>
           </template>
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-3"
+            :disabled="!rmasHasSkeleton"
+            title="下載直線骨架 GeoJSON（與示意圖佈局輸入同格式，即示意圖計算所讀之格式）"
+            @click="downloadRouteMapAdjustStraightSkeletonJson"
+          >
+            下載 JSON（骨架）
+          </button>
 
           <!-- 🏷️ 顯示車站名開關 -->
           <div class="d-flex align-items-center justify-content-between mb-3">
