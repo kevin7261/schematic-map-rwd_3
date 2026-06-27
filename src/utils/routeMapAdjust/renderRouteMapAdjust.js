@@ -40,16 +40,24 @@ export function mountRouteMapAdjust(el, dataStore) {
     attributionControl: false,
   });
 
-  // 底圖：CartoDB Positron（乾淨淺色）
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  // 底圖：CartoDB Positron（乾淨淺色）。骨架模式時隱藏（純白底，只看骨頭）。
+  const baseTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     maxZoom: 19,
     subdomains: 'abcd',
   }).addTo(map);
-  // 疊加：OpenRailwayMap 鐵道／捷運路線
-  L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
+  // 疊加：OpenRailwayMap 鐵道／捷運路線。骨架模式時隱藏。
+  const railTile = L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
     maxZoom: 19,
     subdomains: 'abc',
   }).addTo(map);
+  // 骨架模式：移除底圖（純白底）；一般模式：顯示底圖。
+  const setBasemapVisible = (show) => {
+    for (const t of [baseTile, railTile]) {
+      if (!t) continue;
+      if (show && !map.hasLayer(t)) t.addTo(map);
+      else if (!show && map.hasLayer(t)) map.removeLayer(t);
+    }
+  };
 
   // 自訂 pane 控制疊放順序：共線/環線/頭尾共點底色(srmaUnder 350) < 路線(overlayPane 400) < 站名 < 站點圓點
   //  → 紅/綠/藍底色高亮永遠墊在路線「底下」，上面才畫路線原來的顏色；站名永遠在圓點「之下」
@@ -427,7 +435,8 @@ export function mountRouteMapAdjust(el, dataStore) {
 
   const renderAll = () => {
     if (hasSkeleton()) {
-      // 骨架模式：只顯示骨架（清掉原始路線與各高亮、站點）
+      // 骨架模式：隱藏底圖（純白底，只看骨頭）+ 只顯示骨架（清掉原始路線與各高亮、站點）
+      setBasemapVisible(false);
       finishedGroup.clearLayers();
       sharedGroup.clearLayers();
       loopGroup.clearLayers();
@@ -437,6 +446,7 @@ export function mountRouteMapAdjust(el, dataStore) {
       renderNames();
       return;
     }
+    setBasemapVisible(true); // 一般模式：顯示底圖
     skeletonGroup.clearLayers();
     // 顯示原始各路線 + 共線（紅）/環線（綠）/頭尾共點（藍）高亮 + 站點/交叉（黃）
     renderFinished();

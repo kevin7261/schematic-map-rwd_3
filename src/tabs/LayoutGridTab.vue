@@ -3063,7 +3063,7 @@
         .attr('cy', yScale(y))
         .attr('r', radius)
         .attr('fill', fillColor)
-        .attr('stroke', fillColor)
+        .attr('stroke', '#ffffff') // 白色 1px border（與骨架點一致）
         .attr('stroke-width', 1)
         .style('cursor', 'pointer');
 

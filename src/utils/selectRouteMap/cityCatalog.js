@@ -42,6 +42,7 @@ const QUICK_CITY_IDS = [
   'singapore-singapore',
   'france-paris',
   'germany-berlin',
+  'austria-vienna',
   'united-kingdom-london',
   'united-states-new-york-city',
 ];

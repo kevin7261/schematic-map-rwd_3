@@ -9239,7 +9239,7 @@
                 isH2Conn
               : isBlackHighlighted;
             const r = isHighlighted ? 5 : isConnect ? 2.5 : 1.5;
-            const strokeColor = isHighlighted ? '#ff6600' : fillColor;
+            const strokeColor = isHighlighted ? '#ff6600' : '#ffffff'; // 白邊（與骨架點一致）
             const strokeWidth = isHighlighted ? 2.5 : 1;
             const el = zoomGroup
               .append('circle')
@@ -9608,7 +9608,7 @@
           const radius = isBlackHighlighted ? 5 : 1.5;
           const strokeWidth = isBlackHighlighted ? 2.5 : 1;
           const fillColor = '#000000';
-          const strokeColor = isBlackHighlighted ? '#ff6600' : fillColor;
+          const strokeColor = isBlackHighlighted ? '#ff6600' : '#ffffff'; // 白邊（與骨架點一致）
 
           const el = zoomGroup
             .append('circle')
@@ -9763,7 +9763,7 @@
           const fillColor = '#000000';
           const hlColor =
             isBlackHighlighted && hb?.color && typeof hb.color === 'string' ? hb.color : '#ff6600';
-          const strokeColor = isBlackHighlighted ? hlColor : fillColor;
+          const strokeColor = isBlackHighlighted ? hlColor : '#ffffff'; // 白邊（與骨架點一致）
 
           if (isListedSectionStationGray) {
             zoomGroup
@@ -9897,7 +9897,7 @@
           const radius = isBlackHighlighted ? 5 : 1.5;
           const strokeWidth = isBlackHighlighted ? 2.5 : 1;
           const fillColor = '#000000';
-          const strokeColor = isBlackHighlighted ? '#ff6600' : fillColor;
+          const strokeColor = isBlackHighlighted ? '#ff6600' : '#ffffff'; // 白邊（與骨架點一致）
 
           const el = zoomGroup
             .append('circle')
@@ -10972,7 +10972,7 @@
       const addStationDot = (latlng, fillColor, radius, type) => {
         const m = L.circleMarker(latlng, {
           radius,
-          color: fillColor,
+          color: '#ffffff', // 白色 1px border（與骨架點一致）
           weight: 1,
           fillColor,
           fillOpacity: 1,
