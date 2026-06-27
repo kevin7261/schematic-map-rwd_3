@@ -280,7 +280,10 @@ export function reinsertBlackStations(optimizedSkeleton, sections) {
     for (let j = 0; j < K; j++) {
       const t = (j + 1) / (K + 1);
       const xy = pointAtArc(skPts, cum, total, t);
-      items.push({ s: t * total, xy, node: nodeWithGrid(black[j], xy[0], xy[1], 'line') });
+      const node = nodeWithGrid(black[j], xy[0], xy[1], 'line');
+      if (!node.tags) node.tags = {};
+      node.tags._forceDrawBlackDot = true;
+      items.push({ s: t * total, xy, node });
     }
     items.sort((a, b) => a.s - b.s);
 

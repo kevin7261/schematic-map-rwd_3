@@ -28,7 +28,6 @@
   import { useSelectRouteMapCatalog } from '@/utils/selectRouteMap/cityCatalog.js';
   import { useRouteMapAdjust } from '@/utils/routeMapAdjust/loadFromSelectRouteMap.js';
   import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
-  import { refreshSchematicOverlapScan } from '@/utils/routeMapAdjust/schematic/overlapScan.js';
   import {
     LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
     mergeOsm2GeojsonLoaderResultIntoLayer,
@@ -3518,18 +3517,7 @@
     layer.isLoaded = true;
     if (!layer.visible) layer.visible = true;
     dataStore.setRouteSchematicActiveLayer(layer.layerId); // 獨立顯示：畫此圖層的骨架
-    const scan = refreshSchematicOverlapScan(layer);
-    const merged = scan?.fixedCount ?? 0;
-    const remain = scan?.total ?? 0;
-    window.alert(
-      `已載入骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。\n` +
-        `共軌已合併 ${merged} 處→多色虛線（綠標記）；仍重疊 ${remain} 處（橘標記）。\n可按「開始執行」。`
-    );
-  };
-
-  const rescanSchematicOverlaps = (layer) => {
-    if (!layer) return;
-    refreshSchematicOverlapScan(layer);
+    window.alert(`已載入骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`);
   };
 
   /** 🗺️ Leaflet 畫線圖層物件 */
@@ -9877,33 +9865,69 @@
             {{ isExecuting ? '執行中…' : '開始執行' }}
           </button>
           <div
-            v-if="layer.schematicOverlapScan && !layer.schematicOverlapScan.error"
+            v-if="layer.layerId === 'schematic_rma_milp' && layer.dashboardData?.rotationStructureCheck?.layoutDone"
+            class="mt-2 p-2 rounded border my-font-size-xs"
+            style="line-height: 1.45"
+          >
+            <div class="my-title-xs-gray pb-1">入射方向順序（讀入骨架）</div>
+            <div
+              v-if="layer.dashboardData.rotationStructureCheck.preserved && !layer.dashboardData.rotationStructureCheck.detectedCount"
+              class="text-muted"
+            >
+              與讀入骨架一致（≥3 路線分支之 360° 環序正確）
+            </div>
+            <div v-else class="text-muted pb-1">
+              <span v-if="layer.dashboardData.rotationStructureCheck.preserved">
+                曾 {{ layer.dashboardData.rotationStructureCheck.detectedCount }} 處不符，已校正
+                {{ layer.dashboardData.rotationStructureCheck.fixedIterations }} 處
+              </span>
+              <span v-else>
+                仍有 {{ layer.dashboardData.rotationStructureCheck.remainingCount }} 處不符讀入骨架
+              </span>
+            </div>
+            <ul
+              v-if="
+                layer.dashboardData.rotationStructureCheck.preserved &&
+                layer.dashboardData.rotationStructureCheck.detectedReasons?.length
+              "
+              class="mb-0 ps-3"
+            >
+              <li
+                v-for="(r, si) in layer.dashboardData.rotationStructureCheck.detectedReasons"
+                :key="'rs-d-' + si"
+              >
+                {{ r }}
+              </li>
+            </ul>
+            <ul
+              v-if="
+                !layer.dashboardData.rotationStructureCheck.preserved &&
+                layer.dashboardData.rotationStructureCheck.remainingReasons?.length
+              "
+              class="mb-0 ps-3 pt-1"
+            >
+              <li
+                v-for="(r, si) in layer.dashboardData.rotationStructureCheck.remainingReasons"
+                :key="'rs-r-' + si"
+                class="text-danger"
+              >
+                （未校正）{{ r }}
+              </li>
+            </ul>
+          </div>
+          <div
+            v-if="layer.schematicOverlapScan?.layoutDone && !layer.schematicOverlapScan.error"
             class="mt-3 p-2 rounded border my-font-size-xs"
             style="line-height: 1.45"
           >
-            <div class="my-title-xs-gray pb-1">共軌／重疊診斷</div>
+            <div class="my-title-xs-gray pb-1">佈局後重疊</div>
             <div class="text-muted pb-1">
-              已合併 {{ layer.schematicOverlapScan.fixedCount ?? 0 }} 處（綠）；
               仍重疊 {{ layer.schematicOverlapScan.total ?? 0 }} 處（橘）
-              <span v-if="layer.schematicOverlapScan.layoutDone"> · 佈局後</span>
             </div>
-            <ul v-if="layer.schematicOverlapScan.rows?.length" class="mb-2 ps-3">
+            <ul v-if="layer.schematicOverlapScan.rows?.length" class="mb-0 ps-3">
               <li v-for="(row, ri) in layer.schematicOverlapScan.rows" :key="ri">{{ row.label }}</li>
             </ul>
-            <div v-if="layer.schematicOverlapScan.truncated" class="text-muted pb-1">（僅顯示前 60 筆）</div>
-            <button
-              type="button"
-              class="btn btn-sm rounded-pill border my-font-size-xs w-100 my-cursor-pointer"
-              @click="rescanSchematicOverlaps(layer)"
-            >
-              重新掃描並套用多色虛線
-            </button>
-          </div>
-          <div
-            v-else-if="layer.schematicOverlapScan?.error"
-            class="mt-2 my-font-size-xs text-danger"
-          >
-            {{ layer.schematicOverlapScan.error }}
+            <div v-if="layer.schematicOverlapScan.truncated" class="text-muted pt-1">（僅顯示前 60 筆）</div>
           </div>
         </div>
 

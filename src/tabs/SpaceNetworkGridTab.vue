@@ -2639,6 +2639,16 @@
     const activeTabLayer = dataStore.findLayerById(layerTab);
     // 🔍 示意圖佈局層：線寬/點大小固定螢幕 pt、不隨 d3 zoom 縮放（vector-effect + 半徑 ÷ k）。
     const isSchematicLayout = activeTabLayer?.isRouteSchematicLayer === true;
+    /** 示意圖佈局：中段黑點 node_type=line 須繪製（非 bend 幾何轉折）。 */
+    const isDrawableMidStation = (nodeProps) => {
+      if (!nodeProps || typeof nodeProps !== 'object') return false;
+      if (nodeProps.node_type === 'connect') return true;
+      if (nodeProps.station_name || nodeProps.station_id) return true;
+      if (nodeProps.tags?.station_name || nodeProps.tags?.station_id) return true;
+      if (nodeProps.tags?._forceDrawBlackDot) return true;
+      if (isSchematicLayout && nodeProps.node_type === 'line') return true;
+      return false;
+    };
     const layoutUniformGridTooltipJr = uniformGridRouteFamilyTab
       ? buildEnrichedMapDrawnRowsForUniformGridTooltip(dataStore, layerTab, activeTabLayer)
       : null;
@@ -3127,11 +3137,7 @@
                   // 真正的車站：node_type === 'connect' 或有 station_name
                   // 不繪製：node_type === 'line' 的幾何轉折點
                   // taipei_h3：tags._forceDrawBlackDot（見 g3ToH3PlaceBlackStationsFromA3Rows）
-                  const isRealStation =
-                    midProps.node_type === 'connect' ||
-                    midProps.station_name ||
-                    midProps.tags?.station_name ||
-                    midProps.tags?._forceDrawBlackDot;
+                  const isRealStation = isDrawableMidStation(midProps);
 
                   // 只添加真正的車站（避免重複），不添加 node_type === 'line' 的幾何轉折點
                   if (!stationMap.has(key) && isRealStation) {
@@ -3216,10 +3222,7 @@
                           // 判斷是否為真正的車站（不是幾何轉折點）
                           // 真正的車站：node_type === 'connect' 或有 station_name
                           // 不繪製：node_type === 'line' 的幾何轉折點
-                          const isRealStation =
-                            nodeProps.node_type === 'connect' ||
-                            nodeProps.station_name ||
-                            nodeProps.tags?.station_name;
+                          const isRealStation = isDrawableMidStation(nodeProps);
 
                           // 只添加真正的車站（避免重複），不添加 node_type === 'line' 的幾何轉折點
                           if (!stationMap.has(key) && isRealStation) {
@@ -3344,10 +3347,7 @@
                         // 判斷是否為真正的車站（不是幾何轉折點）
                         // 真正的車站：node_type === 'connect' 或有 station_name
                         // 不繪製：node_type === 'line' 的幾何轉折點
-                        const isRealStation =
-                          nodeProps.node_type === 'connect' ||
-                          nodeProps.station_name ||
-                          nodeProps.tags?.station_name;
+                        const isRealStation = isDrawableMidStation(nodeProps);
 
                         // 只添加真正的車站（避免重複），不添加 node_type === 'line' 的幾何轉折點
                         if (!stationMap.has(key) && isRealStation) {
@@ -3394,11 +3394,7 @@
               // 真正的車站：node_type === 'connect' 或有 station_name
               // 不繪製：node_type === 'line' 的幾何轉折點
               // taipei_h3：g3→h3 插入之中段站帶 tags._forceDrawBlackDot（可无站名仍畫黑點）
-              const isRealStation =
-                nodeProps.node_type === 'connect' ||
-                nodeProps.station_name ||
-                nodeProps.tags?.station_name ||
-                nodeProps.tags?._forceDrawBlackDot;
+              const isRealStation = isDrawableMidStation(nodeProps);
 
               // 只添加真正的車站（避免重複），不添加 node_type === 'line' 的幾何轉折點
               // connect 端點優先於同格中段(line)黑點，避免終點藍點被蓋掉。

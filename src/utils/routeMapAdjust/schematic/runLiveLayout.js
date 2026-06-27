@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 
 import { resolveSchematicInput } from './input.js';
-import { buildSchematicGraph, splitHighDegreeNodes, applyCoordsToSkeleton } from './graph.js';
+import { buildSchematicGraph, splitHighDegreeNodes, applyCoordsToSkeleton, initialCoords } from './graph.js';
+import { analyzeRotationStructure, fixRotationStructure } from './rotationStructure.js';
 import {
   writeSchematicResultToLayer,
   reinsertBlackStations,
@@ -15,11 +16,15 @@ import { syncPostLayoutOverlapState } from './overlapScan.js';
 
 export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   const maxWallMs = opts.maxWallMs ?? (profileId === 'sat' ? 180000 : 0);
+  const isMilp = profileId === 'milp';
   const input = resolveSchematicInput(layerId);
   if (!input.ok) {
     if (typeof window !== 'undefined' && window.alert) window.alert('[未產出]\n' + input.message);
     return { ok: false, message: input.message };
   }
+
+  const graph = splitHighDegreeNodes(buildSchematicGraph(input.skeletonFlat), 8);
+  const refCoordsSnapshot = isMilp ? initialCoords(graph) : null;
 
   const overlay = showSolveOverlay(title || '示意圖佈局計算中…');
 
@@ -54,17 +59,50 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   }
 
   overlay.setStatus('產生圖層資料…');
-  const graph = splitHighDegreeNodes(buildSchematicGraph(input.skeletonFlat), 8);
-  const optimizedSkeleton = applyCoordsToSkeleton(input.skeletonFlat, graph, result.coords);
-  injectEdgeBends(optimizedSkeleton, graph, result.edgePaths);
+  let layoutCoords = result.coords.map((c) => [c[0], c[1]]);
+  let structCheck = null;
+  let rotationStructureCheck = null;
 
+  if (isMilp) {
+    const initialStructCheck = analyzeRotationStructure(graph, refCoordsSnapshot, layoutCoords);
+    structCheck = initialStructCheck;
+    let fixedIterations = 0;
+    if (!initialStructCheck.preserved) {
+      overlay.setStatus(`入射方向順序校正（${initialStructCheck.violationCount} 處）…`);
+      const fixed = fixRotationStructure(graph, refCoordsSnapshot, layoutCoords);
+      structCheck = fixed.check;
+      fixedIterations = fixed.iterations || 0;
+      if (fixed.ok) layoutCoords = fixed.coords.map((c) => [c[0], c[1]]);
+      else console.warn('[入射方向順序校正]', fixed);
+    }
+    rotationStructureCheck = {
+      layoutDone: true,
+      preserved: structCheck.preserved,
+      detectedCount: initialStructCheck.violationCount,
+      detectedReasons: initialStructCheck.reasons,
+      remainingCount: structCheck.violationCount,
+      remainingReasons: structCheck.reasons,
+      fixedIterations,
+      fixedOk: structCheck.preserved,
+    };
+  }
+
+  const optimizedSkeleton = applyCoordsToSkeleton(input.skeletonFlat, graph, layoutCoords);
+  injectEdgeBends(optimizedSkeleton, graph, result.edgePaths);
   const fullFlat = reinsertBlackStations(optimizedSkeleton, input.sections);
   const corridor = resolveSharedCorridorDrawing(fullFlat, graph);
-  const v = result.violations || {};
-  const write = writeSchematicResultToLayer(layerId, fullFlat, {
-    ...input.meta, ...v, h4Pairs: result.h4Pairs, sepPairs: result.sepPairs,
-    milpStatus: result.status, algo: title || profileId,
-  });
+
+  const meta = {
+    ...input.meta,
+    ...(result.violations || {}),
+    h4Pairs: result.h4Pairs,
+    sepPairs: result.sepPairs,
+    milpStatus: result.status,
+    algo: title || profileId,
+  };
+  if (rotationStructureCheck) meta.rotationStructureCheck = rotationStructureCheck;
+
+  const write = writeSchematicResultToLayer(layerId, fullFlat, meta);
 
   const secs = overlay.close();
   if (!write.ok) {
@@ -75,11 +113,19 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   const outOv = findOutputOverlaps(fullFlat);
   syncPostLayoutOverlapState(useDataStore().findLayerById(layerId), fullFlat, corridor, outOv);
 
-  const merged = (corridor.corridorGroups || 0) + (corridor.collinearGroups || 0);
+  const v = result.violations || {};
   let ovNote = outOv.count > 0 ? `\n⚠️ 仍重疊 ${outOv.count} 段（橘虛線）` : '\n輸出端重疊：0';
-  if (merged > 0) ovNote += `\n已合併 ${merged} 處共軌→多色虛線（綠虛線標記）`;
+  const merged = (corridor.corridorGroups || 0) + (corridor.collinearGroups || 0);
+  if (merged > 0) ovNote += `\n已合併 ${merged} 處共軌→多色虛線`;
 
-  const summary = `完成！耗時 ${secs.toFixed(1)} 秒\n八方向違規 ${v.nonocti ?? '?'}、新交叉 ${v.crossings ?? '?'}、新重疊 ${v.overlaps ?? '?'}、重合 ${v.clashes ?? '?'}${ovNote}`;
+  let structNote = '';
+  if (isMilp && structCheck) {
+    structNote = structCheck.preserved
+      ? '\n入射方向順序：與讀入骨架一致'
+      : `\n⚠️ 入射方向順序仍有 ${structCheck.violationCount} 處不符`;
+  }
+
+  const summary = `完成！耗時 ${secs.toFixed(1)} 秒\n八方向違規 ${v.nonocti ?? '?'}、新交叉 ${v.crossings ?? '?'}、新重疊 ${v.overlaps ?? '?'}、重合 ${v.clashes ?? '?'}${structNote}${ovNote}`;
   if (typeof window !== 'undefined' && window.alert) window.alert(summary);
   return { ok: true, message: summary, stats: write.stats, outputOverlaps: outOv.count };
 }
