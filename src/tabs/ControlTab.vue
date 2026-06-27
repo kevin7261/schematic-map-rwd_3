@@ -10035,6 +10035,37 @@
             資料來源：{{ rmaSource }}
           </div>
 
+          <!-- 🦴 把目前路網變成骨架：重疊→一條線、交叉無點處生成點 -->
+          <div class="my-title-xs-gray pb-2">骨架</div>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            :class="rmaHasSkeleton ? 'my-btn-red' : 'my-btn-green'"
+            :disabled="rmaStats.routes === 0"
+            title="把目前路網變成骨架：重疊路線合併為一條線，交叉但無點處生成一個點。再按一次還原。"
+            @click="rmaToggleSkeleton"
+          >
+            {{ rmaHasSkeleton ? '還原（取消骨架）' : '變成骨架' }}
+          </button>
+          <template v-if="rmaSkeletonStats.built">
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span>節點</span><span>{{ rmaSkeletonStats.nodes }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span>邊（去重後）</span><span>{{ rmaSkeletonStats.edges }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-2">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #ff6d00"
+                ></span>
+                交叉生成節點
+              </span>
+              <span>{{ rmaSkeletonStats.crossNodes }}</span>
+            </div>
+          </template>
+
           <!-- 🏷️ 顯示車站名開關 -->
           <div class="d-flex align-items-center justify-content-between mb-3">
             <div class="my-content-sm-black">顯示車站名</div>
@@ -10163,37 +10194,6 @@
           <div v-if="rmaEndpointList.length" class="pb-2"></div>
 
           </div>
-
-          <!-- 🦴 把目前路網變成骨架：重疊→一條線、交叉無點處生成點 -->
-          <div class="my-title-xs-gray pb-2">骨架</div>
-          <button
-            type="button"
-            class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
-            :class="rmaHasSkeleton ? 'my-btn-red' : 'my-btn-green'"
-            :disabled="rmaStats.routes === 0"
-            title="把目前路網變成骨架：重疊路線合併為一條線，交叉但無點處生成一個點。再按一次還原。"
-            @click="rmaToggleSkeleton"
-          >
-            {{ rmaHasSkeleton ? '還原（取消骨架）' : '變成骨架' }}
-          </button>
-          <template v-if="rmaSkeletonStats.built">
-            <div class="d-flex justify-content-between my-font-size-xs pb-1">
-              <span>節點</span><span>{{ rmaSkeletonStats.nodes }}</span>
-            </div>
-            <div class="d-flex justify-content-between my-font-size-xs pb-1">
-              <span>邊（去重後）</span><span>{{ rmaSkeletonStats.edges }}</span>
-            </div>
-            <div class="d-flex justify-content-between my-font-size-xs pb-2">
-              <span class="d-flex align-items-center">
-                <span
-                  class="d-inline-block rounded-circle me-2"
-                  style="width: 10px; height: 10px; background-color: #ff6d00"
-                ></span>
-                交叉生成節點
-              </span>
-              <span>{{ rmaSkeletonStats.crossNodes }}</span>
-            </div>
-          </template>
 
           <!-- 目前路線／站點 + 明細：整塊限高 320pt，內容過長可捲動 -->
           <div style="max-height: 320pt; overflow-y: auto">

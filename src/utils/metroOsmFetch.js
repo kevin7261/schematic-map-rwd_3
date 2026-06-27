@@ -501,33 +501,34 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
       const emitted = new Set();
       const gkey = (p) => `${p[0].toFixed(3)},${p[1].toFixed(3)}`; // ~100m 網格，供幾何分支判定
       const keptGeom = new Set();
-      const skipped = [];
+      // 「真實分支」門檻：相對已保留軌道幾何需新增 ≥ NEW_GEOM_MIN 格（~100m/格）才算駛上新軌道。
+      // 用「絕對新增格數」而非比例：短支線（如倫敦 Northern 的 Mill Hill East 單站支線）佔全線比例極小，
+      // 比例門檻會漏掉；但其專用軌道仍是明確的新幾何。
+      const NEW_GEOM_MIN = 4;
       for (const r of relsWithStops) {
         const ks = r.stops.map((s2) => keyOf(s2.coord));
         const newCount = emitted.size ? ks.filter((k) => !emitted.has(k)).length : ks.length;
         const ov = emitted.size ? (ks.length - newCount) / ks.length : 0;
-        // 略過「純方向／重複變體」（與已保留站集合高度重疊且**完全不新增**車站）；但**真實分支**——
-        // 即使與主線共用長段主幹而站點重疊 ≥70%，只要新增任一車站——一律保留（如倫敦 District
-        // 的 Richmond/Kew、Metropolitan 的 Watford/Chesham、Northern 的 Mill Hill East 單站支線、
-        // Piccadilly 的 Heathrow T4 環）。近乎全等的重複線（含含雜訊多 1 站者）稍後仍由
-        // 「互相 ≥80% 重疊」去重收尾，故此處放寬到「新增 0 站才略過」是安全的。
-        if (ov >= 0.7 && newCount === 0) {
-          skipped.push(r); // 站點是子集→暫存，稍後檢查是否新增軌道幾何
-          continue;
-        }
+        // 計算此關聯相對「已保留軌道幾何」新增多少格（駛上多少新軌道）。
+        let newGeom = 0;
+        for (const w of r.ways || []) for (const c of w) if (!keptGeom.has(gkey(c))) newGeom++;
+        // 站點與主線高度重疊（ov≥0.7）時，唯有「**同時**新增車站(newCount>0)**且**駛上新軌道
+        // (newGeom≥門檻)」才是**真實分支** → 保留（如倫敦 District 的 Richmond/Kew、Metropolitan 的
+        // Watford/Chesham、Northern 的 Mill Hill East、Piccadilly 的 Heathrow T4 環、紐約 A 線的
+        // Rockaway/Lefferts 支線）。否則為「共用同一條線的冗餘變體」→ 剔除：
+        //   · 同軌道的方向／快慢車／尖峰變體（newGeom≈0，如紐約各車種同軌變體）→ 不重複疊畫；
+        //   · 純車站子集的尖峰短程變體（newCount=0，如紐約 SIR 尖峰版只停部分站，逐站連線會切出
+        //     橫越全島的假直線）→ 不畫出錯誤跳接。
+        //   站點重疊低（ov<0.7）者本就是明顯不同的分支，照常保留。
+        if (process.env.DBG_BRANCH && ov >= 0.5)
+          // eslint-disable-next-line no-console
+          console.error(
+            `[branch] ${g.routeName?.slice(0, 38)} stops=${r.stops.length} ov=${ov.toFixed(2)} newCount=${newCount} newGeom=${newGeom} -> ${ov >= 0.7 && !(newCount > 0 && newGeom >= NEW_GEOM_MIN) ? 'DROP' : 'keep'}`,
+          );
+        if (ov >= 0.7 && !(newCount > 0 && newGeom >= NEW_GEOM_MIN)) continue;
         picked.push({ ...g, color, stops: r.stops, stopsWays: r.ways, geom: null, closed: waysClosedLoop(r.ways) });
         ks.forEach((k) => emitted.add(k));
         for (const w of r.ways || []) for (const c of w) keptGeom.add(gkey(c));
-      }
-      // 幾何分支：站點雖為子集，但軌道幾何明顯新增者（如環狀線收尾弧、Stage6 站尚未進 OSM）→ 以 way 幾何補上
-      for (const r of skipped) {
-        const chain = stitchWays(r.ways).sort((a, b) => b.length - a.length)[0];
-        if (!chain || chain.length < 2) continue;
-        const newN = chain.filter((c) => !keptGeom.has(gkey(c))).length;
-        if (newN / chain.length >= 0.3) {
-          picked.push({ ...g, color, stops: null, stopsWays: null, geom: simplify(chain, 0.0006), closed: waysClosedLoop(r.ways) });
-          for (const c of chain) keptGeom.add(gkey(c));
-        }
       }
     } else {
       let best = null;

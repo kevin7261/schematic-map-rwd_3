@@ -122,13 +122,14 @@ export const METRO_OVERRIDES = {
   'venezuela-maracaibo': { allowLightRail: true },
   'venezuela-valencia': { allowLightRail: true },
   'united-kingdom-docklands-light-railway': { allowLightRail: true, onlyLineName: 'DLR|Docklands' },
-  // 🗽 紐約：只保留 NYC Subway（route_name 皆以「NYCS - 」起頭），剔除 PATH／AirTrain／
-  //    Hudson–Bergen LR／Newark LR／Jamaica Station Route(AirTrain JFK)；再 dropByName 去掉
-  //    同樣帶 NYCS 前綴的 Staten Island Railway（使用者要求只留地鐵）。
+  // 🗽 紐約：抓 MTA 範圍的軌道捷運＝NYC Subway ＋ Staten Island Railway（SIR 為 MTA 子公司，
+  //    route_name 同帶「NYCS - 」前綴）。以 onlyLineName='NYCS' 一併保留，並剔除非 MTA 系統：
+  //    PATH／AirTrain Newark（Port Authority）、Hudson–Bergen LR／Newark LR（NJ Transit）、
+  //    Jamaica Station Route(AirTrain JFK)——這些皆無 NYCS 前綴，故自動排除。
+  //    （LIRR／Metro-North 為通勤鐵路 route=train，本就不在 subway 抓取範圍內。）
   //    noNameMerge：不同線的同名站多為不同實體站，停用同名合併（特例）。
   'united-states-new-york-city': {
     onlyLineName: 'NYCS',
-    dropByName: 'Staten Island',
     noNameMerge: true,
   },
   // 🇸🇬 新加坡：LRT 環線（Sengkang/Punggol）在 OSM 是 CW/ACW 半環，各停中段→假端點。

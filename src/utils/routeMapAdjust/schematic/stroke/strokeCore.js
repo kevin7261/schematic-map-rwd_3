@@ -84,20 +84,26 @@ function buildAdjacency(graph) {
 }
 
 /**
- * A. FormStrokes（§3 / p.1640 虛擬碼，命名分支）。
- * 依 route 分組，於同名線內以 good-continuation（最小偏向角）串成 stroke 節點序列。
+ * A. FormStrokes（§3, p.1633–1635 / p.1640–1641 虛擬碼）。忠實照虛擬碼兩分支：
+ *   命名分支：取「有 route_name」之線段，依「同 route_name + 順序相鄰」串成 stroke（**不**用角度，
+ *             即 metro 版的『identical name and sequentially adjacent → join』）。
+ *   無名分支：無 route_name 之線段，以「偏向角 > T 即終止」＋ every-best-fit（互為最小偏向角）串接。
  */
-function formStrokes(graph, coords0) {
+function formStrokes(graph, coords0, threshold) {
+  const strokes = [];
+  const realEdges = graph.edges.filter((e) => !e.isLink);
+  const hasName = (e) => [...(e.routes || new Set([e.route_name]))].some((r) => !!r);
+
+  // ---- 命名分支：同 route_name + 順序相鄰（虛擬碼 named branch；串接 key = route_name）----
   const byRoute = new Map();
-  for (const e of graph.edges) {
-    if (e.isLink) continue;
+  for (const e of realEdges) {
+    if (!hasName(e)) continue;
     for (const rn of e.routes || new Set([e.route_name])) {
+      if (!rn) continue; // 空名稱留給無名分支
       if (!byRoute.has(rn)) byRoute.set(rn, []);
       byRoute.get(rn).push(e);
     }
   }
-
-  const strokes = [];
   for (const [, edges] of byRoute) {
     const adj = new Map();
     for (const e of edges) {
@@ -107,39 +113,84 @@ function formStrokes(graph, coords0) {
       adj.get(e.v).push({ e, o: e.u });
     }
     const usedE = new Set();
-    // 種子：度數 1 的端點優先（線端），否則任一節點。
     const ends = [...adj.keys()].filter((n) => adj.get(n).length === 1);
     const seeds = ends.length ? ends : [adj.keys().next().value];
-
     for (const seed of seeds) {
-      // 自種子沿 good-continuation 走，直到無未用邊。
       let cur = seed;
-      let prev = null;
       const seq = [cur];
       for (;;) {
-        const cand = (adj.get(cur) || []).filter(({ e }) => !usedE.has(e.id));
-        if (!cand.length) break;
-        let pick = cand[0];
-        if (prev != null && cand.length > 1) {
-          // good continuation：選與入向偏向角最小者（§3(d) 之延伸精神）。
-          const inAng = Math.atan2(coords0[cur][1] - coords0[prev][1], coords0[cur][0] - coords0[prev][0]);
-          let bestD = Infinity;
-          for (const c of cand) {
-            const outAng = Math.atan2(coords0[c.o][1] - coords0[cur][1], coords0[c.o][0] - coords0[cur][0]);
-            const d = angBetween(inAng, outAng);
-            if (d < bestD) { bestD = d; pick = c; }
-          }
-        }
-        usedE.add(pick.e.id);
-        seq.push(pick.o);
-        prev = cur;
-        cur = pick.o;
+        // 取第一條未用之同線相鄰邊（命名分支：純以 route_name + 相鄰串接，不依角度）。
+        const next = (adj.get(cur) || []).find(({ e }) => !usedE.has(e.id));
+        if (!next) break;
+        usedE.add(next.e.id);
+        seq.push(next.o);
+        cur = next.o;
       }
       if (seq.length >= 2) strokes.push(seq);
     }
-    // 殘邊（環/重複種子未覆蓋）→ 各自成 2 節點 stroke。
     for (const e of edges) if (!usedE.has(e.id)) { usedE.add(e.id); strokes.push([e.u, e.v]); }
   }
+
+  // ---- 無名分支：偏向角 > T 終止 + every-best-fit（§3(d)；無 route_name 之線段）----
+  const unnamed = realEdges.filter((e) => !hasName(e));
+  if (unnamed.length) {
+    const inc = new Map();
+    for (const e of unnamed) {
+      if (!inc.has(e.u)) inc.set(e.u, []);
+      if (!inc.has(e.v)) inc.set(e.v, []);
+      inc.get(e.u).push({ e, o: e.v });
+      inc.get(e.v).push({ e, o: e.u });
+    }
+    // 偏向角：n 處 a、b 兩段，0=直線穿過（a.o 與 b.o 反向）。
+    const defl = (n, a, b) => {
+      const a1 = Math.atan2(coords0[a.o][1] - coords0[n][1], coords0[a.o][0] - coords0[n][0]);
+      const a2 = Math.atan2(coords0[b.o][1] - coords0[n][1], coords0[b.o][0] - coords0[n][0]);
+      return Math.PI - angBetween(a1, a2);
+    };
+    // every-best-fit：n 處 a 與 b 互為最小偏向角且 ≤ T → 配對為穿越連接。
+    const partner = new Map(); // `${eid}@${n}` -> partner eid
+    for (const [n, list] of inc) {
+      if (list.length < 2) continue;
+      const best = new Map();
+      for (const a of list) {
+        let bd = threshold, bp = null;
+        for (const b of list) {
+          if (b.e.id === a.e.id) continue;
+          const d = defl(n, a, b);
+          if (d <= bd) { bd = d; bp = b.e.id; }
+        }
+        best.set(a.e.id, bp);
+      }
+      for (const a of list) {
+        const bp = best.get(a.e.id);
+        if (bp != null && best.get(bp) === a.e.id) partner.set(`${a.e.id}@${n}`, bp);
+      }
+    }
+    const used = new Set();
+    for (const start of unnamed) {
+      if (used.has(start.id)) continue;
+      used.add(start.id);
+      const seq = [start.u, start.v];
+      let curE = start, curN = start.v; // 前向
+      for (;;) {
+        const p = partner.get(`${curE.id}@${curN}`);
+        if (p == null || used.has(p)) break;
+        const pe = graph.edges[p]; used.add(p);
+        const far = pe.u === curN ? pe.v : pe.u;
+        seq.push(far); curN = far; curE = pe;
+      }
+      curE = start; curN = start.u; // 後向
+      for (;;) {
+        const p = partner.get(`${curE.id}@${curN}`);
+        if (p == null || used.has(p)) break;
+        const pe = graph.edges[p]; used.add(p);
+        const far = pe.u === curN ? pe.v : pe.u;
+        seq.unshift(far); curN = far; curE = pe;
+      }
+      strokes.push(seq);
+    }
+  }
+
   return strokes;
 }
 
@@ -168,53 +219,25 @@ function pointInPolygon(pt, poly) {
 }
 
 /**
- * D. 對單一子筆畫做垂直投影（§5）。回傳每個自由節點的新座標（已置放點不動）。
- * @returns Map<index, [x,y]>（僅自由節點）
+ * D. 對單一子筆畫做垂直投影（§5, Eq.1/2）。自由節點投影到定向直線、已置放點固定。
+ * @returns {{ out: Map<number,[number,number]>, u:[number,number], n:[number,number], perpCommon:number }}
  */
-function projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng, foreignPlaced) {
+function projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng) {
   // 單位向量：沿軸 u、垂軸 n。
   const u = [Math.cos(orientAng), Math.sin(orientAng)];
   const n = [-Math.sin(orientAng), Math.cos(orientAng)];
 
-  // 加權共同垂軸座標：已置放點權重最高（漸進錨定）、交叉點次之、其餘 1。
+  // 加權共同垂軸座標：已置放點權重最高（漸進錨定）、交叉點次之、其餘 1（§5「Y_common 偏向重要交叉」）。
   let wsum = 0, pacc = 0;
   const perpOf = (p) => p[0] * n[0] + p[1] * n[1];
   for (const i of idxs) {
     const nid = chain[i];
-    const p = work[i];
     let w = 1;
     if (placed.has(nid)) w = 1000;
     else if ((nodeDeg.get(nid) || 0) > 2) w = 10;
-    wsum += w; pacc += w * perpOf(p);
+    wsum += w; pacc += w * perpOf(work[i]);
   }
-  let perpCommon = wsum > 0 ? pacc / wsum : 0;
-  const projAt = (i, pc) => {
-    const along = work[i][0] * u[0] + work[i][1] * u[1];
-    return [along * u[0] + pc * n[0], along * u[1] + pc * n[1]];
-  };
-
-  // E. 一致性化解（§6, Fig.9）：原(子)筆畫與投影線間構成多邊形；以 point-in-polygon
-  //    偵測落入其中的他筆畫已置放點，再夾住 perpCommon 使投影線不掃過該點（維持拓樸）。
-  if (foreignPlaced && foreignPlaced.length) {
-    const origLo = Math.min(...idxs.map((i) => perpOf(work[i])));
-    const origHi = Math.max(...idxs.map((i) => perpOf(work[i])));
-    for (let pass = 0; pass < 4; pass++) {
-      // 多邊形 = 原子筆畫路徑（前向）+ 投影路徑（反向）閉合。
-      const poly = idxs.map((i) => work[i]).concat(idxs.slice().reverse().map((i) => projAt(i, perpCommon)));
-      let changed = false;
-      for (const fp of foreignPlaced) {
-        if (!pointInPolygon(fp, poly)) continue;
-        const fperp = fp[0] * n[0] + fp[1] * n[1];
-        // 把投影線夾到 foreign 點的「原始側」之外，使其不再被多邊形掃過。
-        if (fperp <= origLo && perpCommon < fperp) { perpCommon = fperp + 1; changed = true; }
-        else if (fperp >= origHi && perpCommon > fperp) { perpCommon = fperp - 1; changed = true; }
-        else if (Math.abs(fperp - perpCommon) < 1) { // 線正好壓在點上：往原值方向推開
-          perpCommon += perpCommon >= (origLo + origHi) / 2 ? 1 : -1; changed = true;
-        }
-      }
-      if (!changed) break;
-    }
-  }
+  const perpCommon = wsum > 0 ? pacc / wsum : 0;
 
   const out = new Map();
   for (const i of idxs) {
@@ -226,7 +249,7 @@ function projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng, foreign
       Math.round(along * u[1] + perpCommon * n[1]),
     ]);
   }
-  return out;
+  return { out, u, n, perpCommon };
 }
 
 /**
@@ -245,7 +268,7 @@ export function runStrokeOnGraph(graph, coords0, opts = {}) {
   const placed = new Set();
 
   // A + B：成筆畫並依 Eq.3 排序（type 常數 → length → degree，皆降冪）。
-  const strokes = formStrokes(graph, coords0);
+  const strokes = formStrokes(graph, coords0, threshold);
   strokes.sort((a, b) => {
     const ka = strokeRankKey(a, coords0, nodeDeg);
     const kb = strokeRankKey(b, coords0, nodeDeg);
@@ -264,10 +287,7 @@ export function runStrokeOnGraph(graph, coords0, opts = {}) {
     const breaks = [...new Set([0, chain.length - 1, ...dpDirectionSplit(orig, threshold), ...fixedIdx])]
       .sort((a, b) => a - b);
 
-    // 鄰近 foreign 已置放點（不屬本筆畫），供 Step E 夾制。
     const chainSet = new Set(chain);
-    const foreignPlaced = [];
-    for (const nid of placed) if (!chainSet.has(nid)) foreignPlaced.push(coords[nid]);
 
     for (let b = 0; b < breaks.length - 1; b++) {
       const s = breaks[b];
@@ -279,9 +299,29 @@ export function runStrokeOnGraph(graph, coords0, opts = {}) {
       const chordAng = Math.atan2(orig[e][1] - orig[s][1], orig[e][0] - orig[s][0]);
       const orientAng = snapOrientation(chordAng, mode, gridBias);
 
-      // D + E：垂直投影（自由點），已置放點固定。
-      const projected = projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng, foreignPlaced);
-      for (const [i, p] of projected) work[i] = p;
+      // D：垂直投影（自由點）。先存投影前幾何,供 Step E 構多邊形。
+      const before = idxs.map((i) => work[i].slice());
+      const { out, u, n, perpCommon } = projectSubStroke(idxs, chain, work, placed, nodeDeg, orientAng);
+      for (const [i, p] of out) work[i] = p;
+
+      // E. 一致性化解（§6, Fig.9d/9f）：原子筆畫與投影直線間構成多邊形;
+      //    point-in-polygon 偵測落入其中的「他筆畫已置放點」→ 把該點移出多邊形（推到投影線另一側）。
+      const poly = before.concat(idxs.map((i) => work[i]).reverse());
+      const perpOf = (p) => p[0] * n[0] + p[1] * n[1];
+      let beforeCenter = 0;
+      for (const p of before) beforeCenter += perpOf(p);
+      beforeCenter /= before.length || 1;
+      const side = Math.sign(beforeCenter - perpCommon) || 1; // 原筆畫所在側
+      for (const nid of placed) {
+        if (chainSet.has(nid)) continue;
+        if (!pointInPolygon(coords[nid], poly)) continue;
+        const alongF = coords[nid][0] * u[0] + coords[nid][1] * u[1];
+        const newPerp = perpCommon - side; // 移到投影線「遠離原筆畫」之一側 → 出多邊形
+        coords[nid] = [
+          Math.round(alongF * u[0] + newPerp * n[0]),
+          Math.round(alongF * u[1] + newPerp * n[1]),
+        ];
+      }
     }
 
     // 提交本筆畫尚未置放之節點座標。
