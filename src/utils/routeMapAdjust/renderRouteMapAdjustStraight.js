@@ -14,6 +14,7 @@ import {
   computeRouteMapAdjustLoopRoutes,
 } from './routeStations.js';
 import { ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID } from './loadFromSelectRouteMapStraight.js';
+import { collectStraightSkeletonStationCoords } from './straightenLinesAtRedBlue.js';
 
 /**
  * 在指定 DOM 容器上掛載「路線圖轉換直線骨架」的 Leaflet 地圖。
@@ -485,21 +486,40 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
       `</div>`
     );
   };
+  const skeletonStationCoords = () =>
+    collectStraightSkeletonStationCoords(
+      layer.routeMapAdjustLines,
+      layer.routeMapAdjustBlackDots,
+      layer.routeMapAdjustStraightenedBlackDots || layer.routeMapAdjustBlackDots,
+      layer.routeMapAdjustStraightenedStationMeta || layer.routeMapAdjustStationMeta
+    );
+  const originalAnchorKeys = () => {
+    const metaKeys = Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) =>
+      k.split(',').map(Number)
+    );
+    const { terminals, connects } = computeRouteMapAdjustStations(
+      layer.routeMapAdjustLines,
+      layer.routeMapAdjustBlackDots,
+      metaKeys.length ? metaKeys : undefined
+    );
+    return {
+      terminalKeys: new Set((terminals || []).map((p) => llKey(p[0], p[1]))),
+      connectKeys: new Set((connects || []).map((p) => llKey(p[0], p[1]))),
+    };
+  };
   const renderSkeleton = () => {
     skeletonGroup.clearLayers();
     const sk = layer.routeMapAdjustSkeleton;
     if (!sk) return;
+    const origAnchors = originalAnchorKeys();
     // 骨架站點分類（degree 拓撲）：紅 = 交叉/分歧(degree≥3)、藍 = 端點(degree≤1)、其餘皆黑。
-    //   共軌並行通過的中段站 degree=2 → 黑（同一骨架路線除頭尾外不出現紅點）。
     const { terminals, connects, blacks } = computeRouteMapAdjustSkeletonStations(
       layer.routeMapAdjustStraightenedLines || layer.routeMapAdjustLines,
       layer.routeMapAdjustStraightenedBlackDots || layer.routeMapAdjustBlackDots,
-      Object.keys(
-        layer.routeMapAdjustStraightenedStationMeta || layer.routeMapAdjustStationMeta || {}
-      ).map((k) => k.split(',').map(Number))
+      skeletonStationCoords()
     );
-    const terminalKeys = new Set((terminals || []).map((p) => llKey(p[0], p[1])));
-    const connectKeys = new Set((connects || []).map((p) => llKey(p[0], p[1])));
+    const terminalKeys = origAnchors.terminalKeys;
+    const connectKeys = origAnchors.connectKeys;
     for (const e of sk.edges || []) {
       const path = Array.isArray(e.path) ? e.path : [];
       if (path.length < 2) continue;

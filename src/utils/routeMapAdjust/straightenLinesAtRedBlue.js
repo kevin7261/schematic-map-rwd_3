@@ -11,12 +11,40 @@
  */
 import {
   computeRouteMapAdjustRouteStations,
+  computeRouteMapAdjustStations,
   buildRouteMapAdjustSkeleton,
 } from './routeStations.js';
 
 const round = (n) => Number(Number(n).toFixed(6));
 const key = (p) => `${round(p[0])},${round(p[1])}`;
 const metaKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
+
+const dedupePoints = (points, tol = 1e-5) => {
+  const out = [];
+  for (const p of points) {
+    if (!Array.isArray(p) || p.length < 2) continue;
+    if (!out.some((q) => Math.abs(q[0] - p[0]) < tol && Math.abs(q[1] - p[1]) < tol)) {
+      out.push([round(p[0]), round(p[1])]);
+    }
+  }
+  return out;
+};
+
+/** 紅/藍錨點（原座標）＋拉直後黑點 → 骨架站點分類用座標清單 */
+export const collectStraightSkeletonStationCoords = (
+  originalLines,
+  originalBlackDots,
+  straightBlackDots,
+  stationMeta = null
+) => {
+  const metaKeys = Object.keys(stationMeta || {}).map((k) => k.split(',').map(Number));
+  const { terminals, connects } = computeRouteMapAdjustStations(
+    originalLines,
+    originalBlackDots,
+    metaKeys.length ? metaKeys : undefined
+  );
+  return dedupePoints([...(terminals || []), ...(connects || []), ...(straightBlackDots || [])]);
+};
 
 const planarDist = (a, b) => {
   const dx = a[1] - b[1];
@@ -223,26 +251,17 @@ const extractSubPathOnStraight = (path, aLatlng, bLatlng, closed = false) => {
   }
   const ia = indexOnPath(pts, aLatlng);
   const ib = indexOnPath(pts, bLatlng);
-  if (ia === ib) return [...pts];
+  if (ia === ib) {
+    if (closed && pts.length >= 2) return pts.map((p) => [...p]);
+    return [[...pts[ia]]];
+  }
   if (!closed) {
     const lo = Math.min(ia, ib);
     const hi = Math.max(ia, ib);
     return pts.slice(lo, hi + 1).map((p) => [...p]);
   }
-  // 環線：取較短或依 ia→ib 正向弧
-  const forward =
-    ia <= ib
-      ? pts.slice(ia, ib + 1)
-      : [...pts.slice(ia), ...pts.slice(0, ib + 1)];
-  const backward =
-    ib <= ia
-      ? pts.slice(ib, ia + 1)
-      : [...pts.slice(ib), ...pts.slice(0, ia + 1)];
-  backward.reverse();
-  const lenF = polylineLength(forward, false);
-  const lenB = polylineLength(backward, false);
-  const chosen = lenF <= lenB ? forward : backward;
-  return chosen.map((p) => [...p]);
+  if (ia <= ib) return pts.slice(ia, ib + 1).map((p) => [...p]);
+  return [...pts.slice(ia), ...pts.slice(0, ib + 1)].map((p) => [...p]);
 };
 
 const appendPath = (out, seg) => {
@@ -379,38 +398,56 @@ export const redistributeBlackDotsOnStraightenedLines = (
     const sections = [];
     if (deduped.length >= 2) {
       for (let i = 0; i < deduped.length - 1; i++) {
-        sections.push([deduped[i], deduped[i + 1]]);
+        sections.push({ a: deduped[i], b: deduped[i + 1], wrap: false, fullLoop: false });
       }
       if (isClosed) {
-        sections.push([deduped[deduped.length - 1], deduped[0]]);
+        sections.push({
+          a: deduped[deduped.length - 1],
+          b: deduped[0],
+          wrap: true,
+          fullLoop: false,
+        });
       }
     } else if (isClosed && deduped.length === 1) {
-      sections.push([deduped[0], deduped[0]]);
+      sections.push({ a: deduped[0], b: deduped[0], wrap: true, fullLoop: true });
     } else if (deduped.length === 1) {
       const end = origLine.latlngs[origLine.latlngs.length - 1];
-      sections.push([deduped[0], { pos: Infinity, latlng: end }]);
+      sections.push({ a: deduped[0], b: { pos: Infinity, latlng: end }, wrap: false, fullLoop: false });
     } else if (routeBlacks.length) {
       const pts = origLine.latlngs;
-      sections.push([
-        { pos: 0, latlng: pts[0] },
-        { pos: Infinity, latlng: pts[pts.length - 1] },
-      ]);
+      sections.push({
+        a: { pos: 0, latlng: pts[0] },
+        b: { pos: Infinity, latlng: pts[pts.length - 1] },
+        wrap: false,
+        fullLoop: false,
+      });
     }
 
-    for (const [a, b] of sections) {
-      const lo = Math.min(a.pos ?? 0, b.pos ?? 0);
-      const hi = Math.max(a.pos ?? 0, b.pos ?? 0);
+    for (const section of sections) {
+      const a = section.a ?? section[0];
+      const b = section.b ?? section[1];
+      const wrap = section.wrap === true;
+      const fullLoop = section.fullLoop === true;
       const sameAnchor = key(a.latlng) === key(b.latlng);
+      const ap = a.pos ?? 0;
+      const bp = b.pos ?? 0;
+
       const blacksInSection = routeBlacks.filter((s) => {
-        if (sameAnchor) return true;
+        if (fullLoop) return key(s.latlng) !== key(a.latlng);
+        if (sameAnchor) return false;
+        if (wrap && isClosed) {
+          return s.pos > ap + POS_EPS || s.pos < bp - POS_EPS;
+        }
+        const lo = Math.min(ap, bp);
+        const hi = Math.max(ap, bp);
         return s.pos > lo + POS_EPS && s.pos < hi - POS_EPS;
       });
 
       if (!blacksInSection.length) continue;
 
-      const subPath = sameAnchor
+      const subPath = fullLoop || sameAnchor
         ? extractSubPathOnStraight(straightPath, a.latlng, b.latlng, isClosed)
-        : extractSubPathOnStraight(straightPath, a.latlng, b.latlng, false);
+        : extractSubPathOnStraight(straightPath, a.latlng, b.latlng, wrap && isClosed);
 
       const placed = placeBlacksEvenlyOnPolyline(subPath, blacksInSection.length);
       blacksInSection.forEach((st, idx) => {
@@ -463,12 +500,35 @@ export const buildRouteMapAdjustStraightSkeleton = (
   const { blackDots: straightBlackDots, stationMeta: straightMeta } =
     redistributeBlackDotsOnStraightenedLines(lines, straightened, blacks, meta);
 
-  const straightStationCoords = Object.keys(straightMeta).map((k) => k.split(',').map(Number));
-  const skeleton = buildRouteMapAdjustSkeleton(straightened, straightBlackDots, straightStationCoords);
+  const anchorCoords = collectStraightSkeletonStationCoords(lines, blacks, [], meta);
+  const allStationCoords = collectStraightSkeletonStationCoords(
+    lines,
+    blacks,
+    straightBlackDots,
+    meta
+  );
+  const metaKeys = Object.keys(meta).map((k) => k.split(',').map(Number));
+  const { terminals: origTerminals, connects: origConnects } = computeRouteMapAdjustStations(
+    lines,
+    blacks,
+    metaKeys.length ? metaKeys : undefined
+  );
+
+  const straightMetaOut = { ...straightMeta };
+  for (const p of anchorCoords) {
+    const k = metaKey(p[0], p[1]);
+    if (!straightMetaOut[k]) straightMetaOut[k] = meta[k] || {};
+  }
+
+  const skeleton = buildRouteMapAdjustSkeleton(straightened, straightBlackDots, allStationCoords, {
+    terminals: origTerminals,
+    connects: origConnects,
+  });
   return {
     skeleton,
     straightenedLines: straightened,
     straightenedBlackDots: straightBlackDots,
-    straightenedStationMeta: straightMeta,
+    straightenedStationMeta: straightMetaOut,
+    straightAnchorCoords: anchorCoords,
   };
 };

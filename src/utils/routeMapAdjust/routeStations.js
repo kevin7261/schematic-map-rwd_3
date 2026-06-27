@@ -626,10 +626,16 @@ export const computeRouteMapAdjustLoopRoutes = (lines) => {
  * @param {Array} lines 路線
  * @param {Array<[number,number]>} [blackDots] 黑點（供站點分類）
  * @param {Array<[number,number]>} [stationCoords] 站點座標（供以站點為基礎之分類）
+ * @param {{terminals?:Array, connects?:Array}} [forcedAnchors] 額外強制保留之端點／交點（直線骨架用）
  * @returns {{nodes:Array<[number,number]>, edges:Array<{a:[number,number],b:[number,number],routeCount:number}>,
  *           crossNodes:Array<[number,number]>}}
  */
-export const buildRouteMapAdjustSkeleton = (lines, blackDots = null, stationCoords = null) => {
+export const buildRouteMapAdjustSkeleton = (
+  lines,
+  blackDots = null,
+  stationCoords = null,
+  forcedAnchors = null
+) => {
   const safeLines = Array.isArray(lines)
     ? lines.filter((l) => l && Array.isArray(l.latlngs) && l.latlngs.length >= 2)
     : [];
@@ -645,10 +651,14 @@ export const buildRouteMapAdjustSkeleton = (lines, blackDots = null, stationCoor
     stationCoords
   );
   // 交點要插入「每條通過該點的路線」（切段），端點本就是路線頂點不需插入。
-  const stationConnectPts = (stationConnects || []).filter((p) => Array.isArray(p) && p.length >= 2);
+  const stationConnectPts = dedupePoints([
+    ...(stationConnects || []).filter((p) => Array.isArray(p) && p.length >= 2),
+    ...((forcedAnchors?.connects || []).filter((p) => Array.isArray(p) && p.length >= 2)),
+  ]);
   // 端點＋交點之鍵 → 強制視為真實節點（收縮時不可穿越）。
   const forcedNodeKeys = new Set([
     ...(stationTerminals || []).map((p) => key(p)),
+    ...((forcedAnchors?.terminals || []).map((p) => key(p))),
     ...stationConnectPts.map((p) => key(p)),
   ]);
 
@@ -1033,7 +1043,13 @@ export const routeMapAdjustToOsmRouteGeoJson = (lines, blackDots, stationMeta = 
  * @param {{nodes:Array, edges:Array, crossNodes:Array}} skeleton
  * @returns {{type:'FeatureCollection', features:object[]}}
  */
-export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stationMeta) => {
+export const routeMapAdjustSkeletonToGeoJson = (
+  skeleton,
+  lines,
+  blackDots,
+  stationMeta,
+  stationCoords = null
+) => {
   const edges = Array.isArray(skeleton?.edges) ? skeleton.edges : [];
   const nodes = Array.isArray(skeleton?.nodes) ? skeleton.nodes : [];
   // 骨架邊顏色：取該邊所有路線之「不同顏色」。
@@ -1057,13 +1073,29 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
   const hlColorOf = () => '';
   // 點色：只有 🔴 交叉/分歧（交叉點重算）／🔵 端點／🖤 其餘（路線中的點皆黑）。
   const llKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
+  const coords =
+    Array.isArray(stationCoords) && stationCoords.length
+      ? stationCoords
+      : Object.keys(stationMeta || {}).map((k) => k.split(',').map(Number));
+  const metaKeys = Object.keys(stationMeta || {}).map((k) => k.split(',').map(Number));
+  const { terminals: origTerminals, connects: origConnects } = computeRouteMapAdjustStations(
+    lines,
+    blackDots,
+    metaKeys.length ? metaKeys : undefined
+  );
   const { terminals, connects, blacks } = computeRouteMapAdjustSkeletonStations(
     lines,
     blackDots,
-    Object.keys(stationMeta || {}).map((k) => k.split(',').map(Number))
+    coords.length ? coords : undefined
   );
-  const terminalKeys = new Set((terminals || []).map((p) => llKey(p[0], p[1])));
-  const connectKeys = new Set((connects || []).map((p) => llKey(p[0], p[1])));
+  const terminalKeys = new Set([
+    ...(terminals || []).map((p) => llKey(p[0], p[1])),
+    ...(origTerminals || []).map((p) => llKey(p[0], p[1])),
+  ]);
+  const connectKeys = new Set([
+    ...(connects || []).map((p) => llKey(p[0], p[1])),
+    ...(origConnects || []).map((p) => llKey(p[0], p[1])),
+  ]);
   const nodeColor = (n) => {
     const k = llKey(n.latlng[0], n.latlng[1]);
     if (n.isCross) return '#ffd600'; // 🟡 交叉點（與原本黃點一致）
@@ -1097,9 +1129,9 @@ export const routeMapAdjustSkeletonToGeoJson = (skeleton, lines, blackDots, stat
     });
   });
   let nid = 1;
-  // 🖤 黑點站（一般中間站）：骨架化後在示意圖佈局也要照原位置畫出（不可消失）。
-  //    先加入，讓端點/交點/交叉節點之後疊在其上。
-  (Array.isArray(blacks) ? blacks : []).forEach((p) => {
+  // 🖤 黑點站：優先用呼叫端傳入的 blackDots（直線骨架為拉直後重新分配之位置）
+  const blackFeatures = Array.isArray(blackDots) && blackDots.length ? blackDots : blacks;
+  blackFeatures.forEach((p) => {
     if (!Array.isArray(p) || p.length < 2) return;
     const [lat, lng] = p;
     const meta = (stationMeta && stationMeta[llKey(lat, lng)]) || {};

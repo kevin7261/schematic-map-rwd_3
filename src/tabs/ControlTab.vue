@@ -29,6 +29,7 @@
   import { useRouteMapAdjust } from '@/utils/routeMapAdjust/loadFromSelectRouteMap.js';
   import { useRouteMapAdjustStraight } from '@/utils/routeMapAdjust/loadFromSelectRouteMapStraight.js';
   import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
+  import { collectStraightSkeletonStationCoords } from '@/utils/routeMapAdjust/straightenLinesAtRedBlue.js';
   import {
     LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
     mergeOsm2GeojsonLoaderResultIntoLayer,
@@ -3566,7 +3567,13 @@
         : [];
     const stationMeta =
       adj.routeMapAdjustStraightenedStationMeta || adj.routeMapAdjustStationMeta || null;
-    const fc = routeMapAdjustSkeletonToGeoJson(sk, lines, blackDots, stationMeta);
+    const stationCoords = collectStraightSkeletonStationCoords(
+      adj.routeMapAdjustLines,
+      adj.routeMapAdjustBlackDots,
+      blackDots,
+      stationMeta
+    );
+    const fc = routeMapAdjustSkeletonToGeoJson(sk, lines, blackDots, stationMeta, stationCoords);
     layer.geojsonData = fc;
     layer.isLoaded = true;
     if (!layer.visible) layer.visible = true;
