@@ -1106,10 +1106,44 @@ export const routeMapAdjustSkeletonToGeoJson = (
   };
   const nodeRadius = (n) => (n.isCross ? 8 : n.isPurple ? 6 : 4);
   const features = [];
+  // 🖤 黑點站：優先用呼叫端傳入的 blackDots（直線骨架為拉直後重新分配之位置）；否則用骨架重算的 blacks。
+  const blackFeatures = Array.isArray(blackDots) && blackDots.length ? blackDots : blacks;
+  // 每個黑點指派到「投影最近」的骨架邊，記其沿邊弧長位置——稍後插進該 way 的頂點，
+  // 使示意圖佈局讀 way 幾何轉 flat 時黑點即為中段頂點（不會在轉換時遺失而於佈局後消失）。
+  const blackOnEdge = edges.map(() => []);
+  (Array.isArray(blackFeatures) ? blackFeatures : []).forEach((b) => {
+    if (!Array.isArray(b) || b.length < 2) return;
+    let bestE = -1;
+    let bestD = Infinity;
+    let bestPos = 0;
+    edges.forEach((e, i) => {
+      const path = Array.isArray(e.path) ? e.path : [];
+      if (path.length < 2) return;
+      const pr = projectOnPolyline(path, b);
+      if (pr && pr.perpDist < bestD) {
+        bestD = pr.perpDist;
+        bestE = i;
+        bestPos = pr.pos;
+      }
+    });
+    if (bestE >= 0) blackOnEdge[bestE].push({ pos: bestPos, coord: [b[1], b[0]] });
+  });
   edges.forEach((e, i) => {
     const path = Array.isArray(e.path) ? e.path : [];
     if (path.length < 2) return;
-    const coords = path.map(([lat, lng]) => [lng, lat]);
+    // 既有頂點沿弧長 + 指派到本邊的黑點，依弧長排序組成 way 座標（黑點成為中段頂點）。
+    const cum = [0];
+    for (let k = 0; k < path.length - 1; k++) cum.push(cum[k] + planarDist(path[k], path[k + 1]));
+    const pts = path.map((p, k) => ({ pos: cum[k], coord: [p[1], p[0]] }));
+    for (const blk of blackOnEdge[i]) pts.push(blk);
+    pts.sort((a, b) => a.pos - b.pos);
+    const coords = [];
+    for (const pt of pts) {
+      const last = coords[coords.length - 1];
+      if (last && last[0] === pt.coord[0] && last[1] === pt.coord[1]) continue;
+      coords.push(pt.coord);
+    }
+    if (coords.length < 2) return;
     features.push({
       type: 'Feature',
       properties: {
@@ -1129,8 +1163,6 @@ export const routeMapAdjustSkeletonToGeoJson = (
     });
   });
   let nid = 1;
-  // 🖤 黑點站：優先用呼叫端傳入的 blackDots（直線骨架為拉直後重新分配之位置）
-  const blackFeatures = Array.isArray(blackDots) && blackDots.length ? blackDots : blacks;
   blackFeatures.forEach((p) => {
     if (!Array.isArray(p) || p.length < 2) return;
     const [lat, lng] = p;

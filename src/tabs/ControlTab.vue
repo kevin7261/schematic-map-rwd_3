@@ -41,6 +41,12 @@
   import { loadMilpJsonRaw } from '@/utils/layers/schematic_layout/milp/readMilpResult.js';
   import { loadMilpJsonRaw as loadMilpJsonRawRma } from '@/utils/routeMapAdjust/schematic/milp/readMilpResult.js';
   import { auditMilpRoutePairRotation } from '@/utils/routeMapAdjust/schematic/auditMilpRoutePair.js';
+  import {
+    buildSchematicInputGeoJsonForDownload,
+    enrichFlatSegmentsStationNames,
+    enrichGeoJsonStationNamesFromMeta,
+    enrichExportRowsStationNames,
+  } from '@/utils/routeMapAdjust/schematic/exportStationNames.js';
   import { reinsertBlackStations } from '@/utils/layers/schematic_layout/assemble.js';
   import { showSolveOverlay } from '@/utils/layers/schematic_layout/solveOverlay.js';
   import {
@@ -9925,16 +9931,44 @@
 
   /**
    * 「示意圖佈局」(schematic_rma_*)：下載目前載入的輸入骨架 GeoJSON。
-   * 與「路線圖轉換骨架／直線骨架」下載同格式（即示意圖計算所讀之格式）。
+   * 優先自路線圖調整骨架重產（含站名）；否則補齊 layer.geojsonData 內 Point 站名。
    */
   const downloadRouteSchematicInputJson = (layer) => {
-    if (!layer?.geojsonData?.features?.length) {
+    const rebuilt = buildSchematicInputGeoJsonForDownload(dataStore);
+    let fc;
+    if (rebuilt) {
+      let stationCoords = null;
+      if (rebuilt.source === 'straight' && rebuilt.straightLayer) {
+        const adj = rebuilt.straightLayer;
+        stationCoords = collectStraightSkeletonStationCoords(
+          adj.routeMapAdjustLines,
+          adj.routeMapAdjustBlackDots,
+          rebuilt.blackDots,
+          rebuilt.stationMeta
+        );
+      }
+      fc = routeMapAdjustSkeletonToGeoJson(
+        rebuilt.sk,
+        rebuilt.lines,
+        rebuilt.blackDots,
+        rebuilt.stationMeta,
+        stationCoords
+      );
+    } else if (layer?.geojsonData?.features?.length) {
+      fc = JSON.parse(JSON.stringify(layer.geojsonData));
+      const meta =
+        dataStore.findLayerById('route_map_adjust_straight')
+          ?.routeMapAdjustStraightenedStationMeta ||
+        dataStore.findLayerById('route_map_adjust')?.routeMapAdjustStationMeta ||
+        null;
+      enrichGeoJsonStationNamesFromMeta(fc, meta);
+    } else {
       window.alert(
         '此圖層尚未載入輸入骨架，請先「從路線圖轉換骨架載入」或「從路線圖轉換直線骨架載入」。'
       );
       return;
     }
-    triggerJsonDownload(layer.geojsonData, `${layer.layerId}_input.json`);
+    triggerJsonDownload(fc, `${layer.layerId}_input.json`);
   };
 
   /**
@@ -9982,6 +10016,9 @@
         const flat = normalizeSpaceNetworkDataToFlatSegments(
           JSON.parse(JSON.stringify(layer.spaceNetworkGridJsonData))
         );
+        enrichFlatSegmentsStationNames(flat, {
+          stationData: layer.spaceNetworkGridJsonData_StationData,
+        });
         rows = flatSegmentsToGeojsonStyleExportRows(flat);
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -9993,6 +10030,9 @@
       window.alert('無法由佈局結果產生匯出資料。');
       return;
     }
+    enrichExportRowsStationNames(rows, {
+      stationData: layer.spaceNetworkGridJsonData_StationData,
+    });
     const fc = minimalLineStringFeatureCollectionFromRouteExportRows(rows, {
       stationPoints: 'all',
       routeLine: 'full',
@@ -10112,7 +10152,7 @@
             type="button"
             class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
             :disabled="!routeSchematicHasResult(layer) || milpRoutePairAuditing || isExecuting"
-            title="比對讀入骨架與佈局結果之路線對 CCW 環序（validate-junction-rotation skill 同邏輯）"
+            title="比對讀入骨架與佈局結果：各分歧點 360° CCW 路線環序（骨架邊無方向，只看點上各路線相對順序）"
             @click="runMilpRoutePairAudit(layer)"
           >
             {{ milpRoutePairAuditing ? '檢查中…' : '檢查路線對環序' }}
@@ -10122,7 +10162,10 @@
             class="mt-2 p-2 rounded border my-font-size-xs"
             style="line-height: 1.45"
           >
-            <div class="my-title-xs-gray pb-1">路線對環序檢查（skill 同邏輯）</div>
+            <div class="my-title-xs-gray pb-1">360° 支線環序（分歧點上各路線離開角 CCW 順序）</div>
+            <div class="text-muted pb-1" style="font-size: 10px; line-height: 1.4">
+              例：景安站檢查「景安→南勢角」支線與環狀線等之相對順序，非骨架段行進方向。
+            </div>
             <div
               v-if="layer.milpRoutePairAudit.primaryVerdict === 'PASS'"
               class="text-success"
@@ -10142,12 +10185,6 @@
                 :class="layer.milpRoutePairAudit.primaryVerdict === 'PASS' ? 'text-muted' : 'text-danger'"
               >
                 {{ r }}
-                <span
-                  v-if="layer.milpRoutePairAudit.violations?.[ri]?.fixHint"
-                  class="text-muted"
-                >
-                  （段索引 {{ layer.milpRoutePairAudit.violations[ri].fixHint.segmentIndex }}）
-                </span>
               </li>
             </ul>
           </div>

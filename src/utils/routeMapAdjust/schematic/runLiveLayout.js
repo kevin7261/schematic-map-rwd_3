@@ -7,6 +7,7 @@ import {
   writeSchematicResultToLayer,
   reinsertBlackStations,
   injectEdgeBends,
+  resolveSharedCorridorDrawing,
   findOutputOverlaps,
 } from './assemble.js';
 import { showSolveOverlay } from './solveOverlay.js';
@@ -26,6 +27,7 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   const refFullFlatSnapshot = isMilp
     ? reinsertBlackStations(JSON.parse(JSON.stringify(input.skeletonFlat)), input.sections)
     : null;
+  const refAngleFlat = isMilp ? input.refAngleFlat : null;
 
   const overlay = showSolveOverlay(title || '示意圖佈局計算中…');
 
@@ -68,7 +70,9 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   let outFullFlat = reinsertBlackStations(optimizedSkeleton, input.sections);
 
   if (isMilp) {
-    const initialStructCheck = analyzeRotationStructure(refFullFlatSnapshot, outFullFlat);
+    const initialStructCheck = analyzeRotationStructure(refFullFlatSnapshot, outFullFlat, {
+      refAngleFlat: refAngleFlat,
+    });
     structCheck = initialStructCheck;
     let fixedIterations = 0;
     try {
@@ -83,7 +87,8 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
         optimizedSkeleton,
         input.sections,
         graph,
-        layoutCoords
+        layoutCoords,
+        { refAngleFlat: refAngleFlat }
       );
       structCheck = fixed.check;
       fixedIterations = fixed.iterations || 0;
@@ -105,6 +110,7 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   }
 
   const fullFlat = outFullFlat;
+  const corridor = resolveSharedCorridorDrawing(fullFlat, graph);
 
   const meta = {
     ...input.meta,
@@ -125,7 +131,7 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   }
 
   const outOv = findOutputOverlaps(fullFlat);
-  syncPostLayoutOverlapState(useDataStore().findLayerById(layerId), fullFlat, null, outOv);
+  syncPostLayoutOverlapState(useDataStore().findLayerById(layerId), fullFlat, corridor, outOv);
 
   const v = result.violations || {};
   const ovNote = outOv.count > 0 ? `\n⚠️ 仍重疊 ${outOv.count} 段（橘虛線）` : '\n輸出端重疊：0';

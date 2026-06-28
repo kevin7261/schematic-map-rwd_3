@@ -1,6 +1,6 @@
 import { resolveSchematicInput } from './input.js';
 import { reinsertBlackStations } from './assemble.js';
-import { analyzeRoutePairRotation, skeletonToCheckFlat } from './routePairRotationCheck.js';
+import { analyzeRoutePairRotation } from './routePairRotationCheck.js';
 
 /**
  * ③ MILP 完成後由使用者按鈕觸發：路線對 CCW 環序審計（validate-junction-rotation skill 同邏輯）。
@@ -18,10 +18,9 @@ export function auditMilpRoutePairRotation(layerId, spaceNetworkGridJsonData) {
     input.sections
   );
   const outFull = JSON.parse(JSON.stringify(spaceNetworkGridJsonData));
-  const routePairReport = analyzeRoutePairRotation(
-    skeletonToCheckFlat(refFull),
-    skeletonToCheckFlat(outFull)
-  );
+  const routePairReport = analyzeRoutePairRotation(refFull, outFull, {
+    refAngleFlat: input.refAngleFlat,
+  });
 
   return {
     ok: true,

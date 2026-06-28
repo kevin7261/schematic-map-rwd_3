@@ -35,13 +35,13 @@ function normAngleDiff(a, b) {
 }
 
 /** 段端點座標（head: index 0；tail: 最後一個）。 */
-function endPt(seg, jHead) {
+export function endPt(seg, jHead) {
   const pts = seg.points;
   return readPt(pts[jHead ? 0 : pts.length - 1]);
 }
 
 /** 分歧點沿該線離開的第一段方向（head→points[1]；tail→points[len-2]）。 */
-function leaveAngle(seg, jHead) {
+export function leaveAngle(seg, jHead) {
   const pts = seg.points;
   if (!Array.isArray(pts) || pts.length < 2) return 0;
   const [jx, jy] = readPt(pts[jHead ? 0 : pts.length - 1]);
@@ -53,7 +53,8 @@ function leaveAngle(seg, jHead) {
  * 由讀入骨架建分歧點表。身分 nKey = 該段「另一端 connect 端點」之讀入格座標。
  * @returns {Map<string, { branches: Map<string, { nKey:string, routes:string[], si:number, jHead:boolean }> }>}
  */
-function buildJunctionTable(refSkeleton) {
+/** 骨架無方向：每段僅記錄兩端 connect 格座標與離開角，供 360° 環序比對。 */
+export function buildJunctionTable(refSkeleton) {
   const junctions = new Map();
 
   const addBranch = (jKey, nKey, rn, si, jHead) => {
@@ -86,15 +87,17 @@ function branchLabel(branch) {
   return rn ? `「${rn}」→(${ox},${oy})` : `→(${ox},${oy})`;
 }
 
-function spokesFrom(junction, skeleton) {
+/** @param {Array<object>|undefined} angleSource 若提供，離開角由此取（如縮放前經緯度），身分仍來自 skeleton */
+export function spokesFrom(junction, skeleton, angleSource) {
+  const angFlat = angleSource ?? skeleton;
   return [...junction.branches.values()].map((b) => ({
     ...b,
-    ang: leaveAngle(skeleton[b.si], b.jHead),
+    ang: leaveAngle(angFlat[b.si], b.jHead),
     label: branchLabel(b),
   }));
 }
 
-function orderedNKeys(spokes, tieOrder) {
+export function orderedNKeys(spokes, tieOrder) {
   const tie = new Map(tieOrder.map((k, i) => [k, i]));
   return spokes
     .slice()
@@ -106,7 +109,7 @@ function orderedNKeys(spokes, tieOrder) {
     .map((s) => s.nKey);
 }
 
-function sameCyclic(a, b) {
+export function sameCyclic(a, b) {
   if (a.length !== b.length || !a.length) return true;
   const start = b.indexOf(a[0]);
   if (start < 0) return false;
@@ -114,7 +117,7 @@ function sameCyclic(a, b) {
   return true;
 }
 
-function firstFlipPair(refOrder, outOrder, spokeMap) {
+export function firstFlipPair(refOrder, outOrder, spokeMap) {
   for (let i = 0; i < refOrder.length; i++) {
     for (let j = i + 1; j < refOrder.length; j++) {
       const refStep = (j - i + refOrder.length) % refOrder.length;
@@ -130,10 +133,10 @@ function firstFlipPair(refOrder, outOrder, spokeMap) {
   return '分支環序對調';
 }
 
-function analyzeJunction(jKey, junction, refSkeleton, outSkeleton) {
+function analyzeJunction(jKey, junction, refSkeleton, outSkeleton, refAngleSource) {
   if (junction.branches.size < 3) return { ok: true };
 
-  const refSpokes = spokesFrom(junction, refSkeleton);
+  const refSpokes = spokesFrom(junction, refSkeleton, refAngleSource);
   const refOrder = orderedNKeys(refSpokes, refSpokes.map((s) => s.nKey));
   const outSpokes = spokesFrom(junction, outSkeleton);
   const outOrder = orderedNKeys(outSpokes, refOrder);
@@ -162,16 +165,17 @@ function analyzeJunction(jKey, junction, refSkeleton, outSkeleton) {
  * @param {Array<object>} refFullFlat 讀入 fullFlat（黑點已放回）
  * @param {Array<object>} outFullFlat 直線化後 fullFlat（索引與 refFullFlat 對齊）
  */
-export function analyzeRotationStructure(refFullFlat, outFullFlat) {
+export function analyzeRotationStructure(refFullFlat, outFullFlat, opts = {}) {
   if (!Array.isArray(refFullFlat) || !Array.isArray(outFullFlat)) {
     return { preserved: true, violationCount: 0, violations: [], reasons: [], summaryZh: '無骨架可比對。' };
   }
 
+  const refAngleSource = opts.refAngleFlat ?? refFullFlat;
   const junctions = buildJunctionTable(refFullFlat);
   const violations = [];
 
   for (const [jKey, junction] of junctions) {
-    const r = analyzeJunction(jKey, junction, refFullFlat, outFullFlat);
+    const r = analyzeJunction(jKey, junction, refFullFlat, outFullFlat, refAngleSource);
     if (r.ok) continue;
     violations.push(r);
   }
@@ -201,17 +205,19 @@ export function analyzeRotationStructure(refFullFlat, outFullFlat) {
  */
 export function fixRotationStructure(refFullFlat, outConnectSkeleton, sections, graph, outCoords, opts = {}) {
   const maxIter = opts.maxIter ?? 120;
+  const refAngleFlat = opts.refAngleFlat;
   const connectSkel = JSON.parse(JSON.stringify(outConnectSkeleton));
   const coords = outCoords.map((c) => [c[0], c[1]]);
   const moveLines = [];
   let iterations = 0;
   const nodeOfRef = graph?.nodeOfRef;
+  const refAngleSource = refAngleFlat ?? refFullFlat;
 
   const buildOutFull = () => reinsertBlackStations(JSON.parse(JSON.stringify(connectSkel)), sections || []);
 
   for (let step = 0; step < maxIter; step++) {
     const outFull = buildOutFull();
-    const check = analyzeRotationStructure(refFullFlat, outFull);
+    const check = analyzeRotationStructure(refFullFlat, outFull, { refAngleFlat: refAngleSource });
     if (check.preserved) {
       syncConnectToCoords(connectSkel, graph, coords);
       return { ok: true, coords, outConnectSkeleton: connectSkel, check, moveLines, iterations };
@@ -228,8 +234,8 @@ export function fixRotationStructure(refFullFlat, outConnectSkeleton, sections, 
     const prev = v.refSpokes.find((s) => s.nKey === prevKey);
     const next = v.refSpokes.find((s) => s.nKey === nextKey);
 
-    const angPrev = prev ? leaveAngle(refFullFlat[prev.si], prev.jHead) : 0;
-    const angNext = next ? leaveAngle(refFullFlat[next.si], next.jHead) : angPrev + Math.PI / 2;
+    const angPrev = prev ? leaveAngle(refAngleSource[prev.si], prev.jHead) : 0;
+    const angNext = next ? leaveAngle(refAngleSource[next.si], next.jHead) : angPrev + Math.PI / 2;
     let d = angNext - angPrev;
     while (d <= 0) d += Math.PI * 2;
     const angMid = angPrev + d / 2;
@@ -256,7 +262,7 @@ export function fixRotationStructure(refFullFlat, outConnectSkeleton, sections, 
   }
 
   syncConnectToCoords(connectSkel, graph, coords);
-  const check = analyzeRotationStructure(refFullFlat, buildOutFull());
+  const check = analyzeRotationStructure(refFullFlat, buildOutFull(), { refAngleFlat: refAngleSource });
   return {
     ok: check.preserved,
     coords,

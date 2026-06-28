@@ -16,13 +16,143 @@ function readXY(p) {
   return [Number(p?.x ?? 0), Number(p?.y ?? 0)];
 }
 
+function routeNameOf(seg) {
+  return String(seg?.route_name ?? seg?.name ?? '').trim();
+}
+
+function collectRouteColors(seg, into) {
+  if (!seg) return;
+  const add = (c) => { if (c) into.add(String(c).trim()); };
+  add(seg.way_properties?.tags?.route_color);
+  add(seg.way_properties?.tags?.color);
+  add(seg.color);
+  const rc = seg.route_colors ?? seg.way_properties?.tags?.route_colors;
+  if (rc) String(rc).split(',').forEach((c) => add(c));
+}
+
+function applyRouteColorsToSeg(seg, colors) {
+  const arr = [...colors];
+  seg.route_colors = arr.join(',');
+  seg.color = arr.length === 1 ? arr[0] : '#000000';
+  if (!seg.way_properties) seg.way_properties = { tags: {} };
+  if (!seg.way_properties.tags) seg.way_properties.tags = {};
+  seg.way_properties.tags.route_colors = seg.route_colors;
+  seg.way_properties.tags.color = seg.color;
+}
+
+const AXIS_EPS = 1e-6;
+const ROUTE_PALETTE = ['#7B1FA2', '#1976D2', '#388E3C', '#F57C00', '#C2185B', '#5D4037'];
+
+function collectCorridorColors(fullFlat, sis) {
+  const byRoute = new Map();
+  for (const si of sis) {
+    const seg = fullFlat[si];
+    const rn = routeNameOf(seg);
+    if (!rn || byRoute.has(rn)) continue;
+    const c = seg?.way_properties?.tags?.route_color || seg?.way_properties?.tags?.color || seg?.color;
+    if (c) byRoute.set(rn, String(c).trim());
+  }
+  const colors = new Set(byRoute.values());
+  if (colors.size < 2 && byRoute.size >= 2) {
+    let i = 0;
+    for (const rn of byRoute.keys()) {
+      colors.add(ROUTE_PALETTE[i++ % ROUTE_PALETTE.length]);
+      void rn;
+    }
+  }
+  if (colors.size === 0) for (const si of sis) collectRouteColors(fullFlat[si], colors);
+  return colors;
+}
+
+function axisCollinearRunKey(pts) {
+  if (!pts || pts.length < 2) return null;
+  const a = pts[0];
+  const b = pts[pts.length - 1];
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  for (let i = 1; i + 1 < pts.length; i++) {
+    const p = pts[i];
+    if (Math.abs(dx * (p[1] - a[1]) - dy * (p[0] - a[0])) > AXIS_EPS) return null;
+  }
+  const adx = Math.abs(dx);
+  const ady = Math.abs(dy);
+  if (adx <= AXIS_EPS && ady > AXIS_EPS) {
+    return `V:${Math.round(a[0] * 1000) / 1000}:${Math.min(a[1], b[1])}:${Math.max(a[1], b[1])}`;
+  }
+  if (ady <= AXIS_EPS && adx > AXIS_EPS) {
+    return `H:${Math.round(a[1] * 1000) / 1000}:${Math.min(a[0], b[0])}:${Math.max(a[0], b[0])}`;
+  }
+  if (adx > AXIS_EPS && ady > AXIS_EPS && Math.abs(adx - ady) <= AXIS_EPS) {
+    const k1 = `${Math.round(a[0] * 1000) / 1000},${Math.round(a[1] * 1000) / 1000}`;
+    const k2 = `${Math.round(b[0] * 1000) / 1000},${Math.round(b[1] * 1000) / 1000}`;
+    return k1 < k2 ? `D:${k1}|${k2}` : `D:${k2}|${k1}`;
+  }
+  return null;
+}
+
+function mergeCorridorSections(fullFlat, sis, edgeTag) {
+  const sorted = sis.slice().sort((a, b) =>
+    String(fullFlat[a]?.route_name ?? '').localeCompare(String(fullFlat[b]?.route_name ?? ''))
+  );
+  const primary = sorted[0];
+  const colors = collectCorridorColors(fullFlat, sis);
+  const uniqRoutes = [...new Set(sorted.map((si) => routeNameOf(fullFlat[si])).filter(Boolean))];
+  if (colors.size > 0) applyRouteColorsToSeg(fullFlat[primary], colors);
+  fullFlat[primary]._schematicCorridorSkipDraw = false;
+  fullFlat[primary]._schematicCorridorRoutes = uniqRoutes;
+  fullFlat[primary]._schematicCorridorEdgeId = edgeTag;
+  for (let i = 1; i < sorted.length; i++) {
+    const si = sorted[i];
+    fullFlat[si]._schematicCorridorSkipDraw = true;
+    fullFlat[si]._schematicCorridorRoutes = uniqRoutes;
+    fullFlat[si]._schematicCorridorEdgeId = edgeTag;
+    if (colors.size > 0) applyRouteColorsToSeg(fullFlat[si], colors);
+  }
+}
+
+function dedupeCollinearRunDraws(fullFlat) {
+  const byKey = new Map();
+  let groups = 0;
+  for (let si = 0; si < fullFlat.length; si++) {
+    const seg = fullFlat[si];
+    if (seg?._schematicCorridorSkipDraw) continue;
+    const pts = Array.isArray(seg?.points) ? seg.points.map(readXY) : null;
+    if (!pts || pts.length < 2) continue;
+    const rn = routeNameOf(seg);
+    const key = axisCollinearRunKey(pts);
+    if (!key) continue;
+    if (!byKey.has(key)) {
+      byKey.set(key, { primary: si, routes: rn ? [rn] : [] });
+      continue;
+    }
+    const g = byKey.get(key);
+    if (rn && !g.routes.includes(rn)) g.routes.push(rn);
+    if (g.primary === si) continue;
+    groups++;
+    const colors = collectCorridorColors(fullFlat, [g.primary, si]);
+    if (colors.size > 0) applyRouteColorsToSeg(fullFlat[g.primary], colors);
+    fullFlat[g.primary]._schematicCorridorRoutes = [...g.routes];
+    fullFlat[si]._schematicCorridorSkipDraw = true;
+    fullFlat[si]._schematicCorridorRoutes = [...g.routes];
+    if (colors.size > 0) applyRouteColorsToSeg(fullFlat[si], colors);
+  }
+  return groups;
+}
+
 /**
- * 共線處理已停用：不可改骨架拓撲、不可把不相關路線的顏色併到同一段
- * （那會讓穿過黑點的線被重新上色，看起來像不相關的路線連到黑點）。
- * 保留簽名為 no-op，避免改動骨架座標／顏色／拓撲。
+ * 共軌／同形共線：只畫一條多色交錯虛線（純顯示），其餘 skip；不改座標／拓撲。
  */
-export function resolveSharedCorridorDrawing() {
-  return { corridorGroups: 0, collinearGroups: 0 };
+export function resolveSharedCorridorDrawing(fullFlat, graph) {
+  let corridorGroups = 0;
+  for (const edge of graph?.edges || []) {
+    if (edge.isLink) continue;
+    const sis = (edge.sections || []).filter((si) => fullFlat[si]?.points?.length >= 2);
+    if (sis.length <= 1) continue;
+    corridorGroups++;
+    mergeCorridorSections(fullFlat, sis, `edge:${edge.id}`);
+  }
+  const collinearGroups = dedupeCollinearRunDraws(fullFlat);
+  return { corridorGroups, collinearGroups };
 }
 
 /**

@@ -210,6 +210,46 @@ const insertVerticesAtArcFractions = (path, fractions, closed = false) => {
   return pts;
 };
 
+/** 點在折線上的弧長位置（自起點起算）；偏離折線超過 tol 則回傳 null（不在此折線上） */
+const arcPosOnPath = (path, point, tol = 1e-5) => {
+  if (!Array.isArray(path) || path.length < 2) return null;
+  let cum = 0;
+  let best = null;
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i];
+    const b = path[i + 1];
+    const c = closestPointOnSegment(point, a, b);
+    const perp = planarDist(point, c);
+    const arc = cum + planarDist(a, c);
+    if (best === null || perp < best.perp) best = { perp, arc };
+    cum += planarDist(a, b);
+  }
+  if (!best || best.perp > tol) return null;
+  return best.arc;
+};
+
+/** 取折線 [d0, d1] 弧長區間的子折線（端點以插值取得） */
+const slicePolylineByArc = (path, d0, d1) => {
+  if (!Array.isArray(path) || path.length < 2) return path ? path.map((p) => [...p]) : [];
+  const total = polylineLength(path, false);
+  const lo = Math.max(0, Math.min(d0, d1));
+  const hi = Math.min(total, Math.max(d0, d1));
+  const out = [pointAtArcLength(path, lo)];
+  let cum = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    const seg = planarDist(path[i], path[i + 1]);
+    const segEnd = cum + seg;
+    if (segEnd > lo + 1e-12 && segEnd < hi - 1e-12) out.push([...path[i + 1]]);
+    cum = segEnd;
+  }
+  out.push(pointAtArcLength(path, hi));
+  const dd = [out[0]];
+  for (let i = 1; i < out.length; i++) {
+    if (key(out[i]) !== key(dd[dd.length - 1])) dd.push(out[i]);
+  }
+  return dd;
+};
+
 /** 沿折線（open）依 (j+1)/(k+1) 平均放置 k 個黑點 */
 const placeBlacksEvenlyOnPolyline = (path, count) => {
   if (!count || !Array.isArray(path) || path.length < 2) return [];
@@ -351,15 +391,21 @@ export const straightenRouteMapAdjustLinesAtRedBlue = (lines, blackDots = []) =>
 };
 
 /**
- * 黑點站在拉直後折線上重新計算：各紅/藍段內依弧長平均分配。
+ * 黑點站在拉直後折線上重新計算：依「紅/藍錨點」切大段，再被「黃(cross)/紫(purple)切點」
+ * 細分為小段，每一小段內各自依弧長平均分配（被黃/紫切到就重算，黑點不跨切點）。
+ * @param {Array<[number,number]>} [cutPoints] 拉直空間中的黃/紫切點座標（額外切段邊界）
  * @returns {{ blackDots: Array<[number,number]>, stationMeta: object }}
  */
 export const redistributeBlackDotsOnStraightenedLines = (
   originalLines,
   straightenedLines,
   blackDots = [],
-  stationMeta = null
+  stationMeta = null,
+  cutPoints = []
 ) => {
+  const safeCutPoints = Array.isArray(cutPoints)
+    ? cutPoints.filter((p) => Array.isArray(p) && p.length >= 2)
+    : [];
   const meta = stationMeta && typeof stationMeta === 'object' ? { ...stationMeta } : {};
   const oldKeyToNew = new Map();
   const POS_EPS = 1e-6;
@@ -377,6 +423,7 @@ export const redistributeBlackDotsOnStraightenedLines = (
 
     const origLine = safeOrig[routeIndex];
     const isClosed = isLoopRoute(origLine);
+    const origTotal = polylineLength(origLine.latlngs, isClosed);
     const routeBlacks = blacksByRoute[routeIndex] || [];
 
     const anchors = (routeInfo.stations || [])
@@ -448,12 +495,68 @@ export const redistributeBlackDotsOnStraightenedLines = (
       const subPath = fullLoop || sameAnchor
         ? extractSubPathOnStraight(straightPath, a.latlng, b.latlng, isClosed)
         : extractSubPathOnStraight(straightPath, a.latlng, b.latlng, wrap && isClosed);
+      const subLen = polylineLength(subPath, false);
 
-      const placed = placeBlacksEvenlyOnPolyline(subPath, blacksInSection.length);
-      blacksInSection.forEach((st, idx) => {
-        if (!placed[idx]) return;
-        const oldK = metaKey(st.latlng[0], st.latlng[1]);
-        oldKeyToNew.set(oldK, placed[idx]);
+      // 此「紅/藍大段」沿行進方向 (a→b) 的弧長比例（黑點 / 切點共用同一參數軸）
+      const bpEff = Number.isFinite(bp) ? bp : origTotal;
+      const fracOfPos = (pos) => {
+        if (fullLoop) {
+          const d = (((pos - ap) % origTotal) + origTotal) % origTotal;
+          return origTotal > 0 ? d / origTotal : 0;
+        }
+        if (wrap && isClosed) {
+          const segLen = origTotal - ap + bp;
+          const d = pos >= ap - POS_EPS ? pos - ap : origTotal - ap + pos;
+          return segLen > 0 ? d / segLen : 0;
+        }
+        return bpEff - ap !== 0 ? (pos - ap) / (bpEff - ap) : 0;
+      };
+
+      // 落在此段子折線上的黃/紫切點 → 換算成 (0,1) 弧長比例，做二次切段
+      const cutFracs = [];
+      if (subLen > 0) {
+        for (const cp of safeCutPoints) {
+          const arc = arcPosOnPath(subPath, cp);
+          if (arc == null) continue;
+          const f = arc / subLen;
+          if (f > 1e-4 && f < 1 - 1e-4) cutFracs.push(f);
+        }
+      }
+      cutFracs.sort((x, y) => x - y);
+      const dedupCuts = [];
+      for (const f of cutFracs) {
+        if (!dedupCuts.length || Math.abs(dedupCuts[dedupCuts.length - 1] - f) > 1e-4) {
+          dedupCuts.push(f);
+        }
+      }
+
+      const place = (path, blacks) => {
+        const placed = placeBlacksEvenlyOnPolyline(path, blacks.length);
+        blacks.forEach((st, idx) => {
+          if (!placed[idx]) return;
+          const oldK = metaKey(st.latlng[0], st.latlng[1]);
+          oldKeyToNew.set(oldK, placed[idx]);
+        });
+      };
+
+      if (!dedupCuts.length) {
+        place(subPath, blacksInSection);
+        continue;
+      }
+
+      // 依切點把黑點分桶（黑點已依 pos 排序，frac 隨 pos 單調），各小段內各自平均
+      const bounds = [0, ...dedupCuts, 1];
+      const buckets = bounds.slice(0, -1).map(() => []);
+      for (const st of blacksInSection) {
+        const f = fracOfPos(st.pos);
+        let idx = 0;
+        while (idx < dedupCuts.length && f >= dedupCuts[idx] - 1e-9) idx++;
+        buckets[idx].push(st);
+      }
+      buckets.forEach((grp, i) => {
+        if (!grp.length) return;
+        const piece = slicePolylineByArc(subPath, bounds[i] * subLen, bounds[i + 1] * subLen);
+        place(piece, grp);
       });
     }
   });
@@ -497,21 +600,33 @@ export const buildRouteMapAdjustStraightSkeleton = (
   const blacks = Array.isArray(blackDots) ? blackDots : [];
 
   const straightened = straightenRouteMapAdjustLinesAtRedBlue(lines, blacks);
-  const { blackDots: straightBlackDots, stationMeta: straightMeta } =
-    redistributeBlackDotsOnStraightenedLines(lines, straightened, blacks, meta);
 
   const anchorCoords = collectStraightSkeletonStationCoords(lines, blacks, [], meta);
-  const allStationCoords = collectStraightSkeletonStationCoords(
-    lines,
-    blacks,
-    straightBlackDots,
-    meta
-  );
   const metaKeys = Object.keys(meta).map((k) => k.split(',').map(Number));
   const { terminals: origTerminals, connects: origConnects } = computeRouteMapAdjustStations(
     lines,
     blacks,
     metaKeys.length ? metaKeys : undefined
+  );
+
+  // 預建骨架以取得「黃(cross)/紫(purple)」切點（拉直空間座標）。
+  // 這些切點與黑點無關（純幾何交叉／環線、頭尾共點分段），故用原始黑點即可穩定算出。
+  const preSkeleton = buildRouteMapAdjustSkeleton(straightened, blacks, anchorCoords, {
+    terminals: origTerminals,
+    connects: origConnects,
+  });
+  const cutPoints = (preSkeleton?.nodes || [])
+    .filter((n) => n && (n.isCross || n.isPurple) && Array.isArray(n.latlng))
+    .map((n) => n.latlng);
+
+  const { blackDots: straightBlackDots, stationMeta: straightMeta } =
+    redistributeBlackDotsOnStraightenedLines(lines, straightened, blacks, meta, cutPoints);
+
+  const allStationCoords = collectStraightSkeletonStationCoords(
+    lines,
+    blacks,
+    straightBlackDots,
+    meta
   );
 
   const straightMetaOut = { ...straightMeta };

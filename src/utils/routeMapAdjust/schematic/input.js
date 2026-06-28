@@ -63,6 +63,7 @@ export function buildConnectSkeleton(baseFlat) {
   const nbr = new Map();
   const rts = new Map();
   const keepIds = new Set(); // 🟡 交叉(cross)/🟣 切斷(purple)/connect/terminal：屬骨架節點,即使 degree-2 也不可收縮成黑點
+  const blackIds = new Set(); // 🖤 黑點站：單線中間站，永遠不得升級成轉乘分歧（否則他線會被誤接到黑點上）
   for (const seg of baseFlat) {
     const pts = seg?.points;
     if (!Array.isArray(pts) || pts.length < 2) continue;
@@ -73,13 +74,20 @@ export function buildConnectSkeleton(baseFlat) {
       const id = idAt(seg, i, nodes);
       addSet(rts, id, rn);
       if (isSkeletonKeepNode(nodes[i])) keepIds.add(id);
+      if (isBlackNode(nodes[i])) blackIds.add(id);
       if (prev != null && prev !== id) { addSet(nbr, id, prev); addSet(nbr, prev, id); }
       prev = id;
     }
   }
-  // connect = 骨架保留節點（黃/紫/connect/terminal）或 degree≠2（端點/分歧）或 真實轉乘（≥2 route）；
-  //   其餘 degree-2 單線直通點（黑色路線中間站）→ 非 connect（收縮成黑點，最後沿邊內插放回）。
-  const isConn = (id) => keepIds.has(id) || ((nbr.get(id)?.size ?? 0) !== 2) || (isRealId(id) && (rts.get(id)?.size ?? 0) >= 2);
+  // connect = 骨架保留節點（黃/紫/connect/terminal）或 degree≠2（端點/分歧）或 真實轉乘（具名站且 ≥2 route）。
+  //   ⚠️ 黑點站例外：黑點是單線中間站，**除非是真正端點（degree≤1）否則一律收縮**——
+  //   就算鄰近 snap 讓它度數變 3／被兩條線經過，也不可升級成分歧/轉乘點，否則他線（如紫線）會被誤接到黑點上、改變拓撲。
+  const isConn = (id) => {
+    if (keepIds.has(id)) return true;
+    const deg = nbr.get(id)?.size ?? 0;
+    if (blackIds.has(id)) return deg <= 1; // 黑點僅在真正端點才視為邊界，其餘一律收縮成黑點
+    return deg !== 2 || (isRealId(id) && (rts.get(id)?.size ?? 0) >= 2);
+  };
 
   // ---- pass 2: 每段於內部 connect 點切成 atom（原子段）----
   const atoms = [];
@@ -153,8 +161,13 @@ export function buildConnectSkeleton(baseFlat) {
           endPt = t.farPt; endNode = t.farNode; break;
         }
         blacks.push(mkBlack(t.farNode)); // 直通接點降為黑點
-        const cands = (ends.get(t.farId) || []).filter((x) => !x.atom.used);
-        if (cands.length !== 1) { endPt = t.farPt; endNode = t.farNode; break; }
+        let cands = (ends.get(t.farId) || []).filter((x) => !x.atom.used);
+        if (cands.length !== 1) {
+          // 黑點被他線鄰近 snap 而出現多個候選 → 只沿「同一條路線」連續穿過，不接他線。
+          const same = cands.filter((x) => sameRoute(x.atom.seg, start.seg));
+          if (same.length === 1) cands = same;
+          else { endPt = t.farPt; endNode = t.farNode; break; }
+        }
         cur = cands[0].atom;
         ce = cands[0].end;
       }
@@ -262,6 +275,23 @@ export function scaleSkeletonToIntegerGrid(segments, opts = {}) {
  *   node_kind ∈ {cross, purple}；node_type ∈ {connect, terminal}；
  *   node_class_color = 🟡#ffd600 / 🟣#9c27b0；或 isCross/isPurple 旗標。
  */
+/** 🖤 黑點站判定：node_kind='black' 或分類色為黑（#000000）。黑點為單線中間站，不得成為分歧/轉乘節點。 */
+function isBlackNode(node) {
+  if (!node || typeof node !== 'object') return false;
+  const t = node.tags || {};
+  const kind = node.node_kind ?? t.node_kind;
+  if (kind === 'black') return true;
+  const cc = String(t.node_class_color ?? node.node_class_color ?? '').toLowerCase();
+  return cc === '#000000' || cc === '#000';
+}
+
+/** 兩段是否同一條路線（依 route_name；退而求 name）。 */
+function sameRoute(segA, segB) {
+  const a = String(segA?.route_name ?? segA?.name ?? '').trim();
+  const b = String(segB?.route_name ?? segB?.name ?? '').trim();
+  return a !== '' && a === b;
+}
+
 function isSkeletonKeepNode(node) {
   if (!node || typeof node !== 'object') return false;
   const t = node.tags || {};
@@ -439,12 +469,14 @@ export function resolveSchematicInput(executingLayerId) {
 
   const { skeletonFlat, sections } = buildConnectSkeleton(baseFlat);
   if (skeletonFlat.length === 0) return { ok: false, message: '上游路網無可用 connect 骨架。' };
+  const refAngleFlat = JSON.parse(JSON.stringify(skeletonFlat));
   const grid = scaleSkeletonToIntegerGrid(skeletonFlat, {});
   const blackCount = sections.reduce((s, sec) => s + (sec.blackNodes?.length || 0), 0);
 
   return {
     ok: true,
     skeletonFlat,
+    refAngleFlat,
     sections,
     meta: {
       sourceLayerId: src.layerId,
