@@ -4151,6 +4151,7 @@
       layerTab === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
       layerTab === 'schematic_milp_read' || // MILP結果正規化：整數座標系，每格一線
       layerTab === 'schematic_rma_milp_read' || // MILP結果正規化（RMA）：整數座標系，每格一線
+      layerTab === 'schematic_rma_normalize' || // ⑨ 座標正規化：整數座標系，每格一線
       layerTab === 'schematic_milp_straighten' || // connect 拉直：整數座標系，每格一線
       isLineOrthogonalTowardCenterLayerId(layerTab) ||
       isSpaceGridVhDrawFamilyLayerId(layerTab) ||
