@@ -135,6 +135,7 @@ import { executeWangChi as executeWangChiRma } from '../utils/routeMapAdjust/sch
 import { executeBast as executeBastRma } from '../utils/routeMapAdjust/schematic/gridGraph/executeBast.js';
 import { executeMerrick as executeMerrickRma } from '../utils/routeMapAdjust/schematic/pathSimplify/executeMerrick.js';
 import { executeSat as executeSatRma } from '../utils/routeMapAdjust/schematic/sat/executeSat.js';
+import { executeNormalizeRma } from '../utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
 import { executeReadMilpResult as executeReadMilpResultRma } from '../utils/routeMapAdjust/schematic/milp/readMilpResult.js';
 import { assignOsm2LayerViewerFields } from '../utils/layers/osm_2_geojson_2_json/layerMerge.js';
 import {
@@ -756,6 +757,55 @@ export const useDataStore = defineStore(
               'dashboard',
             ],
           },
+          {
+            /** 示意圖佈局 ⑨（正規化）：座標正規化 → 鄰線錯邊修正（若須）→ 刪空欄列，完全在本層內完成。 */
+            layerId: 'schematic_rma_normalize',
+            layerName: '⑨ 示意圖佈局（正規化）',
+            visible: false,
+            isLoading: false,
+            isLoaded: false,
+            colorName: 'lime',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            spaceNetworkGridJsonData_SectionData: null,
+            spaceNetworkGridJsonData_ConnectData: null,
+            spaceNetworkGridJsonData_StationData: null,
+            showStationPlacement: true,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: executeNormalizeRma,
+            /** 「拉直」步驟產出的 connect 直邊骨架 { skeletonFlat, sections, meta }，供「開始執行」取用 */
+            straightenedInput: null,
+            isDataLayer: true,
+            hideFromMap: true,
+            display: true,
+            highlightedSegmentIndex: null,
+            squareGridCellsTaipeiTest3: false,
+            dataOSM: null,
+            dataGeojson: null,
+            dataJson: null,
+            /** 鄰線錯邊修正所用的 c3 參考路網（每次正規化後存入） */
+            jsonGridCoordNormalizeReferenceC3: null,
+            /** 鄰線錯邊修正座標紀錄（持久化） */
+            jsonGridNeighborFixPersist: null,
+            isRouteSchematicLayer: true,
+            upperViewTabs: [
+              'space-layout-grid-viewer',
+              'route-schematic',
+              'space-network-grid-json-data',
+              'dashboard',
+            ],
+          },
         ],
       },
       {
@@ -764,7 +814,7 @@ export const useDataStore = defineStore(
           {
             /** MILP結果正規化（RMA）：讀 ③ MILP（schematic_rma_milp）結果（或匯入下載 JSON）並做保拓樸座標正規化。 */
             layerId: 'schematic_rma_milp_read',
-            layerName: 'MILP結果正規化',
+            layerName: '路線正規化',
             visible: false,
             isLoading: false,
             isLoaded: false,

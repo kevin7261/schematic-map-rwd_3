@@ -26,8 +26,10 @@ export const SCHEMATIC_BAST_LAYER_ID = 'schematic_rma_bast';
 export const SCHEMATIC_MERRICK_LAYER_ID = 'schematic_rma_merrick';
 /** #8 Fuchs (2022) SAT-based octilinear（logic-solver weighted-partial MaxSAT，精確八方向） */
 export const SCHEMATIC_SAT_LAYER_ID = 'schematic_rma_sat';
+/** #9 座標正規化（等比例整數格 + 刪空欄列） */
+export const SCHEMATIC_NORMALIZE_LAYER_ID = 'schematic_rma_normalize';
 
-/** 八個示意圖佈局比較圖層（#1–#8），共用 runLiveLayout / writeSchematicResultToLayer。 */
+/** 九個示意圖佈局比較圖層（#1–#9），共用 runLiveLayout / writeSchematicResultToLayer。 */
 export const SCHEMATIC_LAYOUT_LAYER_IDS = [
   SCHEMATIC_STROKE_LAYER_ID,
   SCHEMATIC_HILLCLIMB_LAYER_ID,
@@ -37,6 +39,7 @@ export const SCHEMATIC_LAYOUT_LAYER_IDS = [
   SCHEMATIC_BAST_LAYER_ID,
   SCHEMATIC_MERRICK_LAYER_ID,
   SCHEMATIC_SAT_LAYER_ID,
+  SCHEMATIC_NORMALIZE_LAYER_ID,
 ];
 
 export const isSchematicLayoutResultLayer = (layerId) =>

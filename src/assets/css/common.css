@@ -413,6 +413,22 @@ body {
   background-color: var(--my-color-gray-200);
 }
 
+.my-btn-lime {
+  color: #333;
+  background-color: var(--my-color-lime);
+}
+
+.my-btn-lime:hover,
+.my-btn-lime:active {
+  color: #333;
+  background-color: var(--my-color-lime-hover);
+}
+
+.my-btn-lime:disabled {
+  color: var(--my-color-gray-600);
+  background-color: var(--my-color-gray-200);
+}
+
 .my-btn-blue {
   color: var(--my-color-white);
   background-color: var(--my-color-blue);
