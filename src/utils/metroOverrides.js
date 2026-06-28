@@ -132,11 +132,11 @@ export const METRO_OVERRIDES = {
     onlyLineName: 'NYCS',
     noNameMerge: true,
   },
-  // 🇸🇬 新加坡：僅 MRT（不含 LRT／Sentosa）；納入施工段延伸（CCL Stage 6 成環、TEL5→Sungei Bedok）。
+  // 🇸🇬 新加坡：僅 MRT（不含 LRT）；CCL 成環；DTL/TEL 延伸 Sungei Bedok 見 singaporeMrtFixes.js
   'singapore-singapore': {
     allowLightRail: false,
-    constructionOverlapMax: 1.0,
-    dropByName: 'LRT Bukit Panjang|LRT Sengkang|LRT Punggol|Light Rail|Sengkang Line \\(West|Sengkang Line \\(East|Punggol Line \\(West|Punggol Line \\(East|Sentosa Express|Sentosa',
+    dropByName:
+      'LRT Bukit Panjang|LRT Sengkang|LRT Punggol|Light Rail|Sengkang Line \\(West|Sengkang Line \\(East|Punggol Line \\(West|Punggol Line \\(East|Sentosa Express|Sentosa',
     mergeLineFamilies: [
       {
         match: 'Circle Line',
@@ -145,15 +145,6 @@ export const METRO_OVERRIDES = {
         snapTol: 0.0009,
         displayName: 'MRT Circle Line',
       },
-      {
-        match: 'Thomson.?East Coast',
-        exclude: 'Extension',
-        displayName: 'MRT Thomson–East Coast Line (Woodlands North → Sungei Bedok)',
-      },
-    ],
-    extraStations: [
-      { name: 'Bedok South', coord: [103.93278, 1.31472], attachTo: 'Thomson' },
-      { name: 'Sungei Bedok', coord: [103.95694, 1.32028], attachTo: 'Thomson' },
     ],
   },
 };

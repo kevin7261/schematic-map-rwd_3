@@ -9,6 +9,7 @@ import { fetchMetroGeojsonByBbox } from '../src/utils/metroOsmFetch.js';
 import { overridesFor } from '../src/utils/metroOverrides.js';
 import { isMainlandChina, convertFcToTraditional, mergeSameNameStations, addExtraStations, mergeLoopLines, mergeLineFamilies, dropOrphanNodes, splitAtConnects } from './_toTraditional.mjs';
 import { validateGeojson } from './validateMetroGeojson.mjs';
+import { applySingaporeMrtExtensions } from './singaporeMrtFixes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIR = path.join(__dirname, '..', 'public', 'data', 'metro');
@@ -59,6 +60,7 @@ for (const id of ids) {
     if (ov.mergeLoops) mergeLoopLines(fc, ov.mergeLoops); // 環線半環縫合
     if (ov.mergeLineFamilies) mergeLineFamilies(fc, ov.mergeLineFamilies); // 同線族多段（含施工）縫合
     if (!ov.noNameMerge) mergeSameNameStations(fc); // 同名車站合併（紐約等特例除外）
+    if (id === 'singapore-singapore') applySingaporeMrtExtensions(fc);
     if (ov.extraStations) addExtraStations(fc, ov.extraStations); // 手動補站（OSM 缺漏）
     splitAtConnects(fc); // 在轉乘站截斷（路線中間絕不可有紅點）
     dropOrphanNodes(fc); // 收尾：清除孤立 node
