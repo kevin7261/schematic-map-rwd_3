@@ -10,6 +10,7 @@ import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSe
 import { syncOrthoFlatSegmentEndpoints } from '@/utils/layers/json_grid_coord_normalized/axisAlignGridNetworkHillClimb.js';
 import { schematicStats } from './objective.js';
 import { segOverlap } from './repair.js';
+import { isSchematicLayoutResultLayer } from './layerIds.js';
 
 function readXY(p) {
   if (Array.isArray(p)) return [Number(p[0]), Number(p[1])];
@@ -128,6 +129,7 @@ function dedupeCollinearRunDraws(fullFlat) {
     const g = byKey.get(key);
     if (rn && !g.routes.includes(rn)) g.routes.push(rn);
     if (g.primary === si) continue;
+    if (g.routes.length < 2) continue;
     groups++;
     const colors = collectCorridorColors(fullFlat, [g.primary, si]);
     if (colors.size > 0) applyRouteColorsToSeg(fullFlat[g.primary], colors);
@@ -142,7 +144,7 @@ function dedupeCollinearRunDraws(fullFlat) {
 /**
  * 共軌／同形共線：只畫一條多色交錯虛線（純顯示），其餘 skip；不改座標／拓撲。
  */
-export function resolveSharedCorridorDrawing(fullFlat, graph) {
+export function resolveSharedCorridorDrawing(fullFlat, graph = null) {
   let corridorGroups = 0;
   for (const edge of graph?.edges || []) {
     if (edge.isLink) continue;
@@ -328,6 +330,11 @@ export function writeSchematicResultToLayer(layerId, fullFlat, meta = {}) {
     return { ok: false, message: '無結果路段可寫入' };
   }
 
+  // 八個佈局圖層（#1–#8）結果：共軌／共線段套用多色交錯虛線（純顯示，不改座標／拓撲）。
+  const corridor = isSchematicLayoutResultLayer(layerId)
+    ? resolveSharedCorridorDrawing(fullFlat, meta._schematicGraph ?? null)
+    : null;
+
   // 線色 = way 顏色（骨架分類色）：讓結果檢視器之 path.color 直接採用，使輸出線與骨架同色。
   //   並保留 route_colors（該邊所有不同顏色）：≥2 色時結果檢視器可畫多色交錯虛線。
   for (const seg of fullFlat) {
@@ -363,10 +370,12 @@ export function writeSchematicResultToLayer(layerId, fullFlat, meta = {}) {
 
   const stats = schematicStats(fullFlat);
   const prevDash = layer.dashboardData && typeof layer.dashboardData === 'object' ? layer.dashboardData : {};
-  layer.dashboardData = { ...prevDash, ...meta, segmentCount: fullFlat.length, ...stats };
+  const { _schematicGraph, ...dashMeta } = meta;
+  void _schematicGraph;
+  layer.dashboardData = { ...prevDash, ...dashMeta, segmentCount: fullFlat.length, ...stats };
   layer.isLoaded = true;
   if (!layer.visible) layer.visible = true;
   dataStore.saveLayerState(layerId, { visible: true });
 
-  return { ok: true, stats };
+  return { ok: true, stats, corridor };
 }

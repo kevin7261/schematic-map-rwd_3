@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchMetroGeojsonByBbox } from '../src/utils/metroOsmFetch.js';
 import { overridesFor } from '../src/utils/metroOverrides.js';
-import { isMainlandChina, convertFcToTraditional, mergeSameNameStations, addExtraStations, mergeLoopLines, dropOrphanNodes, splitAtConnects } from './_toTraditional.mjs';
+import { isMainlandChina, convertFcToTraditional, mergeSameNameStations, addExtraStations, mergeLoopLines, mergeLineFamilies, dropOrphanNodes, splitAtConnects } from './_toTraditional.mjs';
 import { validateGeojson } from './validateMetroGeojson.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -53,9 +53,11 @@ for (const id of ids) {
       clipToBbox: ov.clipToBbox,
       noNameMerge: ov.noNameMerge,
       includeUnopened: ov.includeUnopened,
+      constructionOverlapMax: ov.constructionOverlapMax,
     });
     if (isMainlandChina(c)) convertFcToTraditional(fc); // 大陸城市簡→繁
     if (ov.mergeLoops) mergeLoopLines(fc, ov.mergeLoops); // 環線半環縫合
+    if (ov.mergeLineFamilies) mergeLineFamilies(fc, ov.mergeLineFamilies); // 同線族多段（含施工）縫合
     if (!ov.noNameMerge) mergeSameNameStations(fc); // 同名車站合併（紐約等特例除外）
     if (ov.extraStations) addExtraStations(fc, ov.extraStations); // 手動補站（OSM 缺漏）
     splitAtConnects(fc); // 在轉乘站截斷（路線中間絕不可有紅點）

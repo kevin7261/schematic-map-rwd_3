@@ -772,7 +772,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     if (chain.length < 2 || lineLenDeg(chain) < 0.008) continue; // 過短（≲0.9km）→ 碎段，略過
     const cen = chain.reduce((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]).map((v) => v / chain.length);
     if (!inBbox(cen[0], cen[1])) continue; // 重心在 bbox 外 → 鄰境的計畫線
-    if (coveredFrac(chain, keptPolylines) >= 0.6) continue; // 與既有線走向重複（如萬大線多版本）
+    if (coveredFrac(chain, keptPolylines) >= (opts.constructionOverlapMax ?? 0.6)) continue; // 與既有線走向重複（如萬大線多版本）
     keptPolylines.push(chain);
     features.push({
       type: 'Feature',

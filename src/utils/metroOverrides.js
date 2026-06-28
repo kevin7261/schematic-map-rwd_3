@@ -132,10 +132,29 @@ export const METRO_OVERRIDES = {
     onlyLineName: 'NYCS',
     noNameMerge: true,
   },
-  // 🇸🇬 新加坡：LRT 環線（Sengkang/Punggol）在 OSM 是 CW/ACW 半環，各停中段→假端點。
-  //    用 mergeLoops 把同名半環縫成完整閉環（勿用 dedupeByName，那會刪掉另一半）。
+  // 🇸🇬 新加坡：僅 MRT（不含 LRT／Sentosa）；納入施工段延伸（CCL Stage 6 成環、TEL5→Sungei Bedok）。
   'singapore-singapore': {
-    mergeLoops: ['Sengkang.*West', 'Sengkang.*East', 'Punggol.*West', 'Punggol.*East'],
+    allowLightRail: false,
+    constructionOverlapMax: 1.0,
+    dropByName: 'LRT Bukit Panjang|LRT Sengkang|LRT Punggol|Light Rail|Sengkang Line \\(West|Sengkang Line \\(East|Punggol Line \\(West|Punggol Line \\(East|Sentosa Express|Sentosa',
+    mergeLineFamilies: [
+      {
+        match: 'Circle Line',
+        exclude: 'Extension \\(CE\\)',
+        closeRing: true,
+        snapTol: 0.0009,
+        displayName: 'MRT Circle Line',
+      },
+      {
+        match: 'Thomson.?East Coast',
+        exclude: 'Extension',
+        displayName: 'MRT Thomson–East Coast Line (Woodlands North → Sungei Bedok)',
+      },
+    ],
+    extraStations: [
+      { name: 'Bedok South', coord: [103.93278, 1.31472], attachTo: 'Thomson' },
+      { name: 'Sungei Bedok', coord: [103.95694, 1.32028], attachTo: 'Thomson' },
+    ],
   },
 };
 

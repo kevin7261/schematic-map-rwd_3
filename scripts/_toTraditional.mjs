@@ -158,6 +158,101 @@ export function dropOrphanNodes(fc) {
 }
 
 /**
+ * 同線族多段縫合（含 OSM 施工 way）：把 match 符合的多個 way feature 縫成最長折線，刪除其餘段。
+ * rules: [{ match, exclude?, closeRing?, displayName? }]
+ */
+function stitchLatLngSegments(segs, snapTol = 0) {
+  const k5 = (lat, lng) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
+  const near = (a, b) => snapTol > 0 && Math.hypot(a[0] - b[0], a[1] - b[1]) <= snapTol;
+  const chains = [];
+  const used = new Array(segs.length).fill(false);
+  const tryJoin = (chain, s, atTail) => {
+    if (atTail) {
+      if (near(chain[chain.length - 1], s[0])) return chain.concat(s.slice(1));
+      if (near(chain[chain.length - 1], s[s.length - 1])) return chain.concat(s.slice(0, -1).reverse());
+    } else {
+      if (near(chain[0], s[s.length - 1])) return s.slice(0, -1).concat(chain);
+      if (near(chain[0], s[0])) return s.slice(1).reverse().concat(chain);
+    }
+    return null;
+  };
+  for (let i = 0; i < segs.length; i++) {
+    if (used[i]) continue;
+    used[i] = true;
+    let chain = segs[i].slice();
+    let extended = true;
+    while (extended) {
+      extended = false;
+      const hk = k5(chain[0][0], chain[0][1]);
+      const tk = k5(chain[chain.length - 1][0], chain[chain.length - 1][1]);
+      for (let j = 0; j < segs.length; j++) {
+        if (used[j]) continue;
+        const s = segs[j];
+        const sk = k5(s[0][0], s[0][1]);
+        const ek = k5(s[s.length - 1][0], s[s.length - 1][1]);
+        let next = null;
+        if (sk === tk || near(chain[chain.length - 1], s[0])) next = sk === tk ? chain.concat(s.slice(1)) : tryJoin(chain, s, true);
+        else if (ek === tk || near(chain[chain.length - 1], s[s.length - 1])) next = ek === tk ? chain.concat(s.slice(0, -1).reverse()) : tryJoin(chain, s, true);
+        else if (ek === hk || near(chain[0], s[s.length - 1])) next = ek === hk ? s.slice(0, -1).concat(chain) : tryJoin(chain, s, false);
+        else if (sk === hk || near(chain[0], s[0])) next = sk === hk ? s.slice(1).reverse().concat(chain) : tryJoin(chain, s, false);
+        if (next) {
+          chain = next;
+          used[j] = true;
+          extended = true;
+          break;
+        }
+      }
+    }
+    chains.push(chain);
+  }
+  return chains;
+}
+
+const chainLen = (pts) => {
+  let s = 0;
+  for (let i = 1; i < pts.length; i++) s += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  return s;
+};
+
+export function mergeLineFamilies(fc, rules) {
+  if (!Array.isArray(rules) || !rules.length) return fc;
+  const kk = (p) => `${(+p[0]).toFixed(5)},${(+p[1]).toFixed(5)}`;
+  for (const rule of rules) {
+    const matchRe = new RegExp(rule.match, 'i');
+    const excludeRe = rule.exclude ? new RegExp(rule.exclude, 'i') : null;
+    const group = (fc.features || []).filter((f) => {
+      if (f.properties?.element_type !== 'way') return false;
+      const rn = f.properties.route_name || '';
+      if (!matchRe.test(rn)) return false;
+      if (excludeRe && excludeRe.test(rn)) return false;
+      return true;
+    });
+    if (group.length <= 1) {
+      if (group.length === 1 && rule.displayName) group[0].properties.route_name = rule.displayName;
+      continue;
+    }
+    const segs = group.map((f) =>
+      f.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+    );
+    const chains = stitchLatLngSegments(segs, rule.snapTol ?? 0);
+    let best = chains.sort((a, b) => chainLen(b) - chainLen(a))[0];
+    if (!best?.length) continue;
+    if (rule.closeRing && best.length >= 3) {
+      const headK = kk([best[0][1], best[0][0]]);
+      const tailK = kk([best[best.length - 1][1], best[best.length - 1][0]]);
+      if (headK !== tailK) best = best.concat([best[0].slice()]);
+    }
+    const keep = group[0];
+    keep.geometry.coordinates = best.map(([lat, lng]) => [lng, lat]);
+    if (rule.displayName) keep.properties.route_name = rule.displayName;
+    keep.properties.status = group.some((g) => g.properties.status === 'construction') ? 'construction' : 'open';
+    const drop = new Set(group.slice(1));
+    fc.features = fc.features.filter((f) => !drop.has(f));
+  }
+  return fc;
+}
+
+/**
  * 環線縫合：把同一條環線的多個半環/方向段（route_name 符合同一 pattern）縫成一條完整（盡量閉合）的線，
  * 解決 OSM 把環線拆成 CW/ACW 半環、各停在中段造成「假端點」的問題。
  * patterns: [regex字串]

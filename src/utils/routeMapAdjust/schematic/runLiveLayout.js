@@ -7,7 +7,6 @@ import {
   writeSchematicResultToLayer,
   reinsertBlackStations,
   injectEdgeBends,
-  resolveSharedCorridorDrawing,
   findOutputOverlaps,
 } from './assemble.js';
 import { showSolveOverlay } from './solveOverlay.js';
@@ -110,7 +109,6 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
   }
 
   const fullFlat = outFullFlat;
-  const corridor = resolveSharedCorridorDrawing(fullFlat, graph);
 
   const meta = {
     ...input.meta,
@@ -119,10 +117,12 @@ export async function runLiveLayout(layerId, profileId, title, opts = {}) {
     sepPairs: result.sepPairs,
     milpStatus: result.status,
     algo: title || profileId,
+    _schematicGraph: graph,
   };
   if (rotationStructureCheck) meta.rotationStructureCheck = rotationStructureCheck;
 
   const write = writeSchematicResultToLayer(layerId, fullFlat, meta);
+  const corridor = write.corridor || { corridorGroups: 0, collinearGroups: 0 };
 
   const secs = overlay.close();
   if (!write.ok) {
