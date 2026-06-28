@@ -3461,8 +3461,10 @@
     selCountry: srmCountry,
     selCity: srmCity,
     selQuick: srmQuick,
+    selStationSort: srmStationSort,
     loadableCities: srmLoadableCities,
     quickCities: srmQuickCities,
+    stationSortedCities: srmStationSortedCities,
     drawContinents: srmContinents,
     drawCountries: srmCountries,
     drawCities: srmCities,
@@ -10262,12 +10264,25 @@
           <select
             v-model="srmQuick"
             :disabled="srmTracing"
-            class="form-select form-select-sm rounded-pill my-font-size-xs mb-3 my-cursor-pointer"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
             @change="srmQuickLoad(srmQuick)"
           >
             <option value="">快選城市…</option>
             <option v-for="c in srmQuickCities" :key="c.id" :value="c.id">
               {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+            </option>
+          </select>
+
+          <!-- 依站點數排序：由少到多 -->
+          <select
+            v-model="srmStationSort"
+            :disabled="srmTracing"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-3 my-cursor-pointer"
+            @change="srmQuickLoad(srmStationSort)"
+          >
+            <option value="">依站點數排序…</option>
+            <option v-for="c in srmStationSortedCities" :key="c.id" :value="c.id">
+              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city + '（' + c.stations + ' 站・' + c.routes + ' 線）' }}
             </option>
           </select>
 

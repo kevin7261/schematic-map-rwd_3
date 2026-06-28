@@ -128,6 +128,8 @@ export function useSelectRouteMapCatalog(dataStore) {
   const selCity = ref('');
   /** 快選下拉目前選取的 city id（與三層選單獨立） */
   const selQuick = ref('');
+  /** 站點數排序下拉目前選取的 city id（與三層選單獨立） */
+  const selStationSort = ref('');
 
   const loadableCities = computed(() => metroCatalog.value.filter((c) => c.file));
   /** 快選城市清單：依 QUICK_CITY_IDS 順序，僅保留 catalog 中實際可載入者 */
@@ -135,6 +137,13 @@ export function useSelectRouteMapCatalog(dataStore) {
     const byId = new Map(loadableCities.value.map((c) => [c.id, c]));
     return QUICK_CITY_IDS.map((id) => byId.get(id)).filter(Boolean);
   });
+  /** 站點數排序城市清單：由少到多，僅含有站點數資料者 */
+  const stationSortedCities = computed(() =>
+    loadableCities.value
+      .filter((c) => c.stations > 0)
+      .slice()
+      .sort((a, b) => a.stations - b.stations)
+  );
   const drawContinents = computed(() => {
     const set = new Set(loadableCities.value.map((c) => c.continent));
     return CONTINENT_ORDER.filter((c) => set.has(c));
@@ -295,8 +304,10 @@ export function useSelectRouteMapCatalog(dataStore) {
     selCountry,
     selCity,
     selQuick,
+    selStationSort,
     loadableCities,
     quickCities,
+    stationSortedCities,
     drawContinents,
     drawCountries,
     drawCities,

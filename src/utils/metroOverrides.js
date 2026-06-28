@@ -126,8 +126,15 @@ export const METRO_OVERRIDES = {
   'iran-karaj': { dropByName: 'خط ۱۰|Line 10', dedupeByName: ['خط ۲'] },
   'qatar-doha': { dedupeByName: ['الأحمر|Red', 'الذهب|Gold|金'] },
   'united-states-washington-dc': { dedupeByName: ['Purple'] },
+  'south-korea-seoul': {
+    // 仁川地鐵（인천교통공사）與首爾分屬不同系統，bbox 重疊導致誤抓，一律剔除
+    dropByName: '인천|Incheon',
+  },
   'south-korea-incheon': {
-    dropByName: '서울|首爾|首尔|Seoul|의정부|광명|Gwangmyeong|김포|Gimpo|신분당|新盆唐|Sinbundang',
+    // Line 2 在 OSM 標 route=light_rail；South Korea 不在 LRT_OK，需明確開啟
+    allowLightRail: true,
+    // 月尾海洋列車（旅遊單軌）與仁川機場磁浮非地鐵，剔除
+    dropByName: '서울|首爾|首尔|Seoul|의정부|광명|Gwangmyeong|김포|Gimpo|신분당|新盆唐|Sinbundang|월미바다열차|공항|Maglev|Airport',
   },
   'chile-santiago': { dedupeByName: ['Línea 1|Line 1', 'Línea 2', 'Línea 4', 'Línea 5'] },
   // LRT-only 城市（非 5 國但唯一系統就是輕軌）：強制允許 LRT，否則整城空白
@@ -136,14 +143,13 @@ export const METRO_OVERRIDES = {
   'venezuela-maracaibo': { allowLightRail: true },
   'venezuela-valencia': { allowLightRail: true },
   'united-kingdom-docklands-light-railway': { allowLightRail: true, onlyLineName: 'DLR|Docklands' },
-  // 🗽 紐約：抓 MTA 範圍的軌道捷運＝NYC Subway ＋ Staten Island Railway（SIR 為 MTA 子公司，
-  //    route_name 同帶「NYCS - 」前綴）。以 onlyLineName='NYCS' 一併保留，並剔除非 MTA 系統：
-  //    PATH／AirTrain Newark（Port Authority）、Hudson–Bergen LR／Newark LR（NJ Transit）、
-  //    Jamaica Station Route(AirTrain JFK)——這些皆無 NYCS 前綴，故自動排除。
-  //    （LIRR／Metro-North 為通勤鐵路 route=train，本就不在 subway 抓取範圍內。）
-  //    noNameMerge：不同線的同名站多為不同實體站，停用同名合併（特例）。
+  // 🗽 紐約：只保留 NYC Subway（MTA 地鐵）。SIR（史泰登島鐵路）雖屬 MTA 子公司且帶 NYCS 前綴，
+  //    但為獨立地面鐵路系統，以 dropByName 剔除。
+  //    PATH／AirTrain Newark／AirTrain JFK 無 NYCS 前綴，由 onlyLineName 自動排除。
+  //    noNameMerge：不同線的同名站多為不同實體站，停用同名合併。
   'united-states-new-york-city': {
     onlyLineName: 'NYCS',
+    dropByName: 'Staten Island',
     noNameMerge: true,
   },
   // 🇸🇬 新加坡：僅 MRT（不含 LRT）；CCL 成環見 singaporeMrtFixes.js；DTL/TEL 東延同上
