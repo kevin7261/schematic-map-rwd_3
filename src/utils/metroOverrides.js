@@ -132,20 +132,11 @@ export const METRO_OVERRIDES = {
     onlyLineName: 'NYCS',
     noNameMerge: true,
   },
-  // 🇸🇬 新加坡：僅 MRT（不含 LRT）；CCL 成環；DTL/TEL 延伸 Sungei Bedok 見 singaporeMrtFixes.js
+  // 🇸🇬 新加坡：僅 MRT（不含 LRT）；CCL 成環見 singaporeMrtFixes.js；DTL/TEL 東延同上
   'singapore-singapore': {
     allowLightRail: false,
     dropByName:
       'LRT Bukit Panjang|LRT Sengkang|LRT Punggol|Light Rail|Sengkang Line \\(West|Sengkang Line \\(East|Punggol Line \\(West|Punggol Line \\(East|Sentosa Express|Sentosa',
-    mergeLineFamilies: [
-      {
-        match: 'Circle Line',
-        exclude: 'Extension \\(CE\\)',
-        closeRing: true,
-        snapTol: 0.0009,
-        displayName: 'MRT Circle Line',
-      },
-    ],
   },
 };
 
