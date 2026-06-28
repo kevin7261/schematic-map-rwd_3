@@ -65,6 +65,20 @@ export const METRO_OVERRIDES = {
     dropByName: '南港ポートタウン|ポートタウン|ニュートラム|New Tram|モノレール|Monorail',
   },
 
+  // 🇩🇪 柏林：BVG 路網＝U-Bahn（BVG）＋ S-Bahn Berlin（VBB 一體票價區；OSM route=train）
+  'germany-berlin': {
+    keepOperators: 'Berliner Verkehrsbetriebe|BVG|S-Bahn Berlin',
+    allowLightRail: true, // S-Bahn Berlin 在 OSM 多標 route=light_rail（非 train）
+    includeRail: '^S[0-9]{1,2}\\b|S-Bahn',
+    dedupeByName: [
+      'U1:', 'U2:', 'U3:', 'U4:', 'U5:', 'U6:', 'U7:', 'U8:', 'U9:',
+      'S1:', 'S2:', 'S3:', 'S5:', 'S7:', 'S8:', 'S9:', 'S15:', 'S25:', 'S26:',
+      'S41:', 'S46:', 'S47:', 'S75:', 'S85:',
+    ],
+    dropByName:
+      'Regional|Regionalexpress|Regio|RE |RB |IC |ICE |EuroCity|FlixTrain|Metronom|ODEG|NEB|FEX|Airport Express|Westfalen',
+  },
+
   // 🇨🇳 長三角／珠三角緊鄰城市：discovery 的 bbox 過大，誤含鄰市整套地鐵 → 以營運者/線名剔除鄰市線。
   //    （共線如廣佛線由鄰市營運者經營，會一併被剔，屬可接受的取捨；驗證若標 missing 可再個別補。）
   // 緊鄰城市群：鄰市線名/營運者常無城市標記，改用「收緊 bbox ＋ 地理裁切」剔除鄰市線

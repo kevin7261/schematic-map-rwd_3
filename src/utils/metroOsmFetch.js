@@ -712,9 +712,9 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
     for (const [nm, cnt] of t.names) if (cnt > bestCnt) ((bestCnt = cnt), (bestName = nm));
     const [lat, lng] = k.split(',').map(Number);
     const osmId = t.id != null ? String(t.id) : '';
-    const stationId = t.ref || '';
-    // 每個站點必須有 station_name 與官方 station_id（OSM ref tag）；缺任一者不輸出該站（線仍照常穿過）
-    if (!bestName || !stationId) continue;
+    const stationId = t.ref || ''; // 官方編號（OSM ref tag）；無 ref 則留空，不以 OSM node ID 填充
+    // 站點必須有 station_name 才輸出（拓樸切割需要 Point feature）；station_id 無官方編號時留空
+    if (!bestName) continue;
     features.push({
       type: 'Feature',
       properties: { osm_id: osmId, station_name: bestName, element_type: 'node', station_id: stationId },

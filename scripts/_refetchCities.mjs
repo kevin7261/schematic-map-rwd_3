@@ -47,6 +47,7 @@ for (const id of ids) {
       allowLightRail: ov.allowLightRail !== undefined ? ov.allowLightRail : LRT_OK.includes(c.country),
       keepOperators: ov.keepOperators,
       colorByName: ov.colorByName,
+      colorById: ov.colorById,
       dedupeByName: ov.dedupeByName,
       dropByName: ov.dropByName,
       includeRail: ov.includeRail,
