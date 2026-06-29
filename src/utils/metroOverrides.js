@@ -28,13 +28,13 @@ export const METRO_OVERRIDES = {
       { match: '松山|新店|台電', color: '#008659' }, // 綠：松山新店線
       { match: '新蘆|蘆洲', color: '#f8b61c' }, // 橘：中和新蘆線
       { match: '環狀', color: '#ffdb00' }, // 黃：環狀線（含北/南/東環段）
-      { match: '萬大|樹林', color: '#b07aa1' }, // 萬大-中和-樹林線（興建，暫定）
-      { match: '三鶯', color: '#cd6629' }, // 三鶯線（興建，暫定）
-      { match: '民生汐止|汐止東湖', color: '#5b8f8f' }, // 民生汐止線（規劃，暫定）
+      { match: '萬大|樹林', color: '#a1d884' }, // 萬大-中和-樹林線 LG（New Taipei Metro 官方）
+      { match: '三鶯', color: '#79bce8' }, // 三鶯線 LB 淺藍（New Taipei Metro 官方）
+      { match: '民生汐止|汐止東湖', color: '#25aae1' }, // 民生汐止線 SB（New Taipei Metro 官方）
       { match: '機場|A線', color: '#8246af' }, // 紫：桃園機場捷運
       { match: '桃園|綠線', color: '#6cb02c' }, // 桃園綠線
-      { match: '淡海', color: '#e34234' }, // 淡海輕軌 V線 朱紅（Wikipedia）
-      { match: '安坑', color: '#c3b091' }, // 安坑輕軌 K線 卡其（Wikipedia）
+      { match: '淡海', color: '#e5554f' }, // 淡海輕軌 V線（New Taipei Metro 官方）
+      { match: '安坑', color: '#c3b091' }, // 安坑輕軌 K線 卡其（New Taipei Metro 官方）
       { match: '板南|南港|板橋|土城', color: '#0070bd' }, // 藍：板南線（南港-板橋-土城）— 置末
     ],
     // 去重：OSM 同一條線常有多個名稱變體；同 family 只留座標點最多者

@@ -13,7 +13,27 @@ function num(v) {
   return Number(v);
 }
 
-/** 與路線直線化 extractConnectNodes 一致：紅點（connect）座標 */
+/**
+ * 此節點是否為「骨架保留點」（🔴connect／🔵terminal／🟡cross／🟣purple），即所有彩色點；
+ * **唯獨黑點（單線中間站）不算**。四分樹須以這些點全部切格，否則藍/黃/紫點未被分隔，
+ * 不同路線會被 snap 擠到同一格行/列而重疊（如迴龍分支）。判準與骨架 isSkeletonKeepNode 一致。
+ */
+function isGridSplitNode(node) {
+  if (!node || typeof node !== 'object') return false;
+  const t = node.tags || {};
+  const kind = node.node_kind ?? t.node_kind;
+  if (kind === 'black') return false; // 黑點不切格
+  if (kind === 'cross' || kind === 'purple') return true;
+  if (node.isCross || node.isPurple || t.isCross || t.isPurple) return true;
+  const nt = node.node_type ?? t.node_type;
+  if (nt === 'connect' || nt === 'terminal') return true;
+  const cc = String(t.node_class_color ?? node.node_class_color ?? '').toLowerCase();
+  if (cc === '#000000' || cc === '#000') return false; // 黑點不切格
+  if (cc === '#ffd600' || cc === '#9c27b0') return true; // 🟡交叉 / 🟣切斷
+  return false;
+}
+
+/** 四分樹切格用之「彩色點」座標：🔴connect／🔵terminal／🟡cross／🟣purple（不含黑點）。 */
 function extractConnectCoords(segments) {
   const connCoords = new Set();
   for (const seg of segments) {
@@ -21,10 +41,10 @@ function extractConnectCoords(segments) {
     if (!points.length) continue;
     const pStart = seg.properties_start || {};
     const pEnd = seg.properties_end || {};
-    if (pStart.node_type === 'connect') {
+    if (isGridSplitNode(pStart)) {
       connCoords.add(JSON.stringify([num(points[0][0]), num(points[0][1])]));
     }
-    if (pEnd.node_type === 'connect') {
+    if (isGridSplitNode(pEnd)) {
       const pt = points[points.length - 1];
       connCoords.add(JSON.stringify([num(pt[0]), num(pt[1])]));
     }
@@ -32,7 +52,7 @@ function extractConnectCoords(segments) {
     if (nodes.length === points.length) {
       for (let i = 0; i < points.length; i++) {
         const props = nodes[i] || {};
-        if (props.node_type === 'connect') {
+        if (isGridSplitNode(props)) {
           const pt = points[i];
           connCoords.add(JSON.stringify([num(pt[0]), num(pt[1])]));
         }

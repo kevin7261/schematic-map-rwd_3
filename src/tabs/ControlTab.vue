@@ -2923,7 +2923,10 @@
       // 最後一層：用上游骨架＋黑點 sections metadata，把黑點站**平均沿線放回**，再做 connect 拉直。
       const skel = normalizeSpaceNetworkDataToFlatSegments(JSON.parse(JSON.stringify(srcData)));
       const sections = src.schematicBlackSections || [];
-      const full = sections.length === skel.length ? reinsertBlackStations(skel, sections) : skel;
+      // 來源若已含黑點（往中心層執行完已把黑點放回顯示）則不可再放回一次，否則黑點翻倍。
+      const alreadyFull = skel.some((s) => Array.isArray(s?.points) && s.points.length > 2);
+      const full =
+        !alreadyFull && sections.length === skel.length ? reinsertBlackStations(skel, sections) : skel;
       applyConnectStraightenSegmentsToLayer(lyr, full);
       milpReadStep.value = -1;
       milpReadStepInfo.value = '';
@@ -6277,6 +6280,10 @@
         .filter(Boolean)
         .join('\n');
       uiF.lastHint = `${hdr}\n\n${summaries.join('\n')}`.trim();
+      // 示意圖管線版（schematic_*）：縮進時只動 connect 骨架（黑點站抽離成 schematicBlackSections）。
+      // 一鍵完成後，把黑點站沿各邊弧長均分放回，使**執行完的結果也顯示黑點**。
+      // 其餘（OSM）往中心層本就含黑點，無需處理。
+      reinsertSchematicTowardCenterBlackDotsForDisplay(lyr);
       // batch 連跑時各 pulse 略過了存檔／鏡像／重繪，於此統一做一次（最終結果才落地）。
       await dataStore.saveLayerState(lyr.layerId, {
         ...jsonGridFromCoordNormalizedPersistPayload(lyr, { omitLoadingFlags: true }),
@@ -6622,6 +6629,24 @@
       // eslint-disable-next-line no-console
       console.error('connectStraighten：dataJson 同步失敗', e);
     }
+  };
+
+  /**
+   * 示意圖管線版往中心層（schematic_rma_toward_center_hv／vh）一鍵完成後，把抽離的黑點站
+   * 沿各 connect 邊（弧長均分）放回，使結果顯示黑點。骨架座標已由縮進決定，黑點僅依比例內插。
+   * 來源若已是完整路網（含黑點）則略過，避免重複放回。OSM 版往中心層本就含黑點，不處理。
+   */
+  const reinsertSchematicTowardCenterBlackDotsForDisplay = (lyr) => {
+    if (!lyr || !SCHEMATIC_TOWARD_CENTER_LAYER_IDS.includes(lyr.layerId)) return;
+    const sk = Array.isArray(lyr.spaceNetworkGridJsonData) ? lyr.spaceNetworkGridJsonData : null;
+    const sections = Array.isArray(lyr.schematicBlackSections) ? lyr.schematicBlackSections : [];
+    if (!sk || !sk.length || !sections.length) return;
+    const skFlat = normalizeSpaceNetworkDataToFlatSegments(JSON.parse(JSON.stringify(sk)));
+    if (sections.length !== skFlat.length) return;
+    // 已含黑點（任一段 >2 點）則代表已是完整路網，勿再放回一次。
+    if (skFlat.some((s) => Array.isArray(s?.points) && s.points.length > 2)) return;
+    const fullFlat = reinsertBlackStations(skFlat, sections);
+    applyConnectStraightenSegmentsToLayer(lyr, fullFlat);
   };
 
   /** 本圖層尚無路網時，自上游「往中心聚集（先橫後直）」鏡像一份；回傳是否已有路網可用 */

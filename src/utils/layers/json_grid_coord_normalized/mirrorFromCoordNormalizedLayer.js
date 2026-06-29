@@ -72,8 +72,12 @@ export function syncRmaLayoutNetworkGridFromTowardCenterVh(
   const sections = Array.isArray(src.schematicBlackSections) ? src.schematicBlackSections : [];
   const skelCopy = JSON.parse(JSON.stringify(skel));
   // 黑點站平均沿線放回（與 RMA「connect 拉直」種子相同邏輯）。
+  // 來源若已含黑點（往中心層執行完已把黑點放回顯示）則不可再放回一次，否則黑點翻倍。
+  const alreadyFull = skelCopy.some((s) => Array.isArray(s?.points) && s.points.length > 2);
   const full =
-    sections.length === skelCopy.length ? reinsertBlackStations(skelCopy, sections) : skelCopy;
+    !alreadyFull && sections.length === skelCopy.length
+      ? reinsertBlackStations(skelCopy, sections)
+      : skelCopy;
   let rows = [];
   try {
     rows = flatSegmentsToGeojsonStyleExportRows(full);
