@@ -3585,6 +3585,32 @@
     window.alert(`已載入骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`);
   };
 
+  /** 📥「示意圖佈局」：把「路線圖轉換骨架2」的**骨架**轉成 geojson 寫入此圖層之 geojsonData（含粉紅/灰點分類）。 */
+  const loadRouteAdjust2IntoSchematic = (layer) => {
+    if (!layer) return;
+    const adj = dataStore.findLayerById('route_map_adjust_2');
+    const sk = adj?.routeMapAdjustSkeleton;
+    const edges = Array.isArray(sk?.edges) ? sk.edges : [];
+    if (!edges.length) {
+      window.alert('「路線圖轉換骨架2」尚未建立骨架，請先到「路線圖轉換骨架2」按「變成骨架」。');
+      return;
+    }
+    const fc = routeMapAdjustSkeletonToGeoJson(
+      sk,
+      Array.isArray(adj.routeMapAdjustLines) ? adj.routeMapAdjustLines : [],
+      Array.isArray(adj.routeMapAdjustBlackDots) ? adj.routeMapAdjustBlackDots : [],
+      adj.routeMapAdjustStationMeta || null
+    );
+    layer.geojsonData = fc;
+    layer.isLoaded = true;
+    if (!layer.visible) layer.visible = true;
+    maybeShowQuadtreePartitionForNormalize(layer); // ⑨：載入骨架即先顯示四分樹切割
+    dataStore.setRouteSchematicActiveLayer(layer.layerId);
+    window.alert(
+      `已載入骨架2：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`
+    );
+  };
+
   /** ⑨ 正規化專用：載入骨架後，先算出四分樹切割（葉矩形）存到圖層，供「開始執行」前顯示。 */
   const maybeShowQuadtreePartitionForNormalize = (layer) => {
     if (!layer || layer.layerId !== 'schematic_rma_normalize') return;
@@ -10191,7 +10217,7 @@
         >
           <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
           <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
-            從「路線圖轉換骨架」或「路線圖轉換直線骨架」載入骨架作為輸入，再按「開始執行」計算示意圖佈局。
+            從「路線圖轉換骨架」「路線圖轉換骨架2」或「路線圖轉換直線骨架」載入骨架作為輸入，再按「開始執行」計算示意圖佈局。
           </div>
           <button
             type="button"
@@ -10199,6 +10225,13 @@
             @click="loadRouteAdjustIntoSchematic(layer)"
           >
             從路線圖轉換骨架載入
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            @click="loadRouteAdjust2IntoSchematic(layer)"
+          >
+            從路線圖轉換骨架2載入
           </button>
           <button
             type="button"
