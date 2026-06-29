@@ -386,85 +386,266 @@ const setNodeClass = (nd, kind, hex) => {
 /** 紅/黃/藍/粉紅（拉直時保留為轉折頂點之錨點）。 */
 const nodeIsRYBorPinkClass = (nd) => nodeIsRYBClass(nd) || nodeIsPinkClass(nd);
 
-/**
- * 🪡 拉直路線：把每個「錨點到錨點」子路徑的中間頂點，沿兩錨點直線等比例重排（移除中間多餘轉折）。
- *   錨點＝isAnchorFn 為真者（如紅/黃/藍/粉紅）；其餘（黑/紫等）皆視為可被拉直的中間頂點。
- *   同座標頂點（共線並行）一起移動，保持拓樸。就地修改 points 與 nodes 之 x_grid/y_grid。
- * @returns {number} 被重排的中間頂點數
- */
-const straightenFlatBetweenAnchors = (flat, isAnchorFn) => {
-  const vkey = (a, b) => `${a.toFixed(6)},${b.toFixed(6)}`;
-  const occ = new Map(); // key -> [{si,pi}]
-  const coordOf = new Map(); // key -> [a,b]
-  const anchor = new Map(); // key -> bool
-  const adj = new Map();
-  const addAdj = (x, y) => { if (!adj.has(x)) adj.set(x, new Set()); adj.get(x).add(y); };
-  flat.forEach((seg, si) => {
-    const pts = seg?.points;
-    if (!Array.isArray(pts) || pts.length < 2) return;
-    const nodes = Array.isArray(seg.nodes) ? seg.nodes : [];
-    let prev = null;
-    for (let pi = 0; pi < pts.length; pi++) {
-      const [a, b] = readFlatPt(pts[pi]);
-      const k = vkey(a, b);
-      if (!occ.has(k)) { occ.set(k, []); coordOf.set(k, [a, b]); anchor.set(k, false); }
-      occ.get(k).push({ si, pi });
-      if (isAnchorFn(nodes[pi])) anchor.set(k, true);
-      if (prev != null && prev !== k) { addAdj(prev, k); addAdj(k, prev); }
-      prev = k;
-    }
-  });
-  const isAnc = (k) => !!anchor.get(k);
-  const ek = (x, y) => (x < y ? `${x}|${y}` : `${y}|${x}`);
-  const seen = new Set();
-  const chains = [];
-  const walk = (start, first) => {
-    const ks = [start, first];
-    seen.add(ek(start, first));
-    let prev = start;
-    let cur = first;
-    let guard = 0;
-    while (!isAnc(cur) && cur !== start && guard++ < 100000) {
-      const next = [...(adj.get(cur) || [])].find((n) => n !== prev);
-      if (next === undefined) break;
-      seen.add(ek(cur, next));
-      ks.push(next);
-      prev = cur;
-      cur = next;
-    }
-    return ks;
-  };
-  for (const [k] of occ) {
-    if (!isAnc(k)) continue;
-    for (const nb of adj.get(k) || []) if (!seen.has(ek(k, nb))) chains.push(walk(k, nb));
+/** 拉直專用：黑點沿 A–B 弦線性均分 ((j+1)/(n+1))，保持共線。 */
+const distributeBlacksOnChord = (ax, ay, bx, by, n) => {
+  if (n <= 0) return [];
+  const dx = bx - ax;
+  const dy = by - ay;
+  const out = [];
+  for (let j = 0; j < n; j++) {
+    const t = (j + 1) / (n + 1);
+    out.push([ax + dx * t, ay + dy * t]);
   }
-  const setCoord = (k, na, nb) => {
-    coordOf.set(k, [na, nb]);
-    for (const { si, pi } of occ.get(k) || []) {
-      const seg = flat[si];
-      const pts = seg.points;
-      if (Array.isArray(pts[pi])) { pts[pi][0] = na; pts[pi][1] = nb; }
-      else { pts[pi].x = na; pts[pi].y = nb; }
-      const nd = seg.nodes?.[pi];
-      if (nd) { nd.x_grid = na; nd.y_grid = nb; if (!nd.tags) nd.tags = {}; nd.tags.x_grid = na; nd.tags.y_grid = nb; }
-    }
-  };
-  let moved = 0;
-  for (const ks of chains) {
-    if (ks.length < 3) continue; // 無中間頂點
-    const m = ks.length - 1;
-    const [ax, ay] = coordOf.get(ks[0]);
-    const [bx, by] = coordOf.get(ks[m]);
-    for (let i = 1; i < m; i++) {
-      const t = i / m;
-      setCoord(ks[i], ax + (bx - ax) * t, ay + (by - ay) * t);
-      moved++;
-    }
-  }
-  return moved;
+  return out;
 };
+
+const cloneSegShell = (seg) => {
+  if (!seg || typeof seg !== 'object') return {};
+  const o = JSON.parse(JSON.stringify(seg));
+  delete o.points;
+  delete o.nodes;
+  return o;
+};
+
+const syncNodeGridCoords = (nd, x, y) => {
+  if (!nd || typeof nd !== 'object') return;
+  nd.x_grid = x;
+  nd.y_grid = y;
+  if (!nd.tags) nd.tags = {};
+  nd.tags.x_grid = x;
+  nd.tags.y_grid = y;
+};
+
 const readFlatPt = (p) =>
   Array.isArray(p) ? [Number(p[0]), Number(p[1])] : [Number(p?.x ?? 0), Number(p?.y ?? 0)];
+
+/** ① 合併：舊鏈 keys → 一條 polyline（原座標，去連續重複格）。 */
+const mergeLegPointsFromKeys = (ks, coordOf, cloneNodeAtKey) => {
+  const points = [];
+  const nodes = [];
+  for (const k of ks) {
+    const [x, y] = coordOf.get(k);
+    if (points.length) {
+      const [px, py] = points[points.length - 1];
+      if (Math.abs(px - x) < 1e-9 && Math.abs(py - y) < 1e-9) continue;
+    }
+    points.push([x, y]);
+    nodes.push(cloneNodeAtKey(k));
+  }
+  return { points, nodes };
+};
+
+/**
+ * ② 拉直（錨點 A,B 座標鎖死）+ ③ 黑點 ((j+1)/(n+1) 均分)。
+ * 折角格不保留、不映射；黑點不決定轉折，只落在 A–B 直線上。
+ * @returns {{ points, nodes, interiorPoints, interiorNodes }}
+ */
+const straightenAndRedistributeLeg = (ks, anchorA, anchorB, cloneNodeAtKey, stationKeys) => {
+  const [ax, ay] = anchorA;
+  const [bx, by] = anchorB;
+  const n = stationKeys.length;
+  const slotXY = distributeBlacksOnChord(ax, ay, bx, by, n);
+  const interiorPoints = [];
+  const interiorNodes = [];
+  for (let j = 0; j < n; j++) {
+    const nd = cloneNodeAtKey(stationKeys[j]);
+    setNodeClass(nd, 'black', '#000000');
+    nd.node_type = nd.node_type || 'line';
+    if (!nd.tags) nd.tags = {};
+    nd.tags._forceDrawBlackDot = true;
+    const [x, y] = slotXY[j];
+    interiorPoints.push([x, y]);
+    syncNodeGridCoords(nd, x, y);
+    interiorNodes.push(nd);
+  }
+  const points = [[ax, ay], ...interiorPoints, [bx, by]];
+  const nodes = [cloneNodeAtKey(ks[0]), ...interiorNodes, cloneNodeAtKey(ks[ks.length - 1])];
+  syncNodeGridCoords(nodes[0], ax, ay);
+  syncNodeGridCoords(nodes[nodes.length - 1], bx, by);
+  return { points, nodes, interiorPoints, interiorNodes };
+};
+
+/**
+ * 棕點路段：① 合併 segment → ② 拉直 → ③ 黑點重分配。
+ * 錨點座標絕不改；支線 segment 不碰；折角格只刪不位移。
+ * @returns {number} 拉直的路段數
+ */
+const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn) => {
+  if (!brownLegKeys?.size) return 0;
+  const pendingBrowns = new Set(brownLegKeys);
+  const vkey = (a, b) => `${a.toFixed(6)},${b.toFixed(6)}`;
+
+  const buildGraph = () => {
+    const occ = new Map();
+    const coordOf = new Map();
+    const anchor = new Map();
+    const adj = new Map();
+    const addAdj = (x, y) => { if (!adj.has(x)) adj.set(x, new Set()); adj.get(x).add(y); };
+    flat.forEach((seg, si) => {
+      const pts = seg?.points;
+      if (!Array.isArray(pts) || pts.length < 2) return;
+      const nodes = Array.isArray(seg.nodes) ? seg.nodes : [];
+      let prev = null;
+      for (let pi = 0; pi < pts.length; pi++) {
+        const [a, b] = readFlatPt(pts[pi]);
+        const k = vkey(a, b);
+        if (!occ.has(k)) { occ.set(k, []); coordOf.set(k, [a, b]); anchor.set(k, false); }
+        occ.get(k).push({ si, pi });
+        if (isAnchorFn(nodes[pi])) anchor.set(k, true);
+        if (prev != null && prev !== k) { addAdj(prev, k); addAdj(k, prev); }
+        prev = k;
+      }
+    });
+    return { occ, coordOf, anchor, adj };
+  };
+
+  /** 沿 degree-2 鏈走到錨點；岔路（degree≠2）即停，不跨支線。 */
+  const extendOneWay = (from, prev, isAnc, adj) => {
+    const path = [];
+    let cur = from;
+    let back = prev;
+    while (cur != null) {
+      path.push(cur);
+      if (isAnc(cur)) return path;
+      const nbs = [...(adj.get(cur) || [])].filter((n) => n !== back);
+      if (nbs.length !== 1) return null;
+      back = cur;
+      cur = nbs[0];
+    }
+    return null;
+  };
+
+  const legThroughBrown = (bk, isAnc, adj) => {
+    const paths = [];
+    for (const nb of adj.get(bk) || []) {
+      const p = extendOneWay(nb, bk, isAnc, adj);
+      if (p?.length && isAnc(p[p.length - 1])) paths.push(p);
+    }
+    if (paths.length < 2) return null;
+    const endA = paths[0][paths[0].length - 1];
+    const p2 = paths.find((p) => p[p.length - 1] !== endA);
+    if (!p2) return null;
+    return [...paths[0].slice().reverse(), bk, ...p2];
+  };
+
+  const findOneLeg = (graph) => {
+    const { coordOf, anchor, adj } = graph;
+    const isAnc = (k) => !!anchor.get(k);
+    for (const bk of pendingBrowns) {
+      const ks = legThroughBrown(bk, isAnc, adj);
+      if (!ks || ks.length < 2) continue;
+      if (!isAnc(ks[0]) || !isAnc(ks[ks.length - 1])) continue;
+      return { ks, coordOf, occ: graph.occ, anchor };
+    }
+    return null;
+  };
+
+  const cloneNodeAtKey = (key, occ) => {
+    const entries = occ.get(key) || [];
+    let pick = null;
+    for (const { si, pi } of entries) {
+      const nd = flat[si]?.nodes?.[pi];
+      if (!nd) continue;
+      const kind = nd.node_kind ?? nd.tags?.node_kind;
+      if (kind === 'black' || kind === 'brown' || brownLegKeys.has(key)) { pick = nd; break; }
+      if (!pick) pick = nd;
+    }
+    return pick
+      ? JSON.parse(JSON.stringify(pick))
+      : { node_type: 'line', node_kind: 'black', tags: { node_kind: 'black', _forceDrawBlackDot: true } };
+  };
+
+  const isStationKey = (k, occ) => {
+    if (brownLegKeys.has(k)) return true;
+    for (const { si, pi } of occ.get(k) || []) {
+      if (nodeIsBlackClass(flat[si]?.nodes?.[pi])) return true;
+    }
+    return false;
+  };
+
+  let straightened = 0;
+  while (pendingBrowns.size > 0) {
+    const graph = buildGraph();
+    const leg = findOneLeg(graph);
+    if (!leg) break;
+
+    const { ks, coordOf, occ } = leg;
+    const kStart = ks[0];
+    const kEnd = ks[ks.length - 1];
+    const anchorA = coordOf.get(kStart).slice();
+    const anchorB = coordOf.get(kEnd).slice();
+    const stationKeys = ks.slice(1, -1).filter((k) => isStationKey(k, occ));
+
+    mergeLegPointsFromKeys(ks, coordOf, (k) => cloneNodeAtKey(k, occ));
+
+    const final = straightenAndRedistributeLeg(
+      ks, anchorA, anchorB, (k) => cloneNodeAtKey(k, occ), stationKeys
+    );
+    if (final.points.length < 2) break;
+
+    const segsToDrop = new Set();
+    const newSegs = [];
+    const partialDone = new Set();
+
+    const chainIndexOf = (k) => ks.indexOf(k);
+    const isConsecutiveLegSubpath = (keys) => {
+      if (keys.length < 2) return false;
+      const idx = keys.map(chainIndexOf);
+      if (idx.some((i) => i < 0)) return false;
+      const sorted = [...idx].sort((a, b) => a - b);
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] !== sorted[i - 1] + 1) return false;
+      }
+      return true;
+    };
+
+    const fullSegs = [];
+    const partialSegs = [];
+    for (let si = 0; si < flat.length; si++) {
+      const seg = flat[si];
+      const pts = seg?.points;
+      if (!Array.isArray(pts) || pts.length < 2) continue;
+      const keys = pts.map((p) => vkey(...readFlatPt(p)));
+      if (isConsecutiveLegSubpath(keys)) { fullSegs.push(si); continue; }
+      const iA = keys.indexOf(kStart);
+      const iB = keys.indexOf(kEnd);
+      if (iA >= 0 && iB >= 0 && iA !== iB) partialSegs.push({ si, iA, iB });
+    }
+
+    // 部分路段：錨點 index 不動，只換中間；依 segment 方向決定黑點順序。
+    for (const { si, iA, iB } of partialSegs) {
+      if (fullSegs.includes(si) || partialDone.has(si)) continue;
+      const seg = flat[si];
+      const i0 = Math.min(iA, iB);
+      const i1 = Math.max(iA, iB);
+      const alongKs = iA < iB;
+      const interiorPts = alongKs ? final.interiorPoints : [...final.interiorPoints].reverse();
+      const interiorNds = alongKs ? final.interiorNodes : [...final.interiorNodes].reverse();
+      seg.points = [...seg.points.slice(0, i0 + 1), ...interiorPts, ...seg.points.slice(i1)];
+      seg.nodes = [...seg.nodes.slice(0, i0 + 1), ...interiorNds, ...seg.nodes.slice(i1)];
+      partialDone.add(si);
+    }
+
+    if (fullSegs.length) {
+      for (const si of fullSegs) segsToDrop.add(si);
+      const shell = cloneSegShell(flat[fullSegs[0]]);
+      const lastSeg = flat[fullSegs[fullSegs.length - 1]];
+      if (lastSeg?.properties_end) shell.properties_end = JSON.parse(JSON.stringify(lastSeg.properties_end));
+      newSegs.push({ ...shell, points: final.points, nodes: final.nodes });
+    }
+
+    if (segsToDrop.size) {
+      const kept = flat.filter((_, si) => !segsToDrop.has(si));
+      flat.length = 0;
+      flat.push(...kept, ...newSegs);
+    }
+
+    for (const k of ks) pendingBrowns.delete(k);
+    straightened++;
+  }
+
+  return straightened;
+};
 
 /**
  * 由 flat segments（points + nodes）建「以紅/黃/藍為邊界」之折線；紫/粉紅/灰/黑視為內部直通頂點。
@@ -869,6 +1050,7 @@ export const revalidatePinkToBrownInFlat = (flat, opts = {}) => {
  * 🤎→🖤 + 🩶 把棕點改回一般黑點，再以「紅/黃/藍/粉紅 + 新增灰點」為邊界重算灰點配置
  *   （規則同骨架2：兩相鄰邊界點之間黑點 ≥ maxBetween+1（預設 5）時，於中間補 G=⌊N/(maxBetween+1)⌋ 個灰點，
  *   使每段黑點 ≤ maxBetween）。既有灰點先一併還原成黑點後重算。
+ *   ① 合併 segment → ② 拉直（錨點不動、刪折角）→ ③ 黑點 (j+1)/(n+1) 重分配。
  *   computeGrayBlackDots 以「索引」均分定位，與座標系無關；故 planar 僅影響邊界折線之建構。
  * @param {Array<{points:Array, nodes:Array}>} flat 路網 flat segments（就地修改 nodes tags 與座標）
  * @param {{planar?:boolean, maxBetween?:number}} [opts]
@@ -895,6 +1077,18 @@ export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
       String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase() === GRAY_DOT_HEX.toLowerCase()
     );
   };
+  // 0) 記錄棕點座標（棕→黑後仍用同一格定位「需拉直的錨點區段」）。
+  const brownKeys = new Set();
+  for (const seg of flat) {
+    const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
+    const pts = seg?.points;
+    if (!Array.isArray(pts)) continue;
+    for (let i = 0; i < pts.length; i++) {
+      if (!isBrown(nodes[i])) continue;
+      const [a, b] = readFlatPt(pts[i]);
+      brownKeys.add(`${a.toFixed(6)},${b.toFixed(6)}`);
+    }
+  }
   // 1) 棕→黑；既有灰→黑（重算前先還原，避免舊灰殘留）。
   let brownToBlack = 0;
   for (const seg of flat) {
@@ -904,12 +1098,21 @@ export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
     for (let i = 0; i < pts.length; i++) {
       const nd = nodes[i];
       if (!nd) continue;
-      if (isBrown(nd)) { setNodeClass(nd, 'black', '#000000'); brownToBlack++; }
+      if (isBrown(nd)) {
+        setNodeClass(nd, 'black', '#000000');
+        nd.node_type = 'line';
+        if (!nd.tags) nd.tags = {};
+        nd.tags._forceDrawBlackDot = true;
+        nd.tags.node_type = 'line';
+        brownToBlack++;
+      }
       else if (isGray(nd)) setNodeClass(nd, 'black', '#000000');
     }
   }
-  // 1.5) 拉直路線：以紅/黃/藍/粉紅為錨點，把錨點間的中間頂點（含降級的黑點）拉成直線，移除多餘轉折。
-  const straightened = straightenFlatBetweenAnchors(flat, nodeIsRYBorPinkClass);
+  // 1.5) ① 合併 → ② 拉直 → ③ 黑點重分配（僅含棕點的錨點鏈）。
+  const straightened = brownKeys.size > 0
+    ? collapseBrownAnchorChainsInFlat(flat, brownKeys, nodeIsRYBorPinkClass)
+    : 0;
   // 2) 以紅/黃/藍為邊界建折線；粉紅為內部 flush 邊界（同骨架2 computeGrayBlackDots 之 pinkKeys）。
   const paths = buildRYBBoundedPaths(flat, planar);
   const blackPts = [];

@@ -208,7 +208,7 @@ export function recomputeMilpReadBrownToBlackGray() {
   if (!res.ok) return res;
   return {
     ok: true,
-    message: `棕點還原為黑點 ${brownToBlack} 個；拉直 ${straightened} 個中間頂點；重算灰點：新增 ${gray} 個（兩相鄰邊界點間黑點 ≤ 4）。`,
+    message: `棕點還原為黑點 ${brownToBlack} 個；拉直 ${straightened} 段；重算灰點：新增 ${gray} 個（兩相鄰邊界點間黑點 ≤ 4）。`,
     brownToBlack,
     straightened,
     gray,
