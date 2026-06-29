@@ -7498,7 +7498,7 @@
               paintMidBlackDotName(cx, cy, trafficMidName);
             };
             if (layoutVhDrawWeightedLayoutMode) {
-              if (copyRouteMidPlans) {
+              if (copyRouteMidPlans?.size > 0) {
                 /* 延後至鄰線間距 wPtMin/hPtMin 算出後篩選並重分配弧長 */
               } else {
                 pendingWeightedMidDots.push({
@@ -8395,13 +8395,24 @@
               return String(a).localeCompare(String(b));
             });
             const nStepMax = orderedKeys.length + 2;
+            const visibleKeyedCount = () =>
+              orderedKeys.filter((mk) => !copyWeightedHideForSubgrid.has(mk)).length;
+            const filterDotsForAutoHideSpacing = () =>
+              layoutDotsForBandMaxRealtime.filter((d) => {
+                if (d.copyMidMatchKey && copyWeightedHideForSubgrid.has(d.copyMidMatchKey)) {
+                  return false;
+                }
+                // 僅納入可對應 weight_差值 的黑點；無 matchKey 者不應阻擋間距達標判斷
+                if (activeTabLayer?.layoutVhDrawAutoHideMidBlackDots === true && !d.copyMidMatchKey) {
+                  return false;
+                }
+                return true;
+              });
             // 依 weight_差值（相連兩段 weight 差）由小到大逐一暫隱中段黑點，直到鄰線間距達標。
             // 僅當圖層「自動隱藏黑點」開關開啟才計算此迴圈；關閉時黑點全顯示。
             if (activeTabLayer?.layoutVhDrawAutoHideMidBlackDots === true)
               for (let step = 0; step < nStepMax; step++) {
-              const dotsEff = layoutDotsForBandMaxRealtime.filter(
-                (d) => !d.copyMidMatchKey || !copyWeightedHideForSubgrid.has(d.copyMidMatchKey)
-              );
+              const dotsEff = filterDotsForAutoHideSpacing();
               recomputeLayoutPxBandMaxFromDots(dotsEff);
               if (
                 layoutPxBandMaxColVals.length !== nColSlabs ||
@@ -8436,6 +8447,8 @@
               const wMnRawT = Math.min(...wGapT);
               const hMnRawT = Math.min(...hGapT);
               if (wMnRawT >= ptThrNei && hMnRawT >= ptThrNei) break;
+              // 間距仍不足時至少保留一顆可隱藏黑點，避免全隱藏後才判定達標
+              if (visibleKeyedCount() <= 1) break;
               let added = false;
               for (let oi = 0; oi < orderedKeys.length; oi++) {
                 const mk = orderedKeys[oi];
@@ -8450,7 +8463,11 @@
             const dotsFinal = layoutDotsForBandMaxRealtime.filter(
               (d) => !d.copyMidMatchKey || !copyWeightedHideForSubgrid.has(d.copyMidMatchKey)
             );
-            recomputeLayoutPxBandMaxFromDots(dotsFinal);
+            recomputeLayoutPxBandMaxFromDots(
+              activeTabLayer?.layoutVhDrawAutoHideMidBlackDots === true
+                ? filterDotsForAutoHideSpacing()
+                : dotsFinal
+            );
           }
 
           const ratXC = slabRatiosBlackMaxWithMinPtForZeros(

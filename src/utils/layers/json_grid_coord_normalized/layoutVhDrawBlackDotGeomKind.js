@@ -60,8 +60,29 @@ export function findLayoutSegmentMidNeighbors(seg, midNode) {
   }
   if (seg.end) chain.push(seg.end);
   const idx = chain.findIndex((n) => sameLayoutSegmentNode(n, midNode));
-  if (idx <= 0 || idx >= chain.length - 1) return null;
-  return { prev: chain[idx - 1], current: chain[idx], next: chain[idx + 1] };
+  let resolvedIdx = idx;
+  if (resolvedIdx <= 0 || resolvedIdx >= chain.length - 1) {
+    const mx = Number(midNode.x_grid ?? midNode.tags?.x_grid);
+    const my = Number(midNode.y_grid ?? midNode.tags?.y_grid);
+    if (Number.isFinite(mx) && Number.isFinite(my)) {
+      resolvedIdx = chain.findIndex((n) => {
+        const nx = Number(n.x_grid ?? n.tags?.x_grid);
+        const ny = Number(n.y_grid ?? n.tags?.y_grid);
+        return (
+          Number.isFinite(nx) &&
+          Number.isFinite(ny) &&
+          Math.abs(nx - mx) < 1e-3 &&
+          Math.abs(ny - my) < 1e-3
+        );
+      });
+    }
+  }
+  if (resolvedIdx <= 0 || resolvedIdx >= chain.length - 1) return null;
+  return {
+    prev: chain[resolvedIdx - 1],
+    current: chain[resolvedIdx],
+    next: chain[resolvedIdx + 1],
+  };
 }
 
 /**

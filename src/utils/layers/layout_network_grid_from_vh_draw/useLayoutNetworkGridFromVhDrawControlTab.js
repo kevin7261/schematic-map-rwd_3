@@ -19,6 +19,7 @@ import {
   isLayoutVhDrawSecondCopyLayerId,
   isRmaLayoutNetworkGridFromVhDrawLayerId,
   buildLayoutVhDrawCopyBlackDotTrafficDataTableRows,
+  buildVhDrawStationRowsForLayoutMap,
   refreshRmaLayoutNetworkGridFromVhIfVisible,
   SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID,
   SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID,
@@ -75,7 +76,9 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
   /** 套用流量後：RMA 直接重算本層黑點表並 persist；OSM 走 VH 繪製層 + 同步 copy。 */
   const persistAfterTrafficChange = (lyr) => {
     if (isRmaLayoutNetworkGridFromVhDrawLayerId(lyr?.layerId)) {
-      lyr.dataTableData = buildLayoutVhDrawCopyBlackDotTrafficDataTableRows(lyr.dataJson);
+      lyr.dataTableData = buildLayoutVhDrawCopyBlackDotTrafficDataTableRows(
+        buildVhDrawStationRowsForLayoutMap(dataStore, lyr)
+      );
       dataStore.saveLayerState(
         lyr.layerId,
         jsonGridFromCoordNormalizedPersistPayload(lyr, { omitLoadingFlags: true })

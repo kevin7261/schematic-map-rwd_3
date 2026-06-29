@@ -126,7 +126,9 @@ export function syncRmaLayoutNetworkGridFromTowardCenterVh(
     lineFeats.length || pointFeats.length
       ? { type: 'FeatureCollection', features: [...lineFeats, ...pointFeats] }
       : null;
-  layout.dataTableData = buildLayoutVhDrawCopyBlackDotTrafficDataTableRows(layout.dataJson);
+  layout.dataTableData = buildLayoutVhDrawCopyBlackDotTrafficDataTableRows(
+    buildVhDrawStationRowsForLayoutMap({ findLayerById }, layout)
+  );
   layout.isLoaded = true;
 }
 
