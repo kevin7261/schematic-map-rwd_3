@@ -14,7 +14,21 @@ import {
   LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS,
   LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
   POINT_ORTHOGONAL_LAYER_ID,
+  SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID,
+  isRmaLayoutNetworkGridFromVhDrawLayerId,
 } from './layerIds.js';
+
+/**
+ * 路網網格繪製／黑點資料根：OSM 管線用 vh_draw 鏡像層；RMA 管線用本層 dataJson（syncRma 寫入）。
+ * @param {{ findLayerById: (id: string) => object|null }} dataStore
+ * @param {object|null} layoutLayer 路網網格或路網網格_2
+ */
+export function resolveLayoutNetworkGridDrawRoot(dataStore, layoutLayer) {
+  if (layoutLayer && isRmaLayoutNetworkGridFromVhDrawLayerId(layoutLayer.layerId)) {
+    return layoutLayer;
+  }
+  return dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
+}
 
 export function buildVhDrawStationRowsForLayoutMap(dataStore, drawLayer) {
   if (!drawLayer) return [];
@@ -22,21 +36,34 @@ export function buildVhDrawStationRowsForLayoutMap(dataStore, drawLayer) {
   if (!Array.isArray(base)) base = [];
   let out = base.length ? JSON.parse(JSON.stringify(base)) : [];
   out = mergeSegmentStationsFromPriorExportRows(out, drawLayer.processedJsonData);
-  const chainIds = [
-    ...LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS,
-    POINT_ORTHOGONAL_LAYER_ID,
-    JSON_GRID_COORD_NORMALIZED_LAYER_ID,
-    OSM_2_GEOJSON_2_JSON_LAYER_ID,
-  ];
-  for (const id of chainIds) {
-    if (id === drawLayer.layerId) continue;
-    const src = dataStore.findLayerById(id);
-    if (!src) continue;
-    out = mergeSegmentStationsFromPriorExportRows(
-      out,
-      mapDrawnExportRowsFromJsonDrawRoot(src.jsonData, src.dataJson)
-    );
-    out = mergeSegmentStationsFromPriorExportRows(out, src.processedJsonData);
+  if (isRmaLayoutNetworkGridFromVhDrawLayerId(drawLayer.layerId)) {
+    const srcId =
+      drawLayer.rmaSourceLayerId || SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID;
+    const src = dataStore.findLayerById(srcId);
+    if (src) {
+      out = mergeSegmentStationsFromPriorExportRows(out, src.processedJsonData);
+      out = mergeSegmentStationsFromPriorExportRows(
+        out,
+        mapDrawnExportRowsFromJsonDrawRoot(src.jsonData, src.dataJson)
+      );
+    }
+  } else {
+    const chainIds = [
+      ...LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS,
+      POINT_ORTHOGONAL_LAYER_ID,
+      JSON_GRID_COORD_NORMALIZED_LAYER_ID,
+      OSM_2_GEOJSON_2_JSON_LAYER_ID,
+    ];
+    for (const id of chainIds) {
+      if (id === drawLayer.layerId) continue;
+      const src = dataStore.findLayerById(id);
+      if (!src) continue;
+      out = mergeSegmentStationsFromPriorExportRows(
+        out,
+        mapDrawnExportRowsFromJsonDrawRoot(src.jsonData, src.dataJson)
+      );
+      out = mergeSegmentStationsFromPriorExportRows(out, src.processedJsonData);
+    }
   }
   return out;
 }
@@ -1019,8 +1046,12 @@ export function computeLayoutVhDrawFineBlackDotsTurnRbRedistribute(
 /**
  * 與網格示意中段黑點同源，但弧長以 **格座標歐氏長度** 計（與縮放無關）。
  */
-export function buildLayoutNetworkVhDrawMaxBlackDotsPerOrthoLine(dataStore, routeFeatures) {
-  const drawLayer = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
+export function buildLayoutNetworkVhDrawMaxBlackDotsPerOrthoLine(
+  dataStore,
+  routeFeatures,
+  layoutLayer = null
+) {
+  const drawLayer = resolveLayoutNetworkGridDrawRoot(dataStore, layoutLayer);
   const exportRowsForSta = buildVhDrawStationRowsForLayoutMap(dataStore, drawLayer);
   const eps = 1e-3;
   const layoutEpXY = (ep) => {
@@ -1182,7 +1213,7 @@ export function featureCollectionGridBounds(fc) {
  * 插入／細格視覺：**M≥1 且為偶數時自動 +1**，使插入網格分割數對應之 M 為單數（resize／繪製與資料細格並用）。
  * @returns {{ m: number, x0: number, y0: number } | null}
  */
-export function computeLayoutVhDrawFineGridSpec(dataStore, coarseFc) {
+export function computeLayoutVhDrawFineGridSpec(dataStore, coarseFc, layoutLayer = null) {
   if (!coarseFc || coarseFc.type !== 'FeatureCollection' || !Array.isArray(coarseFc.features))
     return null;
   const routeFeatures = coarseFc.features.filter((f) => f?.geometry?.type === 'LineString');
@@ -1206,7 +1237,8 @@ export function computeLayoutVhDrawFineGridSpec(dataStore, coarseFc) {
 
   const { dotsForBandMax } = buildLayoutNetworkVhDrawMaxBlackDotsPerOrthoLine(
     dataStore,
-    routeFeatures
+    routeFeatures,
+    layoutLayer
   );
   let M = 0;
   for (let i = 0; i < xTicks.length - 1; i++) {
@@ -1245,7 +1277,7 @@ export function computeLayoutVhDrawFineGridSpec(dataStore, coarseFc) {
  *   nRows: number,
  * } | null}
  */
-export function computeLayoutVhDrawBlackDotRowColRatioReport(dataStore, coarseFc) {
+export function computeLayoutVhDrawBlackDotRowColRatioReport(dataStore, coarseFc, layoutLayer = null) {
   if (!coarseFc || coarseFc.type !== 'FeatureCollection' || !Array.isArray(coarseFc.features))
     return null;
   const routeFeatures = coarseFc.features.filter((f) => f?.geometry?.type === 'LineString');
@@ -1272,7 +1304,8 @@ export function computeLayoutVhDrawBlackDotRowColRatioReport(dataStore, coarseFc
 
   const { dotsForBandMax } = buildLayoutNetworkVhDrawMaxBlackDotsPerOrthoLine(
     dataStore,
-    routeFeatures
+    routeFeatures,
+    layoutLayer
   );
 
   const nCols = Math.max(0, xTicks.length - 1);

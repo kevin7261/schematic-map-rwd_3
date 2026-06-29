@@ -115,14 +115,15 @@
     POINT_ORTHOGONAL_LAYER_ID,
     COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID,
     LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS,
-    LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
     isLineOrthogonalTowardCenterLayerId,
     isLayoutNetworkGridFromVhDrawLayerId,
+    isRmaLayoutNetworkGridFromVhDrawLayerId,
     isLayoutVhDrawSecondCopyLayerId,
     isSpaceGridVhDrawFamilyLayerId,
     isRouteAdjustLayoutLayer,
     LAYOUT_SEGMENT_TRAFFIC_WEIGHT_KEY,
     buildVhDrawStationRowsForLayoutMap,
+    resolveLayoutNetworkGridDrawRoot,
     maxLayoutVhDrawBlackDotsOnLegInOpenXSlab,
     maxLayoutVhDrawBlackDotsOnLegInOpenYSlab,
     maxLayoutVhDrawBlackDotsOnLegInOpenXSlabPlotPx,
@@ -164,9 +165,15 @@
   /**
    * 均勻網格族路線 hover：本層 dataJson 若曾由路網重算，segment.stations 可能被清空；
    * 先合併本層 processedJsonData，再自系譜父層（point_orthogonal／座標正規化／OSM 管線）補回同起迄之中段站。
+   * 路網網格／路網網格_2（含 RMA）：與繪製同源 {@link buildVhDrawStationRowsForLayoutMap}。
    */
   function buildEnrichedMapDrawnRowsForUniformGridTooltip(dataStore, layerTab, activeLayer) {
     if (!isSpaceLayoutUniformGridViewerLayerId(layerTab) || !activeLayer) return null;
+    if (isLayoutNetworkGridFromVhDrawLayerId(layerTab)) {
+      const drawRoot = resolveLayoutNetworkGridDrawRoot(dataStore, activeLayer);
+      const rows = buildVhDrawStationRowsForLayoutMap(dataStore, drawRoot);
+      return Array.isArray(rows) && rows.length ? rows : null;
+    }
     const base = mapDrawnExportRowsFromJsonDrawRoot(activeLayer.jsonData, activeLayer.dataJson);
     if (!Array.isArray(base) || base.length === 0) return null;
     let out = JSON.parse(JSON.stringify(base));
@@ -912,7 +919,7 @@
     // 路網網格：render 當下**直接由 draw 匯出列重建** geojson（線照輸入原樣、點各站自己的 type），
     // 不用可能過期的 persist `layer.geojsonData`（避免舊的被座標合併／截斷的版本）。
     if (isLayoutNetworkGridFromVhDrawLayerId(layer.layerId)) {
-      const draw = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
+      const draw = resolveLayoutNetworkGridDrawRoot(dataStore, layer);
       const lineFeats = freshLayoutLineFeaturesFromDraw(draw);
       const pointFeats = freshLayoutConnectPointFeaturesFromDraw(draw);
       if (lineFeats.length || pointFeats.length) {
@@ -941,7 +948,7 @@
       isLayoutNetworkGridFromVhDrawLayerId(layer.layerId) &&
       layer.layoutVhDrawFineGrid
     ) {
-      const spec = computeLayoutVhDrawFineGridSpec(dataStore, base);
+      const spec = computeLayoutVhDrawFineGridSpec(dataStore, base, layer);
       if (spec) {
         out = JSON.parse(JSON.stringify(base));
         applyLayoutVhDrawFineGridToFeatureCollection(out, spec);
@@ -2655,6 +2662,8 @@
     const activeTabLayer = dataStore.findLayerById(layerTab);
     // 🔍 示意圖佈局層：線寬/點大小固定螢幕 pt、不隨 d3 zoom 縮放（vector-effect + 半徑 ÷ k）。
     const isSchematicLayout = activeTabLayer?.isRouteSchematicLayer === true;
+    const isRmaLayoutNetworkGrid = isRmaLayoutNetworkGridFromVhDrawLayerId(layerTab);
+    const useSchematicVisualStyle = isSchematicLayout || isRmaLayoutNetworkGrid;
     /** 示意圖佈局：中段黑點 node_type=line 須繪製（非 bend 幾何轉折）。 */
     const isDrawableMidStation = (nodeProps) => {
       if (!nodeProps || typeof nodeProps !== 'object') return false;
@@ -2662,7 +2671,7 @@
       if (nodeProps.station_name || nodeProps.station_id) return true;
       if (nodeProps.tags?.station_name || nodeProps.tags?.station_id) return true;
       if (nodeProps.tags?._forceDrawBlackDot) return true;
-      if (isSchematicLayout && nodeProps.node_type === 'line') return true;
+      if (useSchematicVisualStyle && nodeProps.node_type === 'line') return true;
       return false;
     };
     const layoutUniformGridTooltipJr = uniformGridRouteFamilyTab
@@ -3951,7 +3960,7 @@
       .on('zoom', (event) => {
         zoomGroup.attr('transform', event.transform);
         // 示意圖佈局：點半徑 ÷ k，使螢幕大小恆定（線寬由 vector-effect:non-scaling-stroke 處理）。
-        if (isSchematicLayout) {
+        if (useSchematicVisualStyle) {
           const kk = event.transform.k || 1;
           zoomGroup.selectAll('circle').each(function () {
             const sel = d3.select(this);
@@ -4402,7 +4411,7 @@
       activeTabLayer?.geojsonData?.type === 'FeatureCollection' &&
       Array.isArray(activeTabLayer.geojsonData.features)
     ) {
-      const subdivSpec = computeLayoutVhDrawFineGridSpec(dataStore, activeTabLayer.geojsonData);
+      const subdivSpec = computeLayoutVhDrawFineGridSpec(dataStore, activeTabLayer.geojsonData, activeTabLayer);
       if (subdivSpec && Number.isFinite(subdivSpec.m)) {
         layoutVhDrawSubdivM = Math.max(0, Math.floor(subdivSpec.m));
       }
@@ -4490,7 +4499,10 @@
         return c != null ? String(c).trim() : '';
       };
       // 每段「經過車站數」成本＝段內中間站（黑點，排除 connect）＋1（抵達的紅/藍點）。
-      const drawLayerForCost = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
+      const drawLayerForCost = resolveLayoutNetworkGridDrawRoot(
+        dataStore,
+        dataStore.findLayerById(layerTab)
+      );
       const exportRowsForCost = buildVhDrawStationRowsForLayoutMap(dataStore, drawLayerForCost);
       const epXYForCost = (ep) =>
         ep && typeof ep === 'object'
@@ -4975,7 +4987,7 @@
       layoutLayerForFineGrid?.layoutVhDrawFineGrid &&
       coarseFcLayout?.type === 'FeatureCollection' &&
       Array.isArray(coarseFcLayout.features)
-        ? computeLayoutVhDrawFineGridSpec(dataStore, coarseFcLayout)
+        ? computeLayoutVhDrawFineGridSpec(dataStore, coarseFcLayout, layoutLayerForFineGrid)
         : null;
     let layoutBlackMaxXTicks = xTicks;
     let layoutBlackMaxYTicks = yTicks;
@@ -5513,13 +5525,13 @@
       let routeTooltipHtml = '';
       let routeTooltipAppendNearLine = true;
 
-      const pathElement = zoomGroup
+      let pathElement = zoomGroup
         .append('path')
         .attr('d', pathData)
         .attr('stroke', baseStroke)
         .attr('fill', 'none')
         .attr('stroke-width', baseStrokeW)
-        .style('vector-effect', isSchematicLayout ? 'non-scaling-stroke' : null)
+        .style('vector-effect', useSchematicVisualStyle ? 'non-scaling-stroke' : null)
         .attr('opacity', 0.9)
         .attr('stroke-linecap', 'round')
         .attr('stroke-linejoin', 'round')
@@ -5532,7 +5544,7 @@
         .map((s) => s.trim())
         .filter(Boolean);
       const overlayPaths = [];
-      const useSkeletonMulticolorDash = isSchematicLayout && routeColorsList.length >= 2;
+      const useSkeletonMulticolorDash = useSchematicVisualStyle && routeColorsList.length >= 2;
       if (useSkeletonMulticolorDash) {
         const N = routeColorsList.length;
         const dashLen = 8;
@@ -5576,7 +5588,7 @@
               .attr('stroke', routeColorsList[i])
               .attr('fill', 'none')
               .attr('stroke-width', baseStrokeW)
-              .style('vector-effect', isSchematicLayout ? 'non-scaling-stroke' : null)
+              .style('vector-effect', useSchematicVisualStyle ? 'non-scaling-stroke' : null)
               .attr('opacity', 0.9)
               .attr('stroke-linecap', 'butt')
               .attr('stroke-dasharray', dashArray)
@@ -5586,10 +5598,27 @@
         }
       }
 
+      /** 路網網格／路網網格_2：加寬透明 hit stroke，細線／加權模式仍易 hover。 */
+      let interactivePath = pathElement;
+      if (isLayoutNetworkGridFromVhDrawLayerId(layerTab)) {
+        const hitW = Math.max(Number(hoverStrokeW) || 5, layoutVhDrawPixelAxisMode ? 12 : 8);
+        interactivePath = zoomGroup
+          .append('path')
+          .attr('d', pathData)
+          .attr('stroke', 'transparent')
+          .attr('fill', 'none')
+          .attr('stroke-width', hitW)
+          .attr('stroke-linecap', 'round')
+          .attr('stroke-linejoin', 'round')
+          .style('pointer-events', 'stroke')
+          .style('cursor', 'pointer');
+        pathElement.style('pointer-events', 'none');
+      }
+
       // 添加 hover 效果
-      pathElement
+      interactivePath
         .on('mouseover', function (event) {
-          d3.select(this).attr('stroke-width', hoverStrokeW).attr('opacity', 1);
+          pathElement.attr('stroke-width', hoverStrokeW).attr('opacity', 1);
           overlayPaths.forEach((ov) => ov.attr('stroke-width', hoverStrokeW).attr('opacity', 1));
 
           const buildLegacyLineTooltip = () => {
@@ -5722,6 +5751,36 @@
                   rowMatch = jr[idxHint];
                 }
               }
+              if (!rowMatch && Array.isArray(jr) && coords?.length >= 2) {
+                const g0 = coords[0];
+                const g1 = coords[coords.length - 1];
+                const eps = 1e-3;
+                const epXY = (ep) => [
+                  Number(ep?.x_grid ?? ep?.lon),
+                  Number(ep?.y_grid ?? ep?.lat),
+                ];
+                for (const r of jr) {
+                  const sm = r?.segment;
+                  if (!sm?.start || !sm?.end) continue;
+                  const [ax, ay] = epXY(sm.start);
+                  const [bx, by] = epXY(sm.end);
+                  if (![ax, ay, bx, by].every(Number.isFinite)) continue;
+                  const fw =
+                    Math.abs(g0[0] - ax) < eps &&
+                    Math.abs(g0[1] - ay) < eps &&
+                    Math.abs(g1[0] - bx) < eps &&
+                    Math.abs(g1[1] - by) < eps;
+                  const bw =
+                    Math.abs(g0[0] - bx) < eps &&
+                    Math.abs(g0[1] - by) < eps &&
+                    Math.abs(g1[0] - ax) < eps &&
+                    Math.abs(g1[1] - ay) < eps;
+                  if (fw || bw) {
+                    rowMatch = r;
+                    break;
+                  }
+                }
+              }
             }
             if (rowMatch) {
               const jrFile = mapDrawnExportRowsFromJsonDrawRoot(jl?.jsonData, jl?.dataJson) ?? [];
@@ -5763,7 +5822,7 @@
         })
         .on('mouseout', function () {
           // 恢復路線樣式
-          d3.select(this)
+          pathElement
             .attr('stroke-width', baseStrokeW)
             .attr('opacity', 0.9)
             .attr('stroke', baseStroke);
@@ -6715,8 +6774,10 @@
     // — 沿折線 **像素弧長** 均分（與站數 n 對應），resize 時重算弧長；不再優先吸至轉折。
     // — 粗格視圖：對齊至背景插入之 (M+1) 細分網格整數格點（與 computeLayoutVhDrawFineGridSpec 同源）。
     // — 已套用細格座標視圖：對齊至細格整數網線。
+    // NormalizeSegments 亦須走此路徑：路線可能經加權欄寬／HV45 重畫，格座標黑點會偏離折線。
     if (isLayoutNetworkGridFromVhDrawLayerId(layerTab)) {
-      const drawLayer = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
+      const layoutLayerForSta = dataStore.findLayerById(layerTab);
+      const drawLayer = resolveLayoutNetworkGridDrawRoot(dataStore, layoutLayerForSta);
       const exportRowsForSta = buildVhDrawStationRowsForLayoutMap(dataStore, drawLayer);
       const layoutEpXY = (ep) => {
         if (!ep || typeof ep !== 'object') return [NaN, NaN];
@@ -6905,7 +6966,7 @@
         : !layoutFineGridSpec &&
             coarseFcLayout?.type === 'FeatureCollection' &&
             Array.isArray(coarseFcLayout.features)
-          ? computeLayoutVhDrawFineGridSpec(dataStore, coarseFcLayout)
+          ? computeLayoutVhDrawFineGridSpec(dataStore, coarseFcLayout, layoutLayerForFineGrid)
           : null;
 
       const layoutMidDotTooltipGridLinesHtml = (gx, gy) => {
@@ -8803,6 +8864,8 @@
 
       // 根據 nodeType 決定顏色和大小
       const isConnect = nodeType === 'connect';
+      // 路網網格：中段黑點由下方弧長均分專區繪製（沿顯示路徑）；略過 line 以免與加權/HV45 路徑座標不一致
+      if (isLayoutNetworkGridFromVhDrawLayerId(layerTab) && nodeType === 'line') return;
       // 直線化測試／網格正規化：僅在「車站配置」開啟且已有 SectionData 時改由下方專區繪製，避免與 segment.nodes 重疊
       // taipei_h3／taipei_h3_dp：g3→h3 黑點僅存在於 segment.nodes／stationFeatures，專區未畫中段站，須走本迴圈
       const stLayer = dataStore.findLayerById(layerTab);
@@ -8817,7 +8880,9 @@
         return;
 
       // 經緯度路段（MapTab／json-derived）之站點：與 Map 分頁 terminal／intersection／normal 同色
-      const mapLonLatEndpoints = props.endpointFromRouteLonLatSegment === true;
+      // RMA 路網網格改走 NormalizeSegments 時，端點用示意圖 connect／terminal 色，不走 MapTab 粉彩。
+      const mapLonLatEndpoints =
+        props.endpointFromRouteLonLatSegment === true && !isRmaLayoutNetworkGrid;
 
       // 有疊加網格時：紅點對齊網格單元中心；黑點依重分配表畫在兩交叉點間平均位置（勿套用於經緯度路段點）
       let drawX = x;
@@ -8921,11 +8986,11 @@
         .attr('cx', plotRemapSvgX(xScale(drawX)))
         .attr('cy', plotRemapSvgY(yScale(drawY)))
         .attr('r', radius)
-        .attr('data-r0', isSchematicLayout ? radius : null)
+        .attr('data-r0', useSchematicVisualStyle ? radius : null)
         .attr('fill', fillColor)
         .attr('stroke', strokeColor)
         .attr('stroke-width', strokeWidth)
-        .style('vector-effect', isSchematicLayout ? 'non-scaling-stroke' : null)
+        .style('vector-effect', useSchematicVisualStyle ? 'non-scaling-stroke' : null)
         .attr(
           'class',
           [
@@ -10372,7 +10437,7 @@
 
     // 診斷高亮：共軌已合併（綠）／仍重疊（橘）
     if (
-      (isNormalizeFormat || isSchematicLayout) &&
+      (isNormalizeFormat || useSchematicVisualStyle) &&
       Array.isArray(dataStore.overlappingSegmentRanges) &&
       dataStore.overlappingSegmentRanges.length > 0
     ) {

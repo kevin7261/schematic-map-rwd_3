@@ -67,6 +67,10 @@ export function syncRmaLayoutNetworkGridFromTowardCenterVh(
     layout.dataJson = null;
     layout.geojsonData = null;
     layout.dataTableData = null;
+    layout.spaceNetworkGridJsonData = null;
+    layout.spaceNetworkGridJsonData_SectionData = null;
+    layout.spaceNetworkGridJsonData_ConnectData = null;
+    layout.spaceNetworkGridJsonData_StationData = null;
     return;
   }
   const sections = Array.isArray(src.schematicBlackSections) ? src.schematicBlackSections : [];
@@ -86,14 +90,42 @@ export function syncRmaLayoutNetworkGridFromTowardCenterVh(
     console.error('syncRmaLayoutNetworkGridFromTowardCenterVh：自路網匯出列失敗', e);
     rows = [];
   }
+  if (Array.isArray(rows) && rows.length && src?.processedJsonData?.length) {
+    rows = mergeSegmentStationsFromPriorExportRows(rows, src.processedJsonData);
+  }
+  layout.spaceNetworkGridJsonData = JSON.parse(JSON.stringify(full));
+  const computed = computeStationDataFromRoutes(full);
+  layout.spaceNetworkGridJsonData_SectionData = computed.sectionData;
+  layout.spaceNetworkGridJsonData_ConnectData = computed.connectData;
+  layout.spaceNetworkGridJsonData_StationData = computed.stationData;
+  layout.showStationPlacement = false;
+  if (Array.isArray(src?.processedJsonData) && src.processedJsonData.length) {
+    layout.processedJsonData = JSON.parse(JSON.stringify(src.processedJsonData));
+  } else {
+    try {
+      layout.processedJsonData = flatSegmentsToGeojsonStyleExportRows(full);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('syncRmaLayoutNetworkGridFromTowardCenterVh：processedJsonData 失敗', e);
+      layout.processedJsonData = null;
+    }
+  }
   layout.jsonData = null;
   layout.dataJson = Array.isArray(rows) && rows.length ? JSON.parse(JSON.stringify(rows)) : null;
-  layout.geojsonData = layout.dataJson
-    ? minimalLineStringFeatureCollectionFromRouteExportRows(layout.dataJson, {
-        stationPoints: 'endpoints',
-        routeLine: 'endpoints',
-      })
-    : null;
+  if (layout.dataJson?.length) {
+    const enriched = buildVhDrawStationRowsForLayoutMap({ findLayerById }, layout);
+    layout.dataJson =
+      Array.isArray(enriched) && enriched.length
+        ? JSON.parse(JSON.stringify(enriched))
+        : layout.dataJson;
+  }
+  writeLayoutNormalizedLayerDataOsmFromExportRows(layout, layout.dataJson);
+  const lineFeats = freshLayoutLineFeaturesFromDraw(layout);
+  const pointFeats = freshLayoutConnectPointFeaturesFromDraw(layout);
+  layout.geojsonData =
+    lineFeats.length || pointFeats.length
+      ? { type: 'FeatureCollection', features: [...lineFeats, ...pointFeats] }
+      : null;
   layout.dataTableData = buildLayoutVhDrawCopyBlackDotTrafficDataTableRows(layout.dataJson);
   layout.isLoaded = true;
 }
@@ -411,8 +443,12 @@ export function refreshRmaLayoutNetworkGridFromVhIfVisible(
   let pts = 0;
   for (const s of skel) pts += Array.isArray(s?.points) ? s.points.length : 0;
   const sig = `${srcId}:${skel.length}:${pts}`;
-  const force = opts.force || !!opts.sourceLayerId;
+  let force = opts.force || !!opts.sourceLayerId;
   const hasData = Array.isArray(layout.dataJson) && layout.dataJson.length > 0;
+  const hasSn =
+    Array.isArray(layout.spaceNetworkGridJsonData) && layout.spaceNetworkGridJsonData.length > 0;
+  // 舊版 persist 僅存 dataJson：補建 spaceNetworkGridJsonData 以對齊示意圖佈局繪製路徑。
+  if (!force && hasData && !hasSn) force = true;
   if (!force && hasData && layout.seededFromSig === sig) return false;
   syncRmaLayoutNetworkGridFromTowardCenterVh(findLayerById, layout, srcId);
   layout.seededFromSig = sig;

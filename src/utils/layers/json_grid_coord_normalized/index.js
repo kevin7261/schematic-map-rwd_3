@@ -86,6 +86,7 @@ export {
 } from './layoutVhDrawBlackDotGeomKind.js';
 export {
   buildVhDrawStationRowsForLayoutMap,
+  resolveLayoutNetworkGridDrawRoot,
   maxLayoutVhDrawBlackDotsOnLegInOpenXSlab,
   maxLayoutVhDrawBlackDotsOnLegInOpenYSlab,
   maxLayoutVhDrawBlackDotsOnLegInOpenXSlabPlotPx,

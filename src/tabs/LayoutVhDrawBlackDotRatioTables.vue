@@ -12,7 +12,7 @@
   const report = computed(() => {
     const fc = props.layer?.geojsonData;
     if (!fc || fc.type !== 'FeatureCollection') return null;
-    return computeLayoutVhDrawBlackDotRowColRatioReport(dataStore, fc);
+    return computeLayoutVhDrawBlackDotRowColRatioReport(dataStore, fc, props.layer);
   });
 
   const showTables = computed(

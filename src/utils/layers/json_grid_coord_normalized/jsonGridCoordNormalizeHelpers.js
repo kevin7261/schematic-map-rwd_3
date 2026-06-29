@@ -4,6 +4,7 @@ import { straightenSpaceNetworkAfterStrippingBlackStations } from '@/utils/dataE
 import { buildTaipeiB3ExecuteLayerFieldsFromGeojson } from '@/utils/taipeiTest4/buildTaipeiA3StyleLayerFieldsFromGeojson.js';
 import { buildTaipeiC3StyleLayerFieldsFromStraightenedNetwork } from '@/utils/taipeiTest4/buildTaipeiC3StyleLayerFieldsFromStraightenedNetwork.js';
 import { minimalLineStringFeatureCollectionFromRouteExportRows } from '@/utils/mapDrawnRoutesImport.js';
+import { normalizeRouteSegmentEndpointType } from '@/utils/geojsonRouteHelpers.js';
 import { normalizeSpaceNetworkDataToFlatSegments } from '@/utils/gridNormalizationMinDistance.js';
 import { minimalOsmXmlFromLonLatFeatureCollection } from './minimalOsmXmlFromGeoJson.js';
 
@@ -73,11 +74,37 @@ export function freshLayoutLineFeaturesFromDraw(draw) {
     routeLine: 'full',
     stationPoints: 'all',
   });
-  return Array.isArray(fc?.features)
+  const lineFeats = Array.isArray(fc?.features)
     ? fc.features.filter(
         (f) => f?.geometry?.type === 'LineString' || f?.geometry?.type === 'MultiLineString'
       )
     : [];
+  for (const f of lineFeats) {
+    const p = f.properties && typeof f.properties === 'object' ? f.properties : {};
+    const idx =
+      p.export_row_index != null && Number.isFinite(Number(p.export_row_index))
+        ? Number(p.export_row_index)
+        : -1;
+    const row = idx >= 0 && idx < rows.length ? rows[idx] : null;
+    if (!row || typeof row !== 'object') continue;
+    const seg = row.segment && typeof row.segment === 'object' ? row.segment : null;
+    const tw = row.traffic_weight;
+    f.properties = {
+      ...p,
+      name: p.name || row.routeName || '',
+      color: p.color || row.color || '#666666',
+      tags: {
+        ...(p.tags && typeof p.tags === 'object' ? p.tags : {}),
+        color: row.color || p.color,
+        name: row.routeName ?? p.name,
+        route_name: row.routeName ?? p.name,
+        ...(tw != null && Number.isFinite(Number(tw)) ? { traffic_weight: Number(tw) } : {}),
+        ...(seg?.start?.station_id ? { start_station_id: seg.start.station_id } : {}),
+        ...(seg?.end?.station_id ? { end_station_id: seg.end.station_id } : {}),
+      },
+    };
+  }
+  return lineFeats;
 }
 
 /**
@@ -99,7 +126,22 @@ export function freshLayoutConnectPointFeaturesFromDraw(draw) {
     routeLine: 'endpoints',
   });
   return Array.isArray(fc?.features)
-    ? fc.features.filter((f) => f?.geometry?.type === 'Point')
+    ? fc.features
+        .filter((f) => f?.geometry?.type === 'Point')
+        .map((f) => {
+          const p = f.properties || {};
+          const t = normalizeRouteSegmentEndpointType(p.type ?? p.tags?.type ?? 'normal');
+          return {
+            ...f,
+            nodeType: 'connect',
+            properties: {
+              ...p,
+              node_type: 'connect',
+              type: t,
+              tags: { ...(p.tags || {}), node_type: 'connect', type: t },
+            },
+          };
+        })
     : [];
 }
 
