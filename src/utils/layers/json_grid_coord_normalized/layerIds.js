@@ -115,8 +115,12 @@ export const SCHEMATIC_TOWARD_CENTER_VH_LAYER_ID = 'schematic_toward_center_vh';
  */
 export const SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID = 'schematic_rma_toward_center_hv';
 export const SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID = 'schematic_rma_toward_center_vh';
-/** 衍生圖層：站點與路線調整（RMA）— 路線圖調整骨架，供路網網格直接匯入。 */
-export const SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID = 'schematic_rma_route_adjust';
+/** 衍生圖層：站點與路線調整（RMA）八演算法 #1–#8（詳見 routeMapAdjust/routeAdjustLayout）。 */
+export { ROUTE_ADJUST_STROKE_LAYER_ID as SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID } from '../../routeMapAdjust/routeAdjustLayout/layerIds.js';
+export {
+  ROUTE_ADJUST_LAYOUT_LAYER_IDS,
+  isRouteAdjustLayoutLayer,
+} from '../../routeMapAdjust/routeAdjustLayout/layerIds.js';
 export const SCHEMATIC_TOWARD_CENTER_LAYER_IDS = Object.freeze([
   SCHEMATIC_TOWARD_CENTER_HV_LAYER_ID,
   SCHEMATIC_TOWARD_CENTER_VH_LAYER_ID,

@@ -93,6 +93,10 @@
   } from '@/utils/layers/json_grid_coord_normalized/index.js';
 
   import { clusterOrthoOverlapsForMergedBand } from '@/utils/layers/json_grid_coord_normalized/orthoNudgeTowardCrossConnectivity.js';
+  import {
+    ROUTE_ADJUST_UPSTREAM_LAYER_ID,
+    resolveRouteAdjustLayoutInput,
+  } from '@/utils/routeMapAdjust/routeAdjustLayout/index.js';
   import { computeStationDataFromRoutes } from '@/utils/dataExecute/computeStationDataFromRoutes.js';
   import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
   import { getIcon } from '@/utils/utils.js';
@@ -2879,8 +2883,6 @@
     // 路線圖調整（RMA）示意圖管線：MILP結果正規化（RMA）→ 先橫後直 → 先直後橫
     schematic_rma_toward_center_hv: 'schematic_rma_milp_read',
     schematic_rma_toward_center_vh: 'schematic_rma_toward_center_hv',
-    // 站點與路線調整：自「路線正規化（RMA）」鏡像同一份路網（含黑點），供畫中位數虛線參考線。
-    schematic_rma_route_adjust: 'schematic_rma_milp_read',
   };
   /** 路網內容廉價簽章：段數:總點數:座標雜湊（供「上游是否變更」判斷）。 */
   const cheapSegSig = (segs) => {
@@ -10108,6 +10110,17 @@
   const routeSchematicHasResult = (layer) =>
     Array.isArray(layer?.spaceNetworkGridJsonData) && layer.spaceNetworkGridJsonData.length > 0;
 
+  /** 上游「路線正規化」是否已有路網（站點與路線調整八演算法輸入） */
+  const routeAdjustLayoutInputReady = () => resolveRouteAdjustLayoutInput().ok;
+  const routeAdjustLayoutInputHint = () => {
+    const r = resolveRouteAdjustLayoutInput();
+    if (r.ok) {
+      const m = r.meta || {};
+      return `上游「路線正規化」已就緒：${m.sectionCount ?? '?'} 段 connect、黑點 ${m.blackStationCount ?? '?'} 個。`;
+    }
+    return r.message || '上游尚無路網。';
+  };
+
   const milpRoutePairAuditing = ref(false);
 
   /** ③ MILP（RMA）：按鈕觸發路線對 CCW 環序審計（不動佈局管線） */
@@ -12710,7 +12723,55 @@
             從⑨（正規化）匯入
           </button>
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
-            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP（RMA）結果。後續步驟（往中心聚集 先橫後直／先直後橫）在下方各圖層。
+            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP（RMA）結果。後續步驟（站點與路線調整 ①–⑧、往中心聚集 先橫後直／先直後橫）在下方各圖層。
+          </div>
+        </div>
+
+        <!-- 站點與路線調整（RMA）#1–#8：讀「路線正規化」→ 八演算法重佈局（同示意圖佈局，獨立管線） -->
+        <div
+          v-if="layer.isRouteAdjustLayoutLayer"
+          class="pb-3 mb-3 border-bottom"
+        >
+          <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
+          <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
+            輸入固定為上游「路線正規化」（{{ ROUTE_ADJUST_UPSTREAM_LAYER_ID }}）：讀取已正規化之路網 connect
+            骨架，以與「示意圖佈局」相同的八演算法重新佈局，黑點沿新邊均分插回。不含⑨正規化。
+          </div>
+          <div
+            class="my-font-size-xs pb-2"
+            :class="routeAdjustLayoutInputReady() ? 'text-success' : 'text-danger'"
+            style="line-height: 1.45"
+          >
+            {{ routeAdjustLayoutInputHint() }}
+          </div>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+            :disabled="!routeAdjustLayoutInputReady() || isExecuting"
+            @click="executeLayerFunction"
+          >
+            {{ isExecuting ? '計算中…' : '開始執行' }}
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
+            :disabled="!routeSchematicHasResult(layer)"
+            title="下載本圖層佈局結果 JSON"
+            @click="downloadRouteSchematicResultJson(layer)"
+          >
+            下載 JSON（佈局結果）
+          </button>
+          <div
+            v-if="layer.layerId === 'schematic_rma_route_adjust_milp' && layer.dashboardData?.rotationStructureCheck?.layoutDone"
+            class="text-muted mt-2"
+            style="font-size: 10px; line-height: 1.45"
+          >
+            入射方向：
+            {{
+              layer.dashboardData.rotationStructureCheck.preserved
+                ? '與讀入一致'
+                : `仍有 ${layer.dashboardData.rotationStructureCheck.remainingCount ?? '?'} 處不符`
+            }}
           </div>
         </div>
 

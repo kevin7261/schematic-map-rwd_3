@@ -120,6 +120,7 @@
     isLayoutNetworkGridFromVhDrawLayerId,
     isLayoutVhDrawSecondCopyLayerId,
     isSpaceGridVhDrawFamilyLayerId,
+    isRouteAdjustLayoutLayer,
     LAYOUT_SEGMENT_TRAFFIC_WEIGHT_KEY,
     buildVhDrawStationRowsForLayoutMap,
     maxLayoutVhDrawBlackDotsOnLegInOpenXSlab,
@@ -4191,6 +4192,7 @@
       layerTab === 'schematic_milp_read' || // MILP結果正規化：整數座標系，每格一線
       layerTab === 'schematic_rma_milp_read' || // MILP結果正規化（RMA）：整數座標系，每格一線
       layerTab === 'schematic_rma_normalize' || // ⑨ 座標正規化：整數座標系，每格一線
+      isRouteAdjustLayoutLayer(layerTab) || // 站點與路線調整 #1–#8
       layerTab === 'schematic_milp_straighten' || // connect 拉直：整數座標系，每格一線
       isLineOrthogonalTowardCenterLayerId(layerTab) ||
       isSpaceGridVhDrawFamilyLayerId(layerTab) ||
@@ -11034,9 +11036,9 @@
       }
     }
 
-    // 站點與路線調整：以「紅/藍/黃/紫 頂點（各 segment 端點，不含黑點）」之**中位數位置**畫紅色虛線十字
+    // 站點與路線調整 #1–#8：以「紅/藍/黃/紫 頂點（各 segment 端點，不含黑點）」之**中位數位置**畫紅色虛線十字
     // （純參考線，不改資料）。中位數中心由 getMedianAnchorCenterGrid 取得。
-    if (layerTab === 'schematic_rma_route_adjust') {
+    if (isRouteAdjustLayoutLayer(layerTab)) {
       const adjLayer = dataStore.findLayerById(layerTab);
       const med = layerStationsTowardSchematicCenter.getMedianAnchorCenterGrid(adjLayer);
       if (med) {
