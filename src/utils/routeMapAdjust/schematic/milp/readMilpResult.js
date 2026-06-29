@@ -12,6 +12,7 @@
 import { useDataStore } from '@/stores/dataStore.js';
 import { buildConnectSkeleton } from '../input.js';
 import { writeSchematicResultToLayer, reinsertBlackStations } from '../assemble.js';
+import { revalidatePinkToBrownInFlat, recomputeGrayAfterBrownToBlack, refreshPinkDpRatioInFlat } from '../../routeStations.js';
 import {
   SCHEMATIC_MILP_LAYER_ID,
   SCHEMATIC_MILP_READ_LAYER_ID,
@@ -102,8 +103,15 @@ export function loadMilpJsonRaw(parsed) {
   const readLayer = ds.findLayerById(SCHEMATIC_MILP_READ_LAYER_ID);
   if (!readLayer) return fail('找不到圖層 ' + SCHEMATIC_MILP_READ_LAYER_ID);
   if (!Array.isArray(parsed) || parsed.length === 0) return fail('匯入內容為空或格式不符。');
-  readLayer.dataJson = JSON.parse(JSON.stringify(parsed));
-  const write = writeSchematicResultToLayer(SCHEMATIC_MILP_READ_LAYER_ID, parsed, {
+  const flat = JSON.parse(JSON.stringify(parsed));
+  // 匯入時以格座標重算 dp_ratio（覆蓋骨架2 經緯度 DP 的舊值，否則 hover 會顯示錯誤比例如 0.9231）。
+  try {
+    refreshPinkDpRatioInFlat(flat);
+  } catch (e) {
+    console.warn('[MILP結果正規化] 匯入時重算 dp_ratio 失敗，沿用原 tags。', e);
+  }
+  readLayer.dataJson = JSON.parse(JSON.stringify(flat));
+  const write = writeSchematicResultToLayer(SCHEMATIC_MILP_READ_LAYER_ID, flat, {
     algo: '已匯入 MILP JSON（原始，未正規化）。按「座標正規化」做壓縮。',
     sourceLayerId: SCHEMATIC_MILP_LAYER_ID,
     imported: true,
@@ -111,6 +119,7 @@ export function loadMilpJsonRaw(parsed) {
     readAt: Date.now(),
   });
   if (!write.ok) return write;
+  ds.requestSpaceNetworkGridFullRedraw();
   return { ok: true, message: '已匯入 MILP JSON（原始）。按「座標正規化」做壓縮。', stats: write.stats };
 }
 
@@ -150,6 +159,62 @@ export function executeMilpStraightenSeed() {
   return { ok: true, message: `已移入「${from}」結果（黑點站已平均放回）；可按「紅/藍 connect 拉直」或逐點除錯。`, stats: write.stats };
 }
 
+/**
+ * 🔘 獨立按鈕用（座標正規化前）：以紅/黃/藍為邊界重算粉紅點（參數同骨架2），不再需要者改棕色。
+ *   就地套用到目前輸入（dataJson 或 ③ MILP 結果）並重新顯示（未正規化）。
+ */
+export function recomputeMilpReadPinkToBrown() {
+  const ds = useDataStore();
+  const readLayer = ds.findLayerById(SCHEMATIC_MILP_READ_LAYER_ID);
+  if (!readLayer) return fail('找不到圖層 ' + SCHEMATIC_MILP_READ_LAYER_ID);
+  const loaded = Array.isArray(readLayer.dataJson) && readLayer.dataJson.length ? readLayer.dataJson : null;
+  let input = loaded;
+  if (!input) {
+    const milp = ds.findLayerById(SCHEMATIC_MILP_LAYER_ID);
+    input = Array.isArray(milp?.spaceNetworkGridJsonData) && milp.spaceNetworkGridJsonData.length
+      ? milp.spaceNetworkGridJsonData : null;
+  }
+  if (!input) {
+    return fail('未提供 MILP 結果：請先「匯入 JSON 檔」或從①②③（RMA）匯入排版結果。');
+  }
+  const flat = JSON.parse(JSON.stringify(input));
+  const demoted = revalidatePinkToBrownInFlat(flat, { planar: true }); // MILP 結果為平面格座標
+  const res = loadMilpJsonRaw(flat); // 更新 dataJson + 重新顯示（仍未正規化）
+  if (!res.ok) return res;
+  return { ok: true, message: `粉紅點重算完成：${demoted} 個不需為粉紅 → 已改為棕色。`, demoted };
+}
+
+/**
+ * 🔘 第二顆按鈕：把棕點改回一般黑點 → 拉直路線（紅/黃/藍/粉紅為錨點）→ 再以「紅/黃/藍/粉紅 + 灰」為
+ *   邊界重算灰點配置（規則同骨架2）。就地套用到目前輸入（dataJson 或 ③ MILP 結果）並重新顯示（未正規化）。
+ */
+export function recomputeMilpReadBrownToBlackGray() {
+  const ds = useDataStore();
+  const readLayer = ds.findLayerById(SCHEMATIC_MILP_READ_LAYER_ID);
+  if (!readLayer) return fail('找不到圖層 ' + SCHEMATIC_MILP_READ_LAYER_ID);
+  const loaded = Array.isArray(readLayer.dataJson) && readLayer.dataJson.length ? readLayer.dataJson : null;
+  let input = loaded;
+  if (!input) {
+    const milp = ds.findLayerById(SCHEMATIC_MILP_LAYER_ID);
+    input = Array.isArray(milp?.spaceNetworkGridJsonData) && milp.spaceNetworkGridJsonData.length
+      ? milp.spaceNetworkGridJsonData : null;
+  }
+  if (!input) {
+    return fail('未提供 MILP 結果：請先「匯入 JSON 檔」或從①②③（RMA）匯入排版結果。');
+  }
+  const flat = JSON.parse(JSON.stringify(input));
+  const { brownToBlack, straightened, gray } = recomputeGrayAfterBrownToBlack(flat, { planar: true });
+  const res = loadMilpJsonRaw(flat);
+  if (!res.ok) return res;
+  return {
+    ok: true,
+    message: `棕點還原為黑點 ${brownToBlack} 個；拉直 ${straightened} 個中間頂點；重算灰點：新增 ${gray} 個（兩相鄰邊界點間黑點 ≤ 4）。`,
+    brownToBlack,
+    straightened,
+    gray,
+  };
+}
+
 /** 「座標正規化」：保拓樸壓縮空白行列。 */
 export function executeReadMilpResult() {
   const ds = useDataStore();
@@ -168,6 +233,16 @@ export function executeReadMilpResult() {
   }
 
   const baseFlat = JSON.parse(JSON.stringify(input));
+
+  // 座標正規化前：以紅/黃/藍為邊界重算粉紅點（參數同骨架2），不再需要者降級為棕色。
+  //   MILP 結果為平面格座標 → planar:true（不做 cos(lat) 校正）。
+  try {
+    const demoted = revalidatePinkToBrownInFlat(baseFlat, { planar: true });
+    if (demoted > 0) console.log(`[路線正規化] 粉紅點以紅/黃/藍邊界重算：${demoted} 個 → 降級棕色。`);
+  } catch (e) {
+    console.error('[路線正規化] 粉紅點重算（→棕色）失敗，沿用原分類。', e);
+  }
+
   const before = countFlatBad(baseFlat);
 
   // 只看紅/藍 connect 點：抽出 connect 骨架（去黑點）→ 移除「整排沒有 connect 的空白行/列」
@@ -175,6 +250,11 @@ export function executeReadMilpResult() {
   const { skeletonFlat, sections } = buildConnectSkeleton(baseFlat);
   const { removedCols, removedRows } = compactEmptyGridLines(skeletonFlat);
   const finalSegs = reinsertBlackStations(skeletonFlat, sections);
+  try {
+    refreshPinkDpRatioInFlat(finalSegs); // 壓縮後座標已變，須重算 dp_ratio
+  } catch (e) {
+    console.warn('[MILP結果正規化] 正規化後重算 dp_ratio 失敗。', e);
+  }
   const after = countFlatBad(finalSegs);
 
   const write = writeSchematicResultToLayer(SCHEMATIC_MILP_READ_LAYER_ID, finalSegs, {
@@ -190,6 +270,7 @@ export function executeReadMilpResult() {
     readAt: Date.now(),
   });
   if (!write.ok) return write;
+  ds.requestSpaceNetworkGridFullRedraw();
 
   // 拓撲錯誤偵測：若正規化「新增」了交叉/重疊（多為移除對角線穿過之空白行列把 45° 壓歪所致），顯示警示。
   const introduced = after - before;

@@ -15,8 +15,8 @@ import {
   computeRouteMapAdjustLoopRoutes,
   buildSkeletonInteriorVertexLookup,
   blackDotCornerAngleDeg,
-  computeRightAnglePinkBlackDots,
   computeGrayBlackDots,
+  buildSkeletonPinkDpDetailMap,
   edgeSinuosity,
   RIGHT_ANGLE_PINK_HEX,
   GRAY_DOT_HEX,
@@ -83,6 +83,7 @@ export function mountRouteMapAdjust2(el, dataStore) {
   const endpointGroup = L.layerGroup().addTo(map); // 🔵 頭尾共點端點線段藍色底色高亮（墊在路線底下）
   const finishedGroup = L.layerGroup().addTo(map);
   const skeletonGroup = L.layerGroup().addTo(map); // 🦴 骨架圖（啟用時改顯示此層）
+  const pinkDpHoverGroup = L.layerGroup().addTo(map); // 🩷 粉紅點 hover：头尾直线 + 垂线
   const stationGroup = L.layerGroup().addTo(map);
   const nameGroup = L.layerGroup().addTo(map); // 🏷️ 車站名常駐標籤（由開關控制）
 
@@ -130,10 +131,27 @@ export function mountRouteMapAdjust2(el, dataStore) {
     }
     return m;
   };
-  const stationTooltipHtml = (latlng, type, routesAtCoord, cornerAngleDeg = null, dpRatio = null) => {
+  const stationTooltipHtml = (
+    latlng,
+    type,
+    routesAtCoord,
+    cornerAngleDeg = null,
+    dpRatio = null,
+    dpDetail = null
+  ) => {
     const k = llKey(latlng[0], latlng[1]);
     const meta = (layer.routeMapAdjustStationMeta && layer.routeMapAdjustStationMeta[k]) || {};
     const routes = [...(routesAtCoord.get(k) || [])];
+    const dpBlock = dpDetail
+      ? `<div><strong style="color:${RIGHT_ANGLE_PINK_HEX}">dp_ratio</strong> ${Number(dpDetail.ratio).toFixed(4)}` +
+        `<br><span style="color:#888;font-size:11px;">` +
+        `垂距 ${Number(dpDetail.perpLen).toFixed(2)} ÷ 头尾 ${Number(dpDetail.chordLen).toFixed(2)}` +
+        ` · 锚点 (${dpDetail.anchorA[0].toFixed(4)},${dpDetail.anchorA[1].toFixed(4)})→` +
+        `(${dpDetail.anchorB[0].toFixed(4)},${dpDetail.anchorB[1].toFixed(4)})` +
+        `</span></div>`
+      : dpRatio != null
+        ? rowHtml('轉折比例', `${dpRatio.toFixed(3)}（${(dpRatio * 100).toFixed(1)}%）`)
+        : '';
     return (
       `<div style="font-size:12px;line-height:1.5">` +
       rowHtml('station_name', meta.name) +
@@ -142,15 +160,64 @@ export function mountRouteMapAdjust2(el, dataStore) {
       rowHtml('type', typeLabel(type)) +
       // 🩷 黑點/粉紅點才顯示路線交角（兩路段夾角，180°=直行、90°=直角、<90°=銳角）
       (cornerAngleDeg != null ? rowHtml('交角', `${cornerAngleDeg.toFixed(1)}°`) : '') +
-      // 🩷 粉紅點顯示其轉折比例（垂線/頭尾直線；即 RIGHT_ANGLE_PINK_DP_EPSILON_RATIO 比較對象）
-      (dpRatio != null
-        ? rowHtml('轉折比例', `${dpRatio.toFixed(3)}（${(dpRatio * 100).toFixed(1)}%）`)
-        : '') +
+      dpBlock +
       (routes.length
         ? `<div><span style="color:#888">route_name_list</span> ${esc(routes.join('、'))}</div>`
         : '') +
       `</div>`
     );
+  };
+
+  /** 垂足：在 Leaflet layer 像素空間計算，避免地圖投影下垂線看起來歪斜。 */
+  const footOnLayerPoint = (p, a, b) => {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return L.point(a.x, a.y);
+    let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return L.point(a.x + t * dx, a.y + t * dy);
+  };
+  const clearPinkDpHoverOverlay = () => {
+    pinkDpHoverGroup.clearLayers();
+  };
+  const drawPinkDpHoverOverlay = (detail) => {
+    clearPinkDpHoverOverlay();
+    if (!detail) return;
+    const toPt = ([lat, lng]) => map.latLngToLayerPoint(L.latLng(lat, lng));
+    const sa = toPt(detail.anchorA);
+    const sb = toPt(detail.anchorB);
+    const sp = toPt(detail.pointP);
+    const sh = footOnLayerPoint(sp, sa, sb);
+    const footLl = map.layerPointToLatLng(sh);
+    const lineOpts = { weight: 2.5, opacity: 0.95, interactive: false };
+    L.polyline([detail.anchorA, detail.anchorB], {
+      ...lineOpts,
+      color: '#1565c0',
+      dashArray: '8,5',
+    }).addTo(pinkDpHoverGroup);
+    L.polyline([detail.pointP, [footLl.lat, footLl.lng]], {
+      ...lineOpts,
+      color: RIGHT_ANGLE_PINK_HEX,
+    }).addTo(pinkDpHoverGroup);
+    const dotOpts = {
+      color: '#ffffff',
+      weight: 1,
+      fillOpacity: 1,
+      interactive: false,
+      pane: 'srmaDots',
+    };
+    L.circleMarker(detail.anchorA, { ...dotOpts, radius: 5, fillColor: '#ff0000' }).addTo(
+      pinkDpHoverGroup
+    );
+    L.circleMarker(detail.anchorB, { ...dotOpts, radius: 5, fillColor: '#ff0000' }).addTo(
+      pinkDpHoverGroup
+    );
+    L.circleMarker([footLl.lat, footLl.lng], {
+      ...dotOpts,
+      radius: 3.5,
+      fillColor: '#1565c0',
+    }).addTo(pinkDpHoverGroup);
   };
 
   const renderFinished = () => {
@@ -568,7 +635,8 @@ export function mountRouteMapAdjust2(el, dataStore) {
     //   🩶 過長黑點段中間改灰點，使兩相鄰邊界點（紅/黃/紫/藍/粉紅/灰）之間黑點 ≤ 4。
     const routesAtCoord = buildRoutesAtCoord();
     const bendLookup = buildSkeletonInteriorVertexLookup(sk.edges); // 供 hover 顯示交角
-    const pinkKeys = computeRightAnglePinkBlackDots(sk.edges, blacks);
+    const pinkDpDetailMap = buildSkeletonPinkDpDetailMap(sk.edges, blacks);
+    const pinkKeys = new Set(pinkDpDetailMap.keys());
     const grayKeys = computeGrayBlackDots(sk.edges, blacks, pinkKeys);
     for (const p of blacks || []) {
       if (!Array.isArray(p) || p.length < 2) continue;
@@ -576,7 +644,8 @@ export function mountRouteMapAdjust2(el, dataStore) {
       const pk = llKey(p[0], p[1]);
       const isPink = pinkKeys.has(pk);
       const isGray = !isPink && grayKeys.has(pk);
-      const dpRatio = isPink ? pinkKeys.get(pk) : null; // 🩷 轉折比例（垂線/頭尾直線）
+      const dpDetail = isPink ? pinkDpDetailMap.get(pk) ?? null : null;
+      const dpRatio = dpDetail?.ratio ?? (isPink ? pinkKeys.get(pk) : null);
       const r = isPink || isGray ? 4 : 3; // 🩷🩶 粉紅/灰大小同紅/藍/黃/紫節點(4)；一般黑點仍 3
       const m = L.circleMarker(p, {
         radius: r,
@@ -587,12 +656,18 @@ export function mountRouteMapAdjust2(el, dataStore) {
         interactive: true,
         pane: 'srmaDots',
       });
-      // 🩷 黑點/粉紅點 hover 顯示路線交角；粉紅點另顯示轉折比例
-      m.bindTooltip(stationTooltipHtml(p, 'black', routesAtCoord, cornerDeg, dpRatio), {
+      // 🩷 黑點/粉紅點 hover 顯示路線交角；粉紅點另顯示轉折比例 + 头尾直线／垂线
+      m.bindTooltip(stationTooltipHtml(p, 'black', routesAtCoord, cornerDeg, dpRatio, dpDetail), {
         sticky: true,
       });
-      m.on('mouseover', () => m.setRadius(r + 3));
-      m.on('mouseout', () => m.setRadius(r));
+      m.on('mouseover', () => {
+        m.setRadius(r + 3);
+        if (dpDetail) drawPinkDpHoverOverlay(dpDetail);
+      });
+      m.on('mouseout', () => {
+        m.setRadius(r);
+        if (isPink) clearPinkDpHoverOverlay();
+      });
       m.addTo(skeletonGroup);
     }
     // 節點：🟣 切斷處(紫) → 紫、大；🟡 新加交叉 → 黃、大；其餘 → 灰、一般
@@ -623,6 +698,7 @@ export function mountRouteMapAdjust2(el, dataStore) {
   };
 
   const renderAll = () => {
+    clearPinkDpHoverOverlay();
     if (hasSkeleton()) {
       // 骨架模式：隱藏底圖（純白底，只看骨頭）+ 只顯示骨架（清掉原始路線與各高亮、站點）
       setBasemapVisible(false);

@@ -159,9 +159,14 @@ export const blackDotCornerAngleDeg = (lookup, blackDot) => {
 /** 公尺/緯度度（近似）。 */
 const M_PER_DEG = 111320;
 
-/** 把 [lat,lng] 折線投影到以公尺為單位的當地平面（經度乘 cos(latRef)），供量距離／簡化用。 */
-const pathToMeters = (path) => {
+/**
+ * 把折線投影到平面（供量距離／簡化用）。
+ *   planar=false：輸入為 [lat,lng]，經度乘 cos(latRef) 校正成當地公尺平面。
+ *   planar=true：輸入已是平面格座標（x,y 同尺度），直接用、不做 cos 校正。
+ */
+const pathToMeters = (path, planar = false) => {
   if (!Array.isArray(path) || !path.length) return [];
+  if (planar) return path.map((p) => [Number(p[0]), Number(p[1])]);
   const latRef = (Number(path[0][0]) * Math.PI) / 180;
   const kx = Math.cos(latRef) * M_PER_DEG;
   return path.map((p) => [Number(p[1]) * kx, Number(p[0]) * M_PER_DEG]);
@@ -189,10 +194,11 @@ const douglasPeuckerKeep = (xy, ratio) => {
   const n = xy.length;
   const keep = new Array(n).fill(false);
   const ratios = new Array(n).fill(null);
-  if (n === 0) return { keep, ratios };
+  const anchorSeg = new Array(n).fill(null); // 保留頂點 i 時所對應 DP 子段 [a,b] 索引
+  if (n === 0) return { keep, ratios, anchorSeg };
   keep[0] = true;
   keep[n - 1] = true;
-  if (n < 3) return { keep, ratios };
+  if (n < 3) return { keep, ratios, anchorSeg };
   let stack = [[0, n - 1]];
   if (Math.hypot(xy[0][0] - xy[n - 1][0], xy[0][1] - xy[n - 1][1]) < 1) {
     let far = 1;
@@ -225,10 +231,11 @@ const douglasPeuckerKeep = (xy, ratio) => {
     if (idx > a && baseLen > 0 && maxD / baseLen > ratio) {
       keep[idx] = true;
       ratios[idx] = maxD / baseLen; // 此頂點的轉折比例
+      anchorSeg[idx] = [a, b];
       stack.push([a, idx], [idx, b]);
     }
   }
-  return { keep, ratios };
+  return { keep, ratios, anchorSeg };
 };
 
 /**
@@ -236,8 +243,8 @@ const douglasPeuckerKeep = (xy, ratio) => {
  * @param {Array<[number,number]>} path 折線 [lat,lng]
  * @returns {number}
  */
-export const edgeSinuosity = (path) => {
-  const xy = pathToMeters(path);
+export const edgeSinuosity = (path, planar = false) => {
+  const xy = pathToMeters(path, planar);
   if (xy.length < 2) return 1;
   let arc = 0;
   for (let i = 0; i < xy.length - 1; i++) {
@@ -246,6 +253,48 @@ export const edgeSinuosity = (path) => {
   const chord = Math.hypot(xy[xy.length - 1][0] - xy[0][0], xy[xy.length - 1][1] - xy[0][1]);
   if (chord < 1) return arc < 1 ? 1 : Infinity;
   return arc / chord;
+};
+
+/**
+ * 骨架（路線圖轉換骨架2 等）：粉紅點 dp_ratio 幾何（Sinuosity + Douglas–Peucker，與 computeRightAnglePinkBlackDots 同源）。
+ * @returns {Map<string, {ratio:number, anchorA:[number,number], anchorB:[number,number], pointP:[number,number], footH:[number,number], chordLen:number, perpLen:number}>}
+ *   鍵＝`lat.toFixed(6),lng.toFixed(6)`；座標皆為 [lat,lng]。
+ */
+export const buildSkeletonPinkDpDetailMap = (edges, blackDots, opts = {}) => {
+  const sinuosityMin = opts.sinuosityMin ?? RIGHT_ANGLE_PINK_SINUOSITY_MIN;
+  const epsilonRatio = opts.epsilonRatio ?? RIGHT_ANGLE_PINK_DP_EPSILON_RATIO;
+  const planar = !!opts.planar;
+  const key = (p) => `${Number(p[0]).toFixed(6)},${Number(p[1]).toFixed(6)}`;
+  const blackKeys = new Set(
+    (Array.isArray(blackDots) ? blackDots : [])
+      .filter((b) => Array.isArray(b) && b.length >= 2)
+      .map((b) => key(b))
+  );
+  const pending = new Map();
+  if (!blackKeys.size) return pending;
+  for (const e of Array.isArray(edges) ? edges : []) {
+    const path = Array.isArray(e?.path) ? e.path : [];
+    if (path.length < 3) continue;
+    if (edgeSinuosity(path, planar) <= sinuosityMin) continue;
+    const xy = pathToMeters(path, planar);
+    const { keep, anchorSeg } = douglasPeuckerKeep(xy, epsilonRatio);
+    for (let i = 1; i < path.length - 1; i++) {
+      if (!keep[i]) continue;
+      const k = key(path[i]);
+      if (!blackKeys.has(k)) continue;
+      const seg = anchorSeg[i];
+      if (!seg) continue;
+      const [iA, iB] = seg;
+      const detail = measurePinkDpDetail(xy[iA], xy[iB], xy[i]);
+      detail.anchorA = [path[iA][0], path[iA][1]];
+      detail.anchorB = [path[iB][0], path[iB][1]];
+      detail.pointP = [path[i][0], path[i][1]];
+      const cur = pending.get(k);
+      // 同一黑點若出現在多條（共線）邊，取較大的轉折比例（與 computeRightAnglePinkBlackDots 一致）。
+      if (!cur || detail.ratio > cur.ratio) pending.set(k, detail);
+    }
+  }
+  return pending;
 };
 
 /**
@@ -259,38 +308,647 @@ export const edgeSinuosity = (path) => {
  * @returns {Map<string,number|null>} 應變粉紅之黑點 → 其轉折比例（垂線/頭尾直線；鍵＝`lat.toFixed(6),lng.toFixed(6)`）
  */
 export const computeRightAnglePinkBlackDots = (edges, blackDots, opts = {}) => {
-  const sinuosityMin = opts.sinuosityMin ?? RIGHT_ANGLE_PINK_SINUOSITY_MIN;
-  const epsilonRatio = opts.epsilonRatio ?? RIGHT_ANGLE_PINK_DP_EPSILON_RATIO;
-  const key = (p) => `${Number(p[0]).toFixed(6)},${Number(p[1]).toFixed(6)}`;
-  const blackKeys = new Set(
-    (Array.isArray(blackDots) ? blackDots : [])
-      .filter((b) => Array.isArray(b) && b.length >= 2)
-      .map((b) => key(b))
-  );
-  const pink = new Map(); // key → 轉折比例（垂線/頭尾直線）
-  if (!blackKeys.size) return pink;
-  for (const e of Array.isArray(edges) ? edges : []) {
-    const path = Array.isArray(e?.path) ? e.path : [];
-    if (path.length < 3) continue;
-    if (edgeSinuosity(path) <= sinuosityMin) continue; // 不夠曲折（≤門檻）→ 不挑轉折
-    const xy = pathToMeters(path);
-    const { keep, ratios } = douglasPeuckerKeep(xy, epsilonRatio);
-    for (let i = 1; i < path.length - 1; i++) {
-      if (!keep[i]) continue; // 只在 DP 保留的代表性轉折頂點挑黑點
-      const k = key(path[i]);
-      if (!blackKeys.has(k)) continue; // 轉折頂點即黑點位置
-      const r = ratios[i];
-      // 同一黑點若出現在多條（共線）邊，取較大的轉折比例。
-      if (!pink.has(k) || (r != null && (pink.get(k) == null || r > pink.get(k)))) pink.set(k, r);
+  const detail = buildSkeletonPinkDpDetailMap(edges, blackDots, opts);
+  const pink = new Map();
+  for (const [k, d] of detail) pink.set(k, d.ratio);
+  return pink;
+};
+
+/** 🟥🟨🟦 邊界節點判定：紅(connect)/黃(cross)/藍(terminal)。以「分類色」為準最可靠。 */
+const RYB_NODE_COLORS = new Set(['#ff0000', '#ffd600', '#1565c0']);
+const nodeIsRYBClass = (nd) => {
+  if (!nd) return false;
+  const t = nd.tags || {};
+  const cc = String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase();
+  // ⚠️ 顏色優先：粉紅/灰/棕/黑/紫**不是**紅/黃/藍邊界。這些點（粉紅/灰/棕）雖為「保留節點」而帶 node_type='connect'，
+  //   若僅看 node_type 會被誤判為紅邊界 → 粉紅變路徑端點而非中段頂點 → 重算時全部被降級。
+  if (cc) {
+    if (RYB_NODE_COLORS.has(cc)) return true; // 🔴🟡🔵
+    if (
+      cc === '#000000' || cc === '#000' || cc === '#9c27b0' || // 黑 / 紫
+      cc === RIGHT_ANGLE_PINK_HEX.toLowerCase() ||
+      cc === GRAY_DOT_HEX.toLowerCase() ||
+      cc === DEMOTED_PINK_BROWN_HEX.toLowerCase()
+    ) {
+      return false;
     }
   }
-  return pink;
+  const kind = nd.node_kind ?? t.node_kind;
+  if (kind === 'right_angle_pink' || kind === 'gray' || kind === 'brown' || kind === 'black' || kind === 'purple') {
+    return false;
+  }
+  if (kind === 'cross') return true; // 黃
+  const nt = nd.node_type ?? t.node_type;
+  return nt === 'connect' || nt === 'terminal'; // 紅/藍
+};
+/** 🩷 粉紅點判定。 */
+const nodeIsPinkClass = (nd) => {
+  if (!nd) return false;
+  const t = nd.tags || {};
+  if ((nd.node_kind ?? t.node_kind) === 'right_angle_pink') return true;
+  const cc = String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase();
+  return cc === RIGHT_ANGLE_PINK_HEX.toLowerCase();
+};
+/** 🖤 黑點判定。 */
+const nodeIsBlackClass = (nd) => {
+  if (!nd) return false;
+  const t = nd.tags || {};
+  if ((nd.node_kind ?? t.node_kind) === 'black') return true;
+  const cc = String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase();
+  return cc === '#000000' || cc === '#000';
+};
+/** 🤎 棕點判定。 */
+const nodeIsBrownClass = (nd) => {
+  if (!nd) return false;
+  const t = nd.tags || {};
+  if ((nd.node_kind ?? t.node_kind) === 'brown') return true;
+  const cc = String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase();
+  return cc === DEMOTED_PINK_BROWN_HEX.toLowerCase();
+};
+/** 🟪 紫點判定。 */
+const nodeIsPurpleClass = (nd) => {
+  if (!nd) return false;
+  const t = nd.tags || {};
+  if ((nd.node_kind ?? t.node_kind) === 'purple') return true;
+  const cc = String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase();
+  return cc === '#9c27b0';
+};
+/** 🟥🟦🟨🟪 紅/藍/黃/紫邊界（dp_ratio 顯示用：以最近的這四種點為頭尾）。 */
+const nodeIsRYBPClass = (nd) => nodeIsRYBClass(nd) || nodeIsPurpleClass(nd);
+/** 設定節點為某分類色（同時寫頂層與 tags）。 */
+const setNodeClass = (nd, kind, hex) => {
+  nd.node_kind = kind;
+  nd.node_class_color = hex;
+  if (!nd.tags) nd.tags = {};
+  nd.tags.node_kind = kind;
+  nd.tags.node_class_color = hex;
+};
+/** 紅/黃/藍/粉紅（拉直時保留為轉折頂點之錨點）。 */
+const nodeIsRYBorPinkClass = (nd) => nodeIsRYBClass(nd) || nodeIsPinkClass(nd);
+
+/**
+ * 🪡 拉直路線：把每個「錨點到錨點」子路徑的中間頂點，沿兩錨點直線等比例重排（移除中間多餘轉折）。
+ *   錨點＝isAnchorFn 為真者（如紅/黃/藍/粉紅）；其餘（黑/紫等）皆視為可被拉直的中間頂點。
+ *   同座標頂點（共線並行）一起移動，保持拓樸。就地修改 points 與 nodes 之 x_grid/y_grid。
+ * @returns {number} 被重排的中間頂點數
+ */
+const straightenFlatBetweenAnchors = (flat, isAnchorFn) => {
+  const vkey = (a, b) => `${a.toFixed(6)},${b.toFixed(6)}`;
+  const occ = new Map(); // key -> [{si,pi}]
+  const coordOf = new Map(); // key -> [a,b]
+  const anchor = new Map(); // key -> bool
+  const adj = new Map();
+  const addAdj = (x, y) => { if (!adj.has(x)) adj.set(x, new Set()); adj.get(x).add(y); };
+  flat.forEach((seg, si) => {
+    const pts = seg?.points;
+    if (!Array.isArray(pts) || pts.length < 2) return;
+    const nodes = Array.isArray(seg.nodes) ? seg.nodes : [];
+    let prev = null;
+    for (let pi = 0; pi < pts.length; pi++) {
+      const [a, b] = readFlatPt(pts[pi]);
+      const k = vkey(a, b);
+      if (!occ.has(k)) { occ.set(k, []); coordOf.set(k, [a, b]); anchor.set(k, false); }
+      occ.get(k).push({ si, pi });
+      if (isAnchorFn(nodes[pi])) anchor.set(k, true);
+      if (prev != null && prev !== k) { addAdj(prev, k); addAdj(k, prev); }
+      prev = k;
+    }
+  });
+  const isAnc = (k) => !!anchor.get(k);
+  const ek = (x, y) => (x < y ? `${x}|${y}` : `${y}|${x}`);
+  const seen = new Set();
+  const chains = [];
+  const walk = (start, first) => {
+    const ks = [start, first];
+    seen.add(ek(start, first));
+    let prev = start;
+    let cur = first;
+    let guard = 0;
+    while (!isAnc(cur) && cur !== start && guard++ < 100000) {
+      const next = [...(adj.get(cur) || [])].find((n) => n !== prev);
+      if (next === undefined) break;
+      seen.add(ek(cur, next));
+      ks.push(next);
+      prev = cur;
+      cur = next;
+    }
+    return ks;
+  };
+  for (const [k] of occ) {
+    if (!isAnc(k)) continue;
+    for (const nb of adj.get(k) || []) if (!seen.has(ek(k, nb))) chains.push(walk(k, nb));
+  }
+  const setCoord = (k, na, nb) => {
+    coordOf.set(k, [na, nb]);
+    for (const { si, pi } of occ.get(k) || []) {
+      const seg = flat[si];
+      const pts = seg.points;
+      if (Array.isArray(pts[pi])) { pts[pi][0] = na; pts[pi][1] = nb; }
+      else { pts[pi].x = na; pts[pi].y = nb; }
+      const nd = seg.nodes?.[pi];
+      if (nd) { nd.x_grid = na; nd.y_grid = nb; if (!nd.tags) nd.tags = {}; nd.tags.x_grid = na; nd.tags.y_grid = nb; }
+    }
+  };
+  let moved = 0;
+  for (const ks of chains) {
+    if (ks.length < 3) continue; // 無中間頂點
+    const m = ks.length - 1;
+    const [ax, ay] = coordOf.get(ks[0]);
+    const [bx, by] = coordOf.get(ks[m]);
+    for (let i = 1; i < m; i++) {
+      const t = i / m;
+      setCoord(ks[i], ax + (bx - ax) * t, ay + (by - ay) * t);
+      moved++;
+    }
+  }
+  return moved;
+};
+const readFlatPt = (p) =>
+  Array.isArray(p) ? [Number(p[0]), Number(p[1])] : [Number(p?.x ?? 0), Number(p?.y ?? 0)];
+
+/**
+ * 由 flat segments（points + nodes）建「以紅/黃/藍為邊界」之折線；紫/粉紅/灰/黑視為內部直通頂點。
+ *   planar=false：輸出 [lat,lng]（flat 點為 [lon,lat]）；planar=true：輸出原始平面 [x,y]。
+ * @returns {Array<{path:Array<[number,number]>}>}
+ */
+const buildRYBBoundedPaths = (flat, planar) => {
+  const repr = (a, b) => (planar ? [a, b] : [b, a]);
+  const vkey = (a, b) => `${a.toFixed(6)},${b.toFixed(6)}`;
+  const vert = new Map(); // vkey -> {a,b,ryb}
+  const adj = new Map();
+  const addAdj = (x, y) => { if (!adj.has(x)) adj.set(x, new Set()); adj.get(x).add(y); };
+  for (const seg of Array.isArray(flat) ? flat : []) {
+    const pts = seg?.points;
+    if (!Array.isArray(pts) || pts.length < 2) continue;
+    const nodes = Array.isArray(seg.nodes) ? seg.nodes : [];
+    let prev = null;
+    for (let i = 0; i < pts.length; i++) {
+      const [a, b] = readFlatPt(pts[i]);
+      const k = vkey(a, b);
+      if (!vert.has(k)) vert.set(k, { a, b, ryb: false });
+      if (nodeIsRYBClass(nodes[i])) vert.get(k).ryb = true;
+      if (prev != null && prev !== k) { addAdj(prev, k); addAdj(k, prev); }
+      prev = k;
+    }
+  }
+  const isRYB = (k) => !!vert.get(k)?.ryb;
+  const ek = (x, y) => (x < y ? `${x}|${y}` : `${y}|${x}`);
+  const seen = new Set();
+  const paths = [];
+  const walk = (start, first) => {
+    const ks = [start, first];
+    seen.add(ek(start, first));
+    let prev = start;
+    let cur = first;
+    let guard = 0;
+    while (!isRYB(cur) && cur !== start && guard++ < 100000) {
+      const next = [...(adj.get(cur) || [])].find((n) => n !== prev);
+      if (next === undefined) break;
+      seen.add(ek(cur, next));
+      ks.push(next);
+      prev = cur;
+      cur = next;
+    }
+    return ks.map((k) => { const v = vert.get(k); return repr(v.a, v.b); });
+  };
+  for (const [k] of vert) {
+    if (!isRYB(k)) continue;
+    for (const nb of adj.get(k) || []) if (!seen.has(ek(k, nb))) paths.push({ path: walk(k, nb) });
+  }
+  for (const [k] of vert) { // 殘餘純環（無 RYB 邊界）
+    for (const nb of adj.get(k) || []) if (!seen.has(ek(k, nb))) paths.push({ path: walk(k, nb) });
+  }
+  return paths;
+};
+
+/** 點 p 到線段 a-b 的垂足（t 已 clamp 到 [0,1]）。 */
+const footOnSegment = (p, a, b) => {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return [a[0], a[1]];
+  let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return [a[0] + t * dx, a[1] + t * dy];
+};
+
+const measurePinkDpDetail = (A, B, P) => {
+  const chordLen = Math.hypot(B[0] - A[0], B[1] - A[1]);
+  const footH = footOnSegment(P, A, B);
+  const perpLen = Math.hypot(P[0] - footH[0], P[1] - footH[1]);
+  const ratio = chordLen <= 0 ? 0 : Number((perpLen / chordLen).toFixed(4));
+  return { ratio, anchorA: A, anchorB: B, pointP: P, footH, chordLen, perpLen };
+};
+
+const nodeAtSegmentIndex = (seg, pi) => {
+  const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
+  if (nodes[pi]) return nodes[pi];
+  const p = seg?.points?.[pi];
+  if (Array.isArray(p) && p.length > 2 && p[2] && typeof p[2] === 'object') return p[2];
+  return null;
+};
+
+/** flat 上某索引的格座標（points 優先，否則 nodes.x_grid/y_grid）。 */
+const coordFromSegIndex = (seg, pi) => {
+  const pts = seg?.points;
+  if (Array.isArray(pts) && pts[pi] != null) return readFlatPt(pts[pi]);
+  const nd = nodeAtSegmentIndex(seg, pi);
+  if (!nd) return null;
+  const x = nd.x_grid ?? nd.tags?.x_grid;
+  const y = nd.y_grid ?? nd.tags?.y_grid;
+  if (x == null || y == null) return null;
+  return [Number(x), Number(y)];
+};
+
+/** dp_ratio 量測用錨點：RYBP + 畫面上紅/藍 connect（含 node_class_color #ff0000 的 line 站）。 */
+const nodeIsDpRatioAnchor = (nd) => {
+  if (!nd) return false;
+  if (nodeIsPinkClass(nd) || nodeIsBrownClass(nd)) return false;
+  const kind = nd.node_kind ?? nd.tags?.node_kind;
+  if (kind === 'gray') return false;
+  if (nodeIsRYBPClass(nd)) return true;
+  const cc = String(nd.node_class_color ?? nd.tags?.node_class_color ?? '').toLowerCase();
+  if (cc === '#ff0000' || cc === '#1565c0' || cc === '#ffd600' || cc === '#9c27b0') return true;
+  const nt = nd.node_type ?? nd.tags?.node_type;
+  return nt === 'connect' || nt === 'terminal';
+};
+
+/** 整數格：正交示意圖座標比對用。 */
+const gridCell = (v) => Math.round(Number(v));
+
+/**
+ * 由「畫面上可見錨點」量 dp_ratio（同列／同行最近 RYB+P；与 hover 画线同源）。
+ * @param {[number,number]} pointP 粉点 [x,y]
+ * @param {Array<[number,number]>} anchorCoords 屏幕上的锚点格坐标
+ */
+export const measurePinkDpFromScreenAnchors = (pointP, anchorCoords) => {
+  if (!pointP || !Array.isArray(anchorCoords) || !anchorCoords.length) return null;
+  const P = [Number(pointP[0]), Number(pointP[1])];
+  if (!Number.isFinite(P[0]) || !Number.isFinite(P[1])) return null;
+  const px = gridCell(P[0]);
+  const py = gridCell(P[1]);
+  const uniq = new Map();
+  for (const a of anchorCoords) {
+    if (!Array.isArray(a) || a.length < 2) continue;
+    const x = Number(a[0]);
+    const y = Number(a[1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    uniq.set(`${gridCell(x)},${gridCell(y)}`, [x, y]);
+  }
+  const anchors = [...uniq.values()];
+  let best = null;
+  const pickMin = (det) => {
+    if (!det) return;
+    if (!best || det.ratio < best.ratio) best = det;
+  };
+  const onRow = anchors.filter((a) => gridCell(a[1]) === py);
+  if (onRow.length >= 2) {
+    const left = onRow.filter((a) => gridCell(a[0]) < px).sort((a, b) => gridCell(b[0]) - gridCell(a[0]))[0];
+    const right = onRow.filter((a) => gridCell(a[0]) > px).sort((a, b) => gridCell(a[0]) - gridCell(b[0]))[0];
+    if (left && right) pickMin(measurePinkDpDetail(left, right, P));
+  }
+  const onCol = anchors.filter((a) => gridCell(a[0]) === px);
+  if (onCol.length >= 2) {
+    const below = onCol.filter((a) => gridCell(a[1]) < py).sort((a, b) => gridCell(b[1]) - gridCell(a[1]))[0];
+    const above = onCol.filter((a) => gridCell(a[1]) > py).sort((a, b) => gridCell(a[1]) - gridCell(b[1]))[0];
+    if (below && above) pickMin(measurePinkDpDetail(below, above, P));
+  }
+  return best;
+};
+
+/** stationFeatures 上是否為 dp_ratio 锚点（与画圆 fill 逻辑一致）。 */
+export const isScreenDpAnchorFeature = (feature) => {
+  const p = feature?.properties;
+  if (!p) return false;
+  const tags = p.tags || {};
+  const cc = String(p.node_class_color ?? tags.node_class_color ?? '').toLowerCase();
+  if (cc === RIGHT_ANGLE_PINK_HEX.toLowerCase() || tags.node_kind === 'right_angle_pink') return false;
+  if (cc === GRAY_DOT_HEX.toLowerCase() || tags.node_kind === 'gray') return false;
+  if (cc === DEMOTED_PINK_BROWN_HEX.toLowerCase() || tags.node_kind === 'brown') return false;
+  if (cc === '#ff0000' || cc === '#1565c0' || cc === '#ffd600' || cc === '#9c27b0') return true;
+  const nt = feature.nodeType ?? p.node_type ?? tags.node_type;
+  return nt === 'connect' || nt === 'terminal';
+};
+
+/**
+ * 計算粉紅／棕點 dp_ratio 幾何（不修改 flat）。
+ * @returns {Map<string, {ratio:number, anchorA:[number,number], anchorB:[number,number], pointP:[number,number], footH:[number,number], chordLen:number, perpLen:number}>}
+ */
+export const buildPinkDpRatioDetailMap = (flat) => {
+  const pending = new Map();
+  if (!Array.isArray(flat) || !flat.length) return pending;
+  const vkey = (a, b) => `${a.toFixed(6)},${b.toFixed(6)}`;
+  const stage = (k, detail) => {
+    if (!detail || detail.ratio == null || !Number.isFinite(detail.ratio)) return;
+    const cur = pending.get(k);
+    if (!cur || detail.ratio < cur.ratio) pending.set(k, detail);
+  };
+
+  const occ = new Map();
+  const pinkKeys = new Set();
+  const rybpCoordMap = new Map();
+  const coordOf = new Map();
+  const anchorKeys = new Set();
+  const adj = new Map();
+  const addAdj = (a, b) => {
+    if (!adj.has(a)) adj.set(a, new Set());
+    adj.get(a).add(b);
+  };
+  const addRybp = (P) => {
+    if (!P) return;
+    const k = vkey(P[0], P[1]);
+    rybpCoordMap.set(k, [P[0], P[1]]);
+    anchorKeys.add(k);
+    coordOf.set(k, [P[0], P[1]]);
+  };
+  for (let si = 0; si < flat.length; si++) {
+    const seg = flat[si];
+    const pts = seg?.points;
+    const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
+    const nLen = Math.max(Array.isArray(pts) ? pts.length : 0, nodes.length);
+    let prev = null;
+    for (let pi = 0; pi < nLen; pi++) {
+      const P = coordFromSegIndex(seg, pi);
+      if (!P) continue;
+      const k = vkey(P[0], P[1]);
+      if (!occ.has(k)) occ.set(k, []);
+      occ.get(k).push({ si, pi });
+      coordOf.set(k, P);
+      const nd = nodeAtSegmentIndex(seg, pi);
+      const cc = String(nd?.node_class_color ?? nd?.tags?.node_class_color ?? '').toLowerCase();
+      if (nodeIsPinkClass(nd) || nodeIsBrownClass(nd) || cc === RIGHT_ANGLE_PINK_HEX.toLowerCase()) {
+        pinkKeys.add(k);
+      }
+      if (nodeIsDpRatioAnchor(nd)) addRybp(P);
+      if (prev != null && prev !== k) {
+        addAdj(prev, k);
+        addAdj(k, prev);
+      }
+      prev = k;
+    }
+  }
+
+  const measureAxisAlignedAtPink = (P) => {
+    const px = gridCell(P[0]);
+    const py = gridCell(P[1]);
+    const anchors = [...rybpCoordMap.values()];
+    const out = [];
+    const onRow = anchors.filter((a) => gridCell(a[1]) === py);
+    if (onRow.length >= 2) {
+      const left = onRow.filter((a) => gridCell(a[0]) < px).sort((a, b) => gridCell(b[0]) - gridCell(a[0]))[0];
+      const right = onRow.filter((a) => gridCell(a[0]) > px).sort((a, b) => gridCell(a[0]) - gridCell(b[0]))[0];
+      if (left && right) out.push(measurePinkDpDetail(left, right, P));
+    }
+    const onCol = anchors.filter((a) => gridCell(a[0]) === px);
+    if (onCol.length >= 2) {
+      const below = onCol.filter((a) => gridCell(a[1]) < py).sort((a, b) => gridCell(b[1]) - gridCell(a[1]))[0];
+      const above = onCol.filter((a) => gridCell(a[1]) > py).sort((a, b) => gridCell(a[1]) - gridCell(b[1]))[0];
+      if (below && above) out.push(measurePinkDpDetail(below, above, P));
+    }
+    return out;
+  };
+  for (const pk of pinkKeys) {
+    const P = coordOf.get(pk);
+    if (!P) continue;
+    for (const det of measureAxisAlignedAtPink(P)) stage(pk, det);
+  }
+
+  /** 沿單一路段折線，取 P 左右最近 RYBP 錨點量 dp_ratio。 */
+  const measureOnSegmentAt = (si, pi) => {
+    const seg = flat[si];
+    const pts = seg?.points;
+    if (!Array.isArray(pts) || pi < 0 || pi >= pts.length) return null;
+    let iL = pi - 1;
+    while (iL >= 0 && !nodeIsDpRatioAnchor(nodeAtSegmentIndex(seg, iL))) iL--;
+    let iR = pi + 1;
+    while (iR < pts.length && !nodeIsDpRatioAnchor(nodeAtSegmentIndex(seg, iR))) iR++;
+    if (iL < 0 || iR >= pts.length) return null;
+    const a = coordFromSegIndex(seg, iL);
+    const b = coordFromSegIndex(seg, iR);
+    const P = readFlatPt(pts[pi]);
+    if (!a || !b) return null;
+    return measurePinkDpDetail(a, b, P);
+  };
+
+  // 同格常跨多路段：對粉點座標的「每一個」折線 occurrence 量測，取 min（最局部）。
+  for (const pk of pinkKeys) {
+    if (pending.has(pk)) continue;
+    for (const { si, pi } of occ.get(pk) || []) {
+      const det = measureOnSegmentAt(si, pi);
+      if (det) stage(pk, det);
+    }
+  }
+
+  const walkToAnchor = (start, first) => {
+    let prev = start;
+    let cur = first;
+    let guard = 0;
+    while (!anchorKeys.has(cur) && guard++ < 100000) {
+      const nbs = [...(adj.get(cur) || [])].filter((n) => n !== prev);
+      if (!nbs.length) return null;
+      prev = cur;
+      cur = nbs[0];
+    }
+    return anchorKeys.has(cur) ? cur : null;
+  };
+  for (const pk of pinkKeys) {
+    if (pending.has(pk)) continue;
+    const P = coordOf.get(pk);
+    if (!P) continue;
+    let best = null;
+    for (const nb of adj.get(pk) || []) {
+      const aKey = walkToAnchor(pk, nb);
+      if (!aKey) continue;
+      for (const nb2 of adj.get(pk) || []) {
+        if (nb2 === nb) continue;
+        const bKey = walkToAnchor(pk, nb2);
+        if (!bKey || bKey === aKey) continue;
+        const det = measurePinkDpDetail(coordOf.get(aKey), coordOf.get(bKey), P);
+        if (!best || det.ratio < best.ratio) best = det;
+      }
+    }
+    if (best) stage(pk, best);
+  }
+
+  return pending;
+};
+
+/**
+ * 計算粉紅／棕點 dp_ratio（不修改 flat）。
+ * @returns {Map<string, number>} vkey → ratio
+ */
+export const buildPinkDpRatioMap = (flat) => {
+  const detail = buildPinkDpRatioDetailMap(flat);
+  const pending = new Map();
+  for (const [k, d] of detail) pending.set(k, d.ratio);
+  return pending;
+};
+
+/**
+ * 為每個粉紅／棕點寫上 dp_ratio（供 hover 顯示確認）：
+ *   沿**同一路段折線**向前／向後找紧邻 RYBP 锚点 A、B，以 A–B 连线为基线；
+ *   dp_ratio = 点到该线段的垂距 ÷ |AB|（与 douglasPeuckerKeep / RIGHT_ANGLE_PINK_DP_EPSILON_RATIO 同概念）。
+ *   同格多路段取 min（最局部之垂距比）。
+ * @param {Array<{points:Array, nodes:Array}>} flat 路網 flat segments（就地寫 nodes.dp_ratio / tags.dp_ratio）
+ */
+export const refreshPinkDpRatioInFlat = (flat) => {
+  if (!Array.isArray(flat) || !flat.length) return;
+
+  for (const seg of flat) {
+    const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
+    for (const nd of nodes) {
+      if (!nodeIsPinkClass(nd) && !nodeIsBrownClass(nd)) continue;
+      delete nd.dp_ratio;
+      if (nd.tags) delete nd.tags.dp_ratio;
+    }
+  }
+
+  const pending = buildPinkDpRatioMap(flat);
+  if (!pending.size) return;
+
+  const occ = new Map();
+  const vkey = (a, b) => `${a.toFixed(6)},${b.toFixed(6)}`;
+  flat.forEach((seg, si) => {
+    const pts = seg?.points;
+    if (!Array.isArray(pts)) return;
+    for (let pi = 0; pi < pts.length; pi++) {
+      const [a, b] = readFlatPt(pts[pi]);
+      const k = vkey(a, b);
+      if (!occ.has(k)) occ.set(k, []);
+      occ.get(k).push({ si, pi });
+    }
+  });
+
+  for (const [k, val] of pending) {
+    for (const { si, pi } of occ.get(k) || []) {
+      const nd = flat[si]?.nodes?.[pi];
+      if (!nd) continue;
+      if (!nodeIsPinkClass(nd) && !nodeIsBrownClass(nd)) continue;
+      if (!nd.tags) nd.tags = {};
+      nd.dp_ratio = val;
+      nd.tags.dp_ratio = val;
+    }
+  }
+};
+
+/**
+ * 🤎 以「紅/黃/藍為邊界 + Sinuosity/DP（參數同骨架2）」重算 flat segments 上的粉紅點；
+ *   不再為代表性轉折者，就地把該節點 tags 改成棕色（不需為粉紅 → 降級）。
+ *   判斷依據＝該粉紅點的 dp_ratio（以最近的紅/藍/黃/紫為頭尾，垂線 ÷ 頭尾直線；與 hover 顯示同一值）：
+ *     dp_ratio < 門檻（RIGHT_ANGLE_PINK_DP_EPSILON_RATIO，預設 0.25）→ 接近直線、非真正轉折 → 降級棕色；
+ *     dp_ratio ≥ 門檻 → 仍是轉折 → 維持粉紅。粉紅與棕點都會帶 dp_ratio 供 hover 確認。
+ * @param {Array<{points:Array, nodes:Array}>} flat 路網 flat segments（就地修改 nodes tags）
+ * @param {{epsilonRatio?:number}} [opts]
+ * @returns {number} 降級數量
+ */
+export const revalidatePinkToBrownInFlat = (flat, opts = {}) => {
+  if (!Array.isArray(flat) || !flat.length) return 0;
+  const threshold = opts.epsilonRatio ?? RIGHT_ANGLE_PINK_DP_EPSILON_RATIO; // 0.25
+  // 1) 先算每個粉紅點的 dp_ratio（以相邻紅/藍/黃/紫為頭尾）。改 brown 不影響錨點，故值穩定。
+  refreshPinkDpRatioInFlat(flat);
+  // 2) dp_ratio < 門檻 → 降級棕色（棕點保留剛算好的 dp_ratio）。
+  let demoted = 0;
+  for (const seg of flat) {
+    const pts = seg?.points;
+    const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
+    if (!Array.isArray(pts)) continue;
+    for (let i = 0; i < pts.length; i++) {
+      const nd = nodes[i];
+      if (!nodeIsPinkClass(nd)) continue;
+      const r = nd.dp_ratio ?? nd.tags?.dp_ratio;
+      if (r != null && r < threshold) {
+        setNodeClass(nd, 'brown', DEMOTED_PINK_BROWN_HEX);
+        demoted++;
+      }
+    }
+  }
+  return demoted;
+};
+
+/**
+ * 🤎→🖤 + 🩶 把棕點改回一般黑點，再以「紅/黃/藍/粉紅 + 新增灰點」為邊界重算灰點配置
+ *   （規則同骨架2：兩相鄰邊界點之間黑點 ≥ maxBetween+1（預設 5）時，於中間補 G=⌊N/(maxBetween+1)⌋ 個灰點，
+ *   使每段黑點 ≤ maxBetween）。既有灰點先一併還原成黑點後重算。
+ *   computeGrayBlackDots 以「索引」均分定位，與座標系無關；故 planar 僅影響邊界折線之建構。
+ * @param {Array<{points:Array, nodes:Array}>} flat 路網 flat segments（就地修改 nodes tags 與座標）
+ * @param {{planar?:boolean, maxBetween?:number}} [opts]
+ * @returns {{brownToBlack:number, straightened:number, gray:number}}
+ */
+export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
+  if (!Array.isArray(flat) || !flat.length) return { brownToBlack: 0, straightened: 0, gray: 0 };
+  const planar = !!opts.planar;
+  const repr = (a, b) => (planar ? [a, b] : [b, a]);
+  const kkey = (p) => `${Number(p[0]).toFixed(6)},${Number(p[1]).toFixed(6)}`;
+  const isBrown = (nd) => {
+    if (!nd) return false;
+    const t = nd.tags || {};
+    return (
+      (nd.node_kind ?? t.node_kind) === 'brown' ||
+      String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase() === DEMOTED_PINK_BROWN_HEX.toLowerCase()
+    );
+  };
+  const isGray = (nd) => {
+    if (!nd) return false;
+    const t = nd.tags || {};
+    return (
+      (nd.node_kind ?? t.node_kind) === 'gray' ||
+      String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase() === GRAY_DOT_HEX.toLowerCase()
+    );
+  };
+  // 1) 棕→黑；既有灰→黑（重算前先還原，避免舊灰殘留）。
+  let brownToBlack = 0;
+  for (const seg of flat) {
+    const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
+    const pts = seg?.points;
+    if (!Array.isArray(pts)) continue;
+    for (let i = 0; i < pts.length; i++) {
+      const nd = nodes[i];
+      if (!nd) continue;
+      if (isBrown(nd)) { setNodeClass(nd, 'black', '#000000'); brownToBlack++; }
+      else if (isGray(nd)) setNodeClass(nd, 'black', '#000000');
+    }
+  }
+  // 1.5) 拉直路線：以紅/黃/藍/粉紅為錨點，把錨點間的中間頂點（含降級的黑點）拉成直線，移除多餘轉折。
+  const straightened = straightenFlatBetweenAnchors(flat, nodeIsRYBorPinkClass);
+  // 2) 以紅/黃/藍為邊界建折線；粉紅為內部 flush 邊界（同骨架2 computeGrayBlackDots 之 pinkKeys）。
+  const paths = buildRYBBoundedPaths(flat, planar);
+  const blackPts = [];
+  const pinkKeys = new Set();
+  for (const seg of flat) {
+    const pts = seg?.points;
+    const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
+    if (!Array.isArray(pts)) continue;
+    for (let i = 0; i < pts.length; i++) {
+      const [a, b] = readFlatPt(pts[i]);
+      if (nodeIsBlackClass(nodes[i])) blackPts.push(repr(a, b));
+      else if (nodeIsPinkClass(nodes[i])) pinkKeys.add(kkey(repr(a, b)));
+    }
+  }
+  // 3) 重算灰點（規則／參數同骨架2）。
+  const grayKeys = computeGrayBlackDots(paths, blackPts, pinkKeys, {
+    maxBetween: opts.maxBetween ?? GRAY_MAX_BLACK_BETWEEN,
+  });
+  // 4) 套用：被選中的黑點 → 灰。
+  let gray = 0;
+  for (const seg of flat) {
+    const pts = seg?.points;
+    const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
+    if (!Array.isArray(pts)) continue;
+    for (let i = 0; i < pts.length; i++) {
+      if (!nodeIsBlackClass(nodes[i])) continue;
+      const [a, b] = readFlatPt(pts[i]);
+      if (grayKeys.has(kkey(repr(a, b)))) { setNodeClass(nodes[i], 'gray', GRAY_DOT_HEX); gray++; }
+    }
+  }
+  return { brownToBlack, straightened, gray };
 };
 
 /** 黑點上限：兩相鄰邊界點（紅/黃/紫/藍/粉紅/灰）之間最多容許的黑點數。超過則在中間把黑點改灰點。預設 4。 */
 export const GRAY_MAX_BLACK_BETWEEN = 4;
 /** 灰點色碼（與 ROUTE_MAP_ADJUST_PALETTE 之「灰色」一致）。 */
 export const GRAY_DOT_HEX = '#7f7f7f';
+/** 棕點色碼（與 ROUTE_MAP_ADJUST_PALETTE 之「棕色」一致）：正規化時以紅/黃/藍為邊界重算後「不需為粉紅」之降級色。 */
+export const DEMOTED_PINK_BROWN_HEX = '#9a6324';
 
 /**
  * 在骨架邊上，把過長的「黑點連續段」中間改為灰點，使任兩相鄰邊界點（紅/黃/紫/藍/粉紅/灰）之間

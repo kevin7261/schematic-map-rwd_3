@@ -41,7 +41,11 @@
     setOsm2GeojsonSessionOsmXml,
   } from '@/utils/layers/osm_2_geojson_2_json/index.js';
   import { loadMilpJsonRaw } from '@/utils/layers/schematic_layout/milp/readMilpResult.js';
-  import { loadMilpJsonRaw as loadMilpJsonRawRma } from '@/utils/routeMapAdjust/schematic/milp/readMilpResult.js';
+  import {
+    loadMilpJsonRaw as loadMilpJsonRawRma,
+    recomputeMilpReadPinkToBrown as recomputeMilpReadPinkToBrownRma,
+    recomputeMilpReadBrownToBlackGray as recomputeMilpReadBrownToBlackGrayRma,
+  } from '@/utils/routeMapAdjust/schematic/milp/readMilpResult.js';
   import { auditMilpRoutePairRotation } from '@/utils/routeMapAdjust/schematic/auditMilpRoutePair.js';
   import {
     buildSchematicInputGeoJsonForDownload,
@@ -4101,6 +4105,18 @@
       return;
     }
     loadMilpJsonRawRma(JSON.parse(JSON.stringify(segs)));
+  };
+
+  /** 路線正規化（RMA）：座標正規化前，以紅/黃/藍為邊界重算粉紅點，不需者改棕色（獨立按鈕）。 */
+  const recomputeMilpReadPinkToBrownClick = () => {
+    const res = recomputeMilpReadPinkToBrownRma();
+    if (res?.message) window.alert(res.message);
+  };
+
+  /** 路線正規化（RMA）：把棕點改回黑點，再以紅/黃/藍/粉紅/灰為邊界重算灰點（獨立按鈕）。 */
+  const recomputeMilpReadBrownToBlackGrayClick = () => {
+    const res = recomputeMilpReadBrownToBlackGrayRma();
+    if (res?.message) window.alert(res.message);
   };
 
   const executeLayerFunction = async () => {
@@ -12591,6 +12607,24 @@
           v-if="layer.layerId === 'schematic_rma_milp_read'"
           class="pb-3 mb-3 border-bottom"
         >
+          <!-- 座標正規化前：以紅/黃/藍邊界重算粉紅點，不需者→棕色（獨立按鈕） -->
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            title="座標正規化前：以紅/黃/藍為邊界（參數同路線圖轉換骨架2）重算粉紅點，不再需要者改為棕色"
+            @click="recomputeMilpReadPinkToBrownClick()"
+          >
+            重算粉紅點（紅/黃/藍邊界）→ 棕色
+          </button>
+          <!-- 棕點還原為黑點 → 拉直路線 → 以紅/黃/藍/粉紅/灰為邊界重算灰點（≥5 黑點補灰，規則同骨架2） -->
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            title="把棕點改回一般黑點 → 拉直路線（紅/黃/藍/粉紅為錨點）→ 再以紅/黃/藍/粉紅/灰為邊界重算灰點配置（兩相鄰邊界點間 ≥5 黑點補灰，規則同路線圖轉換骨架2）"
+            @click="recomputeMilpReadBrownToBlackGrayClick()"
+          >
+            棕點→黑點＋拉直，重算灰點配置
+          </button>
           <button
             type="button"
             class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"

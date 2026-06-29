@@ -82,6 +82,15 @@
     segmentNodeLon,
     segmentNodeLat,
   } from '@/utils/geojsonRouteHelpers.js';
+  import {
+    buildPinkDpRatioDetailMap,
+    measurePinkDpFromScreenAnchors,
+    isScreenDpAnchorFeature,
+  } from '@/utils/routeMapAdjust/routeStations.js';
+  import {
+    SCHEMATIC_MILP_LAYER_ID,
+    SCHEMATIC_MILP_READ_LAYER_ID,
+  } from '@/utils/routeMapAdjust/schematic/layerIds.js';
 
   import * as d3 from 'd3';
   import {
@@ -328,13 +337,19 @@
       twRaw !== undefined && twRaw !== null && Number.isFinite(Number(twRaw))
         ? `<br><strong>traffic_weight</strong> （連至沿路下一站）${escapeLayoutTooltipHtml(String(Number(twRaw)))}`
         : '';
+    // 🩷 粉紅點重算所得之轉折比例（垂線/頭尾直線；即 RIGHT_ANGLE_PINK_DP_EPSILON_RATIO 比較對象）。
+    const dpr = p.dp_ratio ?? tags.dp_ratio;
+    const dprLine =
+      dpr !== undefined && dpr !== null && Number.isFinite(Number(dpr))
+        ? `<br><strong>dp_ratio（轉折比例）</strong> ${escapeLayoutTooltipHtml(Number(dpr).toFixed(3))}`
+        : '';
     return `<strong>station_id</strong> ${sid}<br>
 <strong>station_name</strong> ${snm}<br>
 <strong>route_name_list</strong> ${rnlStr}<br>
 <strong>type</strong> <code style="color:#c2185b">${escapeLayoutTooltipHtml(endpointType)}</code><br>
 <strong>connect_number</strong> ${escapeLayoutTooltipHtml(cn)}<br>
 <strong>lon</strong> ${escapeLayoutTooltipHtml(lonVal)}<br>
-<strong>lat</strong> ${escapeLayoutTooltipHtml(latVal)}${twLine}`;
+<strong>lat</strong> ${escapeLayoutTooltipHtml(latVal)}${twLine}${dprLine}`;
   };
 
   /**
@@ -2780,6 +2795,8 @@
     let stationFeatures = [];
     /** 展開後路段（Normalize 分支內賦值；繪製階段供度數著色等使用） */
     let flatSegments = [];
+    /** 路線正規化／③MILP：粉紅 dp_ratio 幾何（Normalize 分支內賦值） */
+    let livePinkDpDetail = null;
     /** taipei_d：以「縮減疊加網格（空列／空行）後」座標繪製路網 */
     let taipeiCReducedOverlayDraw = false;
     /** 網路座標 (gx,gy) → 繪圖用縮減格座標；非縮減模式為 null */
@@ -2859,6 +2876,32 @@
       } else {
         flatSegments = segments;
       }
+
+      // 路線正規化／③MILP：hover 用格座標即時算 dp_ratio（不 mutate 圖層，避免 deep watch 迴圈）。
+      livePinkDpDetail =
+        layerTab === SCHEMATIC_MILP_READ_LAYER_ID || layerTab === SCHEMATIC_MILP_LAYER_ID
+          ? buildPinkDpRatioDetailMap(flatSegments)
+          : null;
+      const liveDpDetailAtLocal = (x, y) => {
+        if (!livePinkDpDetail) return null;
+        return livePinkDpDetail.get(`${Number(x).toFixed(6)},${Number(y).toFixed(6)}`) ?? null;
+      };
+      const nodePropsWithLiveDpRatio = (nodeProps, gridX, gridY) => {
+        if (!livePinkDpDetail) {
+          return { ...nodeProps, x_grid: gridX, y_grid: gridY };
+        }
+        const detail = liveDpDetailAtLocal(gridX, gridY);
+        const out = { ...nodeProps, x_grid: gridX, y_grid: gridY };
+        const t = { ...(nodeProps.tags || {}) };
+        delete out.dp_ratio;
+        delete t.dp_ratio;
+        if (detail) {
+          out.dp_ratio = detail.ratio;
+          t.dp_ratio = detail.ratio;
+        }
+        out.tags = t;
+        return out;
+      };
 
       // 從 segments 中提取所有座標點
       const allPoints = new Set();
@@ -3409,11 +3452,7 @@
                     type: 'Point',
                     coordinates: [drawX, drawY],
                   },
-                  properties: {
-                    ...nodeProps,
-                    x_grid: drawX,
-                    y_grid: drawY,
-                  },
+                  properties: nodePropsWithLiveDpRatio(nodeProps, drawX, drawY),
                   nodeType: thisNodeType, // 用於區分 connect 和 line
                 });
               }
@@ -5038,6 +5077,83 @@
     let plotRemapSvgY = layoutVhDrawFisheyeActive
       ? (sy) => margin.top + fisheyeWarpRelY(sy - margin.top)
       : (sy) => sy;
+
+    const liveDpDetailAt = (x, y) => {
+      if (!livePinkDpDetail) return null;
+      return livePinkDpDetail.get(`${Number(x).toFixed(6)},${Number(y).toFixed(6)}`) ?? null;
+    };
+    const clearPinkDpHoverOverlay = () => {
+      zoomGroup.selectAll('.pink-dp-ratio-hover-overlay').remove();
+    };
+    /** 垂足：在 SVG 像素空間計算，避免 x/y 非等比 scale 時垂線看起來歪斜。 */
+    const footOnSegmentSvg = (p, a, b) => {
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const len2 = dx * dx + dy * dy;
+      if (len2 === 0) return [a[0], a[1]];
+      let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      return [a[0] + t * dx, a[1] + t * dy];
+    };
+    const drawPinkDpHoverOverlay = (detail) => {
+      clearPinkDpHoverOverlay();
+      if (!detail) return;
+      const toSvg = ([gx, gy]) => [plotRemapSvgX(xScale(gx)), plotRemapSvgY(yScale(gy))];
+      const sa = toSvg(detail.anchorA);
+      const sb = toSvg(detail.anchorB);
+      const sp = toSvg(detail.pointP);
+      const sh = footOnSegmentSvg(sp, sa, sb);
+      const [sax, say] = sa;
+      const [sbx, sby] = sb;
+      const [spx, spy] = sp;
+      const [shx, shy] = sh;
+      const g = zoomGroup.append('g').attr('class', 'pink-dp-ratio-hover-overlay');
+      g.append('line')
+        .attr('x1', sax)
+        .attr('y1', say)
+        .attr('x2', sbx)
+        .attr('y2', sby)
+        .attr('stroke', '#1565c0')
+        .attr('stroke-width', 2.5)
+        .attr('stroke-dasharray', '8,5')
+        .attr('opacity', 0.95)
+        .style('pointer-events', 'none');
+      g.append('line')
+        .attr('x1', spx)
+        .attr('y1', spy)
+        .attr('x2', shx)
+        .attr('y2', shy)
+        .attr('stroke', '#e377c2')
+        .attr('stroke-width', 2.5)
+        .attr('opacity', 0.95)
+        .style('pointer-events', 'none');
+      g.append('circle')
+        .attr('cx', sax)
+        .attr('cy', say)
+        .attr('r', 5)
+        .attr('fill', '#ff0000')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1)
+        .style('pointer-events', 'none');
+      g.append('circle')
+        .attr('cx', sbx)
+        .attr('cy', sby)
+        .attr('r', 5)
+        .attr('fill', '#ff0000')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1)
+        .style('pointer-events', 'none');
+      g.append('circle')
+        .attr('cx', shx)
+        .attr('cy', shy)
+        .attr('r', 3.5)
+        .attr('fill', '#1565c0')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1)
+        .style('pointer-events', 'none');
+      g.raise();
+    };
+
     // 創建線條生成器（加權模式下於 ratio 就緒後重設）
     let lineGenerator = d3
       .line()
@@ -9059,8 +9175,62 @@
             tooltipParts.push(`<strong>節點類型:</strong> ${props.node_type}`);
           }
 
-          // 顯示其他 tags
+          const isPinkHoverNode =
+            props.node_kind === 'right_angle_pink' ||
+            tags.node_kind === 'right_angle_pink' ||
+            String(props.node_class_color ?? tags.node_class_color ?? '').toLowerCase() === '#e377c2';
+          const isMilpPinkLayer =
+            layerTab === SCHEMATIC_MILP_READ_LAYER_ID || layerTab === SCHEMATIC_MILP_LAYER_ID;
+          const dpLookupKey = (gx, gy) =>
+            `${Number(gx).toFixed(6)},${Number(gy).toFixed(6)}`;
+          const pinkGx = Number(props.x_grid ?? gridGx ?? drawX ?? x);
+          const pinkGy = Number(props.y_grid ?? gridGy ?? drawY ?? y);
+          let dpDetail = null;
+          if (isPinkHoverNode && isMilpPinkLayer) {
+            const screenAnchors = [];
+            for (const f of stationFeatures) {
+              if (!isScreenDpAnchorFeature(f)) continue;
+              const fp = f.properties || {};
+              const ft = fp.tags || {};
+              const gx = Number(fp.x_grid ?? ft.x_grid ?? f.geometry?.coordinates?.[0]);
+              const gy = Number(fp.y_grid ?? ft.y_grid ?? f.geometry?.coordinates?.[1]);
+              if (Number.isFinite(gx) && Number.isFinite(gy)) screenAnchors.push([gx, gy]);
+            }
+            dpDetail = measurePinkDpFromScreenAnchors([pinkGx, pinkGy], screenAnchors);
+            if (!dpDetail && flatSegments.length > 0) {
+              const flatMap = buildPinkDpRatioDetailMap(flatSegments);
+              dpDetail =
+                flatMap.get(dpLookupKey(pinkGx, pinkGy)) ??
+                flatMap.get(dpLookupKey(x, y)) ??
+                flatMap.get(dpLookupKey(drawX, drawY));
+            }
+          } else if (livePinkDpDetail && isPinkHoverNode) {
+            dpDetail =
+              liveDpDetailAt(pinkGx, pinkGy) ?? liveDpDetailAt(x, y) ?? liveDpDetailAt(drawX, drawY);
+          }
+          if (dpDetail) {
+            tooltipParts.push(
+              `<strong style="color:#e377c2;">dp_ratio:</strong> ${Number(dpDetail.ratio).toFixed(4)}` +
+                `<br><span style="color:#888;font-size:11px;">` +
+                `垂距 ${Number(dpDetail.perpLen).toFixed(2)} ÷ 头尾 ${Number(dpDetail.chordLen).toFixed(2)}` +
+                ` · 锚点 (${dpDetail.anchorA[0]},${dpDetail.anchorA[1]})→(${dpDetail.anchorB[0]},${dpDetail.anchorB[1]})` +
+                `</span>`
+            );
+            drawPinkDpHoverOverlay(dpDetail);
+          } else if (isPinkHoverNode && isMilpPinkLayer) {
+            tooltipParts.push(
+              `<strong style="color:#c62828;">dp_ratio:</strong> <span style="color:#c62828;">无法计算（折线上找不到相邻 RYB+P 锚点）</span>`
+            );
+            clearPinkDpHoverOverlay();
+          }
+
+          // 顯示其他 tags（dp_ratio 已於上方專列；MILP 層不顯示 tags 內舊 dp_ratio）
           const tagsHtml = Object.entries(tags)
+            .filter(
+              ([key]) =>
+                !(dpDetail && key === 'dp_ratio') &&
+                !(isMilpPinkLayer && isPinkHoverNode && key === 'dp_ratio')
+            )
             .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
             .join('<br>');
           if (tagsHtml) {
@@ -9092,6 +9262,7 @@
 
           // 隱藏 tooltip
           tooltip.style('opacity', 0);
+          clearPinkDpHoverOverlay();
         });
     });
 
