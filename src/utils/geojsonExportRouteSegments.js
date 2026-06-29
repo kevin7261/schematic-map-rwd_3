@@ -265,8 +265,9 @@ export function exportRouteSegmentsFromGeoJson(geojson, options = {}) {
           ...props,
           ...tprops,
         }) || '';
+      const routeColors = tprops.route_colors || '';
       const coords = (geom.coordinates || []).map((c) => [num(c[0]), num(c[1])]);
-      routes.push({ routeName, color, routeId, coords });
+      routes.push({ routeName, color, routeId, coords, routeColors });
     } else if (geom.type === 'MultiLineString') {
       const routeName = routeDisplayNameFromFeature(feature);
       const color = routeLineColorFromFeature(feature);
@@ -277,9 +278,10 @@ export function exportRouteSegmentsFromGeoJson(geojson, options = {}) {
           ...props,
           ...tprops,
         }) || '';
+      const routeColors = tprops.route_colors || '';
       for (const line of geom.coordinates || []) {
         const coords = line.map((c) => [num(c[0]), num(c[1])]);
-        routes.push({ routeName, color, routeId, coords });
+        routes.push({ routeName, color, routeId, coords, routeColors });
       }
     }
   }
@@ -343,6 +345,7 @@ export function exportRouteSegmentsFromGeoJson(geojson, options = {}) {
     const rName = route.routeName;
     const rColor = route.color;
     const rRouteId = route.routeId != null ? String(route.routeId) : '';
+    const rRouteColors = route.routeColors || '';
     const routeStations = [];
     const walk = routeWalkCoords[ri];
     for (const coord of walk) {
@@ -394,6 +397,7 @@ export function exportRouteSegmentsFromGeoJson(geojson, options = {}) {
             route_id: rRouteId,
             routeName: rName,
             color: rColor,
+            ...(rRouteColors ? { route_colors: rRouteColors } : {}),
             segment: {
               start: snapStation(currentSegmentStart),
               stations: midStationsFormatted,

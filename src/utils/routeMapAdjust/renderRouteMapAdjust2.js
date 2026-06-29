@@ -1,28 +1,29 @@
 /**
- * 🗺️ 路線圖調整直線骨架（route_map_adjust_straight）— Leaflet 唯讀顯示
+ * 🗺️ 路線圖轉換骨架2（route_map_adjust_2）— Leaflet 唯讀顯示
  *
- * ⚠️ 本檔為「路線圖轉換直線骨架」圖層**獨立複製**之版本，刻意不與 route_map_adjust /
- *    select_route_map / SpaceNetworkGridTab 的渲染共用任何程式。
+ * ⚠️ 本檔為「路線圖調整」圖層**獨立複製**之版本，刻意不與 select_route_map / SpaceNetworkGridTab
+ *    的渲染共用任何程式。為唯讀顯示：畫出載入的路線與三類站點（端點藍／交點紅／黑點），
+ *    hover 顯示屬性，並可由 store 觸發一次性 fitBounds；不含任何編輯互動。
  */
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { watch } from 'vue';
 import {
   computeRouteMapAdjustStations,
+  computeRouteMapAdjustSkeletonStations,
   computeRouteMapAdjustSharedEndpointSegments,
   computeRouteMapAdjustLoopRoutes,
 } from './routeStations.js';
-import { ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID } from './loadFromSelectRouteMapStraight.js';
-
+import { ROUTE_MAP_ADJUST_2_LAYER_ID } from './loadFromSelectRouteMap2.js';
 
 /**
- * 在指定 DOM 容器上掛載「路線圖轉換直線骨架」的 Leaflet 地圖。
+ * 在指定 DOM 容器上掛載「路線圖調整」的 Leaflet 地圖。
  * @param {HTMLElement} el 容器（須已有尺寸）
  * @param {*} dataStore Pinia dataStore 實例
  * @returns {{ invalidateSize: () => void, destroy: () => void }}
  */
-export function mountRouteMapAdjustStraight(el, dataStore) {
-  const layer = dataStore.findLayerById(ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID);
+export function mountRouteMapAdjust2(el, dataStore) {
+  const layer = dataStore.findLayerById(ROUTE_MAP_ADJUST_2_LAYER_ID);
   if (!el || !layer) {
     return { invalidateSize: () => {}, destroy: () => {} };
   }
@@ -58,18 +59,18 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
     }
   };
 
-  // 自訂 pane 控制疊放順序：共線/環線/頭尾共點底色(srmasUnder 350) < 路線(overlayPane 400) < 站名 < 站點圓點
+  // 自訂 pane 控制疊放順序：共線/環線/頭尾共點底色(srmaUnder 350) < 路線(overlayPane 400) < 站名 < 站點圓點
   //  → 紅/綠/藍底色高亮永遠墊在路線「底下」，上面才畫路線原來的顏色；站名永遠在圓點「之下」
-  map.createPane('srmasUnder');
-  map.getPane('srmasUnder').style.zIndex = 350;
-  map.createPane('srmasNames');
-  map.getPane('srmasNames').style.zIndex = 450;
-  map.getPane('srmasNames').style.pointerEvents = 'none';
-  map.createPane('srmasDots');
-  map.getPane('srmasDots').style.zIndex = 460;
+  map.createPane('srmaUnder');
+  map.getPane('srmaUnder').style.zIndex = 350;
+  map.createPane('srmaNames');
+  map.getPane('srmaNames').style.zIndex = 450;
+  map.getPane('srmaNames').style.pointerEvents = 'none';
+  map.createPane('srmaDots');
+  map.getPane('srmaDots').style.zIndex = 460;
 
   // ⚠️ 疊放順序由 pane 的 zIndex 決定（非加入順序）：
-  //    共線/環線/頭尾共點底色(srmasUnder 350) → 路線(overlayPane 400) → 站點／交叉（最上）
+  //    共線/環線/頭尾共點底色(srmaUnder 350) → 路線(overlayPane 400) → 站點／交叉（最上）
   const sharedGroup = L.layerGroup().addTo(map); // 🔴 共線段底色高亮（墊在路線底下）
   const loopGroup = L.layerGroup().addTo(map); // 🟢 頭尾同點（環線）綠色底色高亮（墊在路線底下）
   const endpointGroup = L.layerGroup().addTo(map); // 🔵 頭尾共點端點線段藍色底色高亮（墊在路線底下）
@@ -124,10 +125,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
   };
   const stationTooltipHtml = (latlng, type, routesAtCoord) => {
     const k = llKey(latlng[0], latlng[1]);
-    const metaSrc =
-      (hasSkeleton() && layer.routeMapAdjustStraightenedStationMeta) ||
-      layer.routeMapAdjustStationMeta;
-    const meta = (metaSrc && metaSrc[k]) || {};
+    const meta = (layer.routeMapAdjustStationMeta && layer.routeMapAdjustStationMeta[k]) || {};
     const routes = [...(routesAtCoord.get(k) || [])];
     return (
       `<div style="font-size:12px;line-height:1.5">` +
@@ -179,7 +177,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
           fillColor: '#ffffff',
           fillOpacity: 1,
           interactive: false,
-          pane: 'srmasDots',
+          pane: 'srmaDots',
         }).addTo(stationGroup);
       }
       const m = L.circleMarker(latlng, {
@@ -189,7 +187,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         fillColor,
         fillOpacity: 1,
         interactive: true,
-        pane: 'srmasDots', // 圓點置於最上層 pane，永遠不被線/站名遮住
+        pane: 'srmaDots', // 圓點置於最上層 pane，永遠不被線/站名遮住
       });
       m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
       // hover：圓點放大
@@ -214,7 +212,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         fillColor: '#ffe000',
         fillOpacity: 0.45,
         interactive: false,
-        pane: 'srmasDots',
+        pane: 'srmaDots',
       }).addTo(stationGroup);
       addStationDot(p, '#ffd600', 5, 'cross');
     });
@@ -244,7 +242,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         opacity: 0.85,
         lineCap: 'round',
         interactive: true,
-        pane: 'srmasUnder', // 墊在路線底下，上面才畫路線原來的顏色
+        pane: 'srmaUnder', // 墊在路線底下，上面才畫路線原來的顏色
       });
       pl.bindTooltip(sharedTooltipHtml(edge), { sticky: true });
       pl.addTo(sharedGroup);
@@ -276,13 +274,13 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
       const meta = (layer.routeMapAdjustStationMeta && layer.routeMapAdjustStationMeta[k]) || {};
       if (!meta.name) return;
       const icon = L.divIcon({
-        className: 'route-map-adjust-straight-station-name',
+        className: 'route-map-adjust-station-name',
         // 置於站點「正上方」並留間距，避免文字蓋住站點圓點（translate -100% 讓文字底緣對齊錨點，top 再上移清開圓點半徑）
         html: `<span style="position:absolute;left:0;top:-7px;transform:translate(-50%,-100%);text-align:center;white-space:nowrap;font-size:${fontSize}px;line-height:1.2;font-weight:600;color:${color};text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;pointer-events:none">${esc(meta.name)}</span>`,
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
-      L.marker(p, { icon, interactive: false, keyboard: false, pane: 'srmasNames' }).addTo(nameGroup);
+      L.marker(p, { icon, interactive: false, keyboard: false, pane: 'srmaNames' }).addTo(nameGroup);
     });
   };
 
@@ -364,7 +362,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         fillColor: '#9c27b0',
         fillOpacity: 0.45,
         interactive: false,
-        pane: 'srmasDots',
+        pane: 'srmaDots',
       }).addTo(group);
       // 紫點
       L.circleMarker(c, {
@@ -374,7 +372,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         fillColor: '#9c27b0',
         fillOpacity: 1,
         interactive: false,
-        pane: 'srmasDots',
+        pane: 'srmaDots',
       }).addTo(group);
     }
   };
@@ -415,7 +413,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         lineCap: 'round',
         lineJoin: 'round',
         interactive: false,
-        pane: 'srmasUnder', // 墊在路線底下
+        pane: 'srmaUnder', // 墊在路線底下
       }).addTo(endpointGroup);
       // 🟣 藍線：最接近 1/2 的車站放紫點；該對端點中最短的那條跳過（不放）
       if (!skipPurpleIdx.has(idx)) addPurpleCuts(endpointGroup, s.path, [1 / 2], bset);
@@ -437,7 +435,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         lineCap: 'round',
         lineJoin: 'round',
         interactive: false,
-        pane: 'srmasUnder', // 墊在路線底下
+        pane: 'srmaUnder', // 墊在路線底下
       }).addTo(loopGroup);
       addPurpleCuts(loopGroup, s.path, [1 / 3, 2 / 3], bset); // 🟣 綠線：最接近 1/3、2/3 的車站
     }
@@ -461,9 +459,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
   // 骨架節點 tooltip：與原本站點 hover 相同樣式（station_name/id/osm_id/type/route_name_list）
   const skeletonNodeTooltip = (n) => {
     const k = llKey(n.latlng[0], n.latlng[1]);
-    const meta =
-      (layer.routeMapAdjustStraightenedStationMeta || layer.routeMapAdjustStationMeta || {})[k] ||
-      {};
+    const meta = (layer.routeMapAdjustStationMeta && layer.routeMapAdjustStationMeta[k]) || {};
     const routes = Array.isArray(n.routes) ? n.routes : [];
     const names = routes.map((r) => r.routeName).filter(Boolean);
     const type = n.isPurple
@@ -485,27 +481,19 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
       `</div>`
     );
   };
-  const originalAnchorKeys = () => {
-    const metaKeys = Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) =>
-      k.split(',').map(Number)
-    );
-    const { terminals, connects } = computeRouteMapAdjustStations(
-      layer.routeMapAdjustLines,
-      layer.routeMapAdjustBlackDots,
-      metaKeys.length ? metaKeys : undefined
-    );
-    return {
-      terminalKeys: new Set((terminals || []).map((p) => llKey(p[0], p[1]))),
-      connectKeys: new Set((connects || []).map((p) => llKey(p[0], p[1]))),
-    };
-  };
   const renderSkeleton = () => {
     skeletonGroup.clearLayers();
     const sk = layer.routeMapAdjustSkeleton;
     if (!sk) return;
-    const origAnchors = originalAnchorKeys();
-    const terminalKeys = origAnchors.terminalKeys;
-    const connectKeys = origAnchors.connectKeys;
+    // 骨架站點分類（degree 拓撲）：紅 = 交叉/分歧(degree≥3)、藍 = 端點(degree≤1)、其餘皆黑。
+    //   共軌並行通過的中段站 degree=2 → 黑（同一骨架路線除頭尾外不出現紅點）。
+    const { terminals, connects, blacks } = computeRouteMapAdjustSkeletonStations(
+      layer.routeMapAdjustLines,
+      layer.routeMapAdjustBlackDots,
+      Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) => k.split(',').map(Number))
+    );
+    const terminalKeys = new Set((terminals || []).map((p) => llKey(p[0], p[1])));
+    const connectKeys = new Set((connects || []).map((p) => llKey(p[0], p[1])));
     for (const e of sk.edges || []) {
       const path = Array.isArray(e.path) ? e.path : [];
       if (path.length < 2) continue;
@@ -558,12 +546,9 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         });
       }
     }
-    // 🖤 黑點站：在拉直後折線上重新計算的位置（不用原始座標）
+    // 🖤 黑點站（一般中間站）：骨架化後仍照原位置畫出（不可消失）。先畫，讓端點/交點/交叉節點疊在其上。
     const routesAtCoord = buildRoutesAtCoord();
-    const displayBlacks = layer.routeMapAdjustStraightenedBlackDots?.length
-      ? layer.routeMapAdjustStraightenedBlackDots
-      : layer.routeMapAdjustBlackDots || [];
-    for (const p of displayBlacks || []) {
+    for (const p of blacks || []) {
       if (!Array.isArray(p) || p.length < 2) continue;
       const r = 3;
       const m = L.circleMarker(p, {
@@ -573,7 +558,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         fillColor: '#000000',
         fillOpacity: 1,
         interactive: true,
-        pane: 'srmasDots',
+        pane: 'srmaDots',
       });
       m.bindTooltip(stationTooltipHtml(p, 'black', routesAtCoord), { sticky: true });
       m.on('mouseover', () => m.setRadius(r + 3));
@@ -598,7 +583,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         fillColor: fill,
         fillOpacity: 1,
         interactive: true,
-        pane: 'srmasDots',
+        pane: 'srmaDots',
       });
       m.bindTooltip(skeletonNodeTooltip(n), { sticky: true });
       m.on('mouseover', () => m.setRadius(baseR + 3));
@@ -640,9 +625,6 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
       layer.routeMapAdjustCrossStations,
       layer.routeMapAdjustSharedSegments,
       layer.routeMapAdjustSkeleton,
-      layer.routeMapAdjustStraightenedLines,
-      layer.routeMapAdjustStraightenedBlackDots,
-      layer.routeMapAdjustStraightenedStationMeta,
       layer.routeMapAdjustShowNames,
     ],
     renderAll,
@@ -658,7 +640,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
     (layer.routeMapAdjustBlackDots || []).forEach((p) => pts.push(p));
     if (pts.length >= 2) map.fitBounds(L.latLngBounds(pts), { padding: [24, 24] });
   };
-  const stopFitWatch = watch(() => dataStore.routeMapAdjustStraightFitTrigger, fitToContent);
+  const stopFitWatch = watch(() => dataStore.routeMapAdjust2FitTrigger, fitToContent);
   // 初次掛載時若已有資料，縮放到內容
   fitToContent();
 

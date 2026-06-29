@@ -344,6 +344,54 @@ export const useDataStore = defineStore(
             upperViewTabs: ['route-map-adjust'],
           },
           {
+            /** 🗺️ 路線圖轉換骨架2（route_map_adjust_2）— 路線圖轉換骨架之獨立複製版本。
+             *  程式與 route_map_adjust 完全獨立（複製自 src/utils/routeMapAdjust/）。 */
+            layerId: 'route_map_adjust_2',
+            layerName: '路線圖轉換骨架2',
+            visible: false,
+            isLoading: false,
+            isLoaded: true,
+            colorName: 'blue',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            layoutGridJsonData: null,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: null,
+            geojsonLoader: null,
+            processToDrawData: null,
+            geojsonFileName: null,
+            osmFileName: null,
+            jsonFileName: null,
+            executeFunction: null,
+            isDataLayer: false,
+            hideFromMap: true,
+            display: true,
+            /** 🏷️ 標記為「路線圖轉換骨架2」圖層 */
+            isRouteMapAdjust2Layer: true,
+            /** ✏️ 調整中之路線：[{ color, latlngs:[[lat,lng],...], routeName?, routeId?, ... }, ...] */
+            routeMapAdjustLines: [],
+            /** ⚫ 一般黑點（中間站）：[[lat, lng], ...] */
+            routeMapAdjustBlackDots: [],
+            /** 🟡 交叉站點（cross）：路線幾何交叉但無站點處，[[lat, lng], ...] */
+            routeMapAdjustCrossStations: [],
+            /** 🔶 共線段：被 ≥2 路線共用（重疊）之線段，[{a,b,routes:[屬性...]}...]（載入後預設計算） */
+            routeMapAdjustSharedSegments: [],
+            /** 🦴 骨架圖：{ nodes:[[lat,lng]...], edges:[{a,b,routeCount}...], crossNodes:[[lat,lng]...] }｜null */
+            routeMapAdjustSkeleton: null,
+            /** 站點中繼資料：{ '${lat},${lng}': { id, name, osmId } } */
+            routeMapAdjustStationMeta: null,
+            /** 資料來源標籤 */
+            routeMapAdjustSource: null,
+            /** 🏷️ 是否在地圖上常駐顯示車站名 */
+            routeMapAdjustShowNames: false,
+            upperViewTabs: ['route-map-adjust-2'],
+          },
+          {
             /** 🗺️ 路線圖調整直線骨架（route_map_adjust_straight）— 從「選擇路線圖」載入路線後（之後可）調整。
              *  與 route_map_adjust 完全獨立（程式集中於 src/utils/routeMapAdjust/ 之複製版）。 */
             layerId: 'route_map_adjust_straight',
@@ -3142,6 +3190,12 @@ export const useDataStore = defineStore(
       routeMapAdjustFitTrigger.value += 1;
     };
 
+    /** 🗺️「路線圖轉換骨架2」(route_map_adjust_2) 一次性 fitBounds 觸發器 */
+    const routeMapAdjust2FitTrigger = ref(0);
+    const requestRouteMapAdjust2Fit = () => {
+      routeMapAdjust2FitTrigger.value += 1;
+    };
+
     /** 🗺️「路線圖轉換直線骨架」(route_map_adjust_straight) 一次性 fitBounds 觸發器 */
     const routeMapAdjustStraightFitTrigger = ref(0);
     const requestRouteMapAdjustStraightFit = () => {
@@ -3707,6 +3761,8 @@ export const useDataStore = defineStore(
       requestSelectRouteMapFit,
       routeMapAdjustFitTrigger,
       requestRouteMapAdjustFit,
+      routeMapAdjust2FitTrigger,
+      requestRouteMapAdjust2Fit,
       routeMapAdjustStraightFitTrigger,
       requestRouteMapAdjustStraightFit,
       routeSchematicActiveLayerId,

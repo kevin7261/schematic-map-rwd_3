@@ -912,6 +912,7 @@ export function mapDrawnExportRowsToFlatSegmentsLonLat(rows) {
       stations[0]?.color ||
       '#666666';
 
+    const routeColors = typeof row.route_colors === 'string' && row.route_colors ? row.route_colors : '';
     out.push({
       points,
       nodes,
@@ -924,6 +925,7 @@ export function mapDrawnExportRowsToFlatSegmentsLonLat(rows) {
         tags: {
           route_name: routeName,
           color,
+          ...(routeColors ? { route_colors: routeColors } : {}),
         },
       },
     });

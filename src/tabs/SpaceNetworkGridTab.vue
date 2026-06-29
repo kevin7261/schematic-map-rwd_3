@@ -5445,7 +5445,11 @@
         const dashLen = 8;
         const dashArray = `${dashLen} ${dashLen * (N - 1)}`;
         baseStroke = routeColorsList[0];
-        pathElement.attr('stroke', baseStroke);
+        pathElement
+          .attr('stroke', baseStroke)
+          .attr('stroke-dasharray', dashArray)
+          .attr('stroke-dashoffset', '0')
+          .attr('stroke-linecap', 'butt');
         for (let i = 1; i < N; i++) {
           overlayPaths.push(
             zoomGroup
