@@ -363,28 +363,29 @@ export function buildSnapLonLatFromC3Segments(c3FlatSegments, opts = {}) {
   let sortedY;
   let snapLonLat;
   if (opts.allColorSplitNodes === true) {
-    // #9：對彩色點座標做**嚴格秩變換**（strictly-monotonic separable map ＝ 同胚）。
-    // 每個相異的彩色 x → 自己一欄、相異的彩色 y → 自己一列，**絕不會把兩個相異 x（或 y）
-    // 擠成同一格**。同胚保拓樸 → 輸入沒重疊，正規化後也保證沒重疊（解決 snap 後兩條
-    // 不同路線的邊落到同一格線而重疊的問題）。
-    sortedX = [...new Set(uniqueReds.map((p) => num(p[0])))].sort((a, b) => a - b);
-    sortedY = [...new Set(uniqueReds.map((p) => num(p[1])))].sort((a, b) => a - b);
-    const xIdx = new Map(sortedX.map((v, i) => [v, i]));
-    const yIdx = new Map(sortedY.map((v, i) => [v, i]));
-    const rankOf = (v, sorted, idx) => {
-      const n = num(v);
-      if (idx.has(n)) return idx.get(n);
-      // 非彩色點（skeleton snap 僅用到彩色端點；此為保險）：取 ≤n 的最大秩。
-      let lo = 0;
-      let hi = sorted.length - 1;
-      let best = 0;
-      while (lo <= hi) {
-        const m = (lo + hi) >> 1;
-        if (sorted[m] <= n + QT_EPS) { best = m; lo = m + 1; } else hi = m - 1;
-      }
-      return best;
-    };
-    snapLonLat = (lon, lat) => [rankOf(lon, sortedX, xIdx), rankOf(lat, sortedY, yIdx)];
+    // #9：以四分樹「**最小葉格**」為均勻整數格單位，把每個點切到該格 → 新整數座標。
+    // 最小葉格＝能分開最近一對彩色點之解析度，故相異彩色點多會落到不同格；保留原始相對幾何
+    //（等比例縮放）。殘留之落線/交叉再由後續「骨架後矯正」位移到鄰格處理。
+    let minW = Infinity;
+    let minH = Infinity;
+    for (const L of leaves) {
+      const w = L.xmax - L.xmin;
+      const h = L.ymax - L.ymin;
+      if (w > QT_EPS) minW = Math.min(minW, w);
+      if (h > QT_EPS) minH = Math.min(minH, h);
+    }
+    if (!Number.isFinite(minW) || minW <= 0) minW = Math.max(qxmax - qxmin, 1e-9);
+    if (!Number.isFinite(minH) || minH <= 0) minH = Math.max(qymax - qymin, 1e-9);
+    const ox = qxmin;
+    const oy = qymin;
+    const cols = Math.max(1, Math.round((qxmax - qxmin) / minW));
+    const rows = Math.max(1, Math.round((qymax - qymin) / minH));
+    sortedX = Array.from({ length: cols + 1 }, (_, i) => ox + i * minW);
+    sortedY = Array.from({ length: rows + 1 }, (_, i) => oy + i * minH);
+    snapLonLat = (lon, lat) => [
+      Math.round((num(lon) - ox) / minW),
+      Math.round((num(lat) - oy) / minH),
+    ];
   } else {
     const xs = new Set();
     const ys = new Set();

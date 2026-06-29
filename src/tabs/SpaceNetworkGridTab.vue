@@ -10896,34 +10896,42 @@
       }
     }
 
-    // ⑨ 示意圖正規化：載入骨架後、按「開始執行」前，疊畫**四分樹切割結果**（葉矩形，與骨架同空間）。
-    // 執行後 layer.quadtreePartition 會被清掉，故只在預覽階段顯示。
+    // ⑨ 示意圖正規化：載入骨架後、按「開始執行」前，疊畫**四分樹最小葉格之均勻網格**（與實際
+    // snap 用的同一組 xs/ys，與骨架同空間）。執行後 layer.quadtreePartition 會被清掉，只在預覽階段顯示。
     if (layerTab === 'schematic_rma_normalize') {
       const nmLayer = dataStore.findLayerById(layerTab);
       const part = nmLayer?.quadtreePartition;
-      if (part && Array.isArray(part.leaves) && part.leaves.length) {
-        const qtG = zoomGroup
-          .append('g')
-          .attr('class', 'schematic-normalize-quadtree-partition')
-          .style('pointer-events', 'none');
-        for (const L of part.leaves) {
-          const x1 = xScale(L.xmin);
-          const x2 = xScale(L.xmax);
-          const y1 = yScale(L.ymin);
-          const y2 = yScale(L.ymax);
-          qtG
-            .append('rect')
-            .attr('x', Math.min(x1, x2))
-            .attr('y', Math.min(y1, y2))
-            .attr('width', Math.abs(x2 - x1))
-            .attr('height', Math.abs(y2 - y1))
-            .attr('fill', 'none')
-            .attr('stroke', '#1976d2')
-            .attr('stroke-width', 1)
-            .attr('opacity', 0.55)
-            .attr('vector-effect', 'non-scaling-stroke');
+      if (part && Array.isArray(part.xs) && Array.isArray(part.ys) && part.xs.length && part.ys.length) {
+        const MAX_LINES = 4000; // 防呆：格線過多時不畫（避免凍住）
+        if (part.xs.length + part.ys.length <= MAX_LINES) {
+          const qtG = zoomGroup
+            .append('g')
+            .attr('class', 'schematic-normalize-quadtree-partition')
+            .style('pointer-events', 'none');
+          const yT = yScale(part.ys[0]);
+          const yB = yScale(part.ys[part.ys.length - 1]);
+          const xL = xScale(part.xs[0]);
+          const xR = xScale(part.xs[part.xs.length - 1]);
+          const lineAttrs = (el) =>
+            el
+              .attr('fill', 'none')
+              .attr('stroke', '#1976d2')
+              .attr('stroke-width', 1)
+              .attr('opacity', 0.4)
+              .attr('vector-effect', 'non-scaling-stroke');
+          for (const xv of part.xs) {
+            const xp = xScale(xv);
+            lineAttrs(qtG.append('line').attr('x1', xp).attr('y1', yT).attr('x2', xp).attr('y2', yB));
+          }
+          for (const yv of part.ys) {
+            const yp = yScale(yv);
+            lineAttrs(qtG.append('line').attr('x1', xL).attr('y1', yp).attr('x2', xR).attr('y2', yp));
+          }
+          qtG.lower(); // 置於路線/站點之下，當背景格
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn(`[⑨四分樹預覽] 格線過多（${part.xs.length}×${part.ys.length}），略過顯示以免凍住。`);
         }
-        qtG.lower(); // 置於路線/站點之下，當背景格
       }
     }
 

@@ -4288,7 +4288,7 @@
         "route_id": "V",
         "element_type": "way",
         "color": "#e5554f",
-        "route_name": "淡海輕軌",
+        "route_name": "淡海輕軌藍海線",
         "osm_id": "5990742",
         "railway": "light_rail",
         "status": "open"
@@ -4322,7 +4322,7 @@
         "route_id": "V",
         "element_type": "way",
         "color": "#e5554f",
-        "route_name": "淡海輕軌",
+        "route_name": "淡海輕軌綠山線",
         "osm_id": "5990742",
         "railway": "light_rail",
         "status": "open"
@@ -4376,7 +4376,7 @@
         "route_id": "V",
         "element_type": "way",
         "color": "#e5554f",
-        "route_name": "淡海輕軌",
+        "route_name": "淡海輕軌綠山線",
         "osm_id": "5990742",
         "railway": "light_rail",
         "status": "open"

@@ -276,11 +276,10 @@ function adjustSkeletonPointsOnRouteOrCrossing(skeletonFlat) {
 // ── 四分樹切割預覽（載入骨架時計算，供「開始執行」前顯示） ──────────────────────
 
 /**
- * 自骨架 geojson 計算四分樹切割結果（與 Step 1 同一條：去黑站→骨架→四分樹），
- * 回傳葉節點矩形（經緯度座標，與骨架同空間，可直接用渲染 xScale/yScale 畫出）。
+ * 自骨架 geojson 計算四分樹切割結果（與 Step 1 同一條：去黑站→骨架→四分樹→**最小葉格均勻網格**），
+ * 回傳實際 snap 用的均勻網格線 xs/ys（經緯度座標，與骨架同空間，可直接用渲染 xScale/yScale 畫出）。
  * 不執行正規化、不改任何資料；純供「載入骨架後、按開始執行前」預覽切割。
- * @returns {{ leaves: Array<{xmin:number,xmax:number,ymin:number,ymax:number}>,
- *            bounds: {minLon:number,maxLon:number,minLat:number,maxLat:number} } | null}
+ * @returns {{ xs:number[], ys:number[], bounds:{minLon:number,maxLon:number,minLat:number,maxLat:number} } | null}
  */
 export function computeQuadtreePartitionFromGeojson(geojson) {
   if (!geojson?.features?.length) return null;
@@ -291,11 +290,9 @@ export function computeQuadtreePartitionFromGeojson(geojson) {
     const { skeletonFlat: c3Flat } = buildConnectSkeleton(baseFlat);
     if (!c3Flat?.length) return null;
     const snap = buildSnapLonLatFromC3Segments(c3Flat, { allColorSplitNodes: true });
-    if (!snap?.leaves?.length) return null;
-    const leaves = snap.leaves.map((L) => ({
-      xmin: L.xmin, xmax: L.xmax, ymin: L.ymin, ymax: L.ymax,
-    }));
-    return { leaves, bounds: snap.bounds };
+    if (!snap || !Array.isArray(snap.sortedX) || !Array.isArray(snap.sortedY)) return null;
+    // sortedX／sortedY＝以「最小葉格」為單位之均勻網格線（與實際 snap 同一組）。
+    return { xs: snap.sortedX.slice(), ys: snap.sortedY.slice(), bounds: snap.bounds };
   } catch (e) {
     console.error('computeQuadtreePartitionFromGeojson 失敗', e);
     return null;
