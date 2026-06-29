@@ -241,6 +241,14 @@
         type="button"
         class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
         :disabled="isExecuting || layer.isLoading"
+        @click="api.importRmaLayoutNetworkGridFrom(layer, api.SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID)"
+      >
+        從站點與路線調整
+      </button>
+      <button
+        type="button"
+        class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
+        :disabled="isExecuting || layer.isLoading"
         @click="api.importRmaLayoutNetworkGridFrom(layer, api.SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID)"
       >
         從站點與路線往中心聚集（先直後橫）

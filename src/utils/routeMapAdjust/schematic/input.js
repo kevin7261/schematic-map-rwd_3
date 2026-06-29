@@ -297,11 +297,13 @@ function isSkeletonKeepNode(node) {
   const t = node.tags || {};
   const kind = node.node_kind ?? t.node_kind;
   if (kind === 'cross' || kind === 'purple') return true;
+  if (kind === 'right_angle_pink' || kind === 'gray') return true; // 🩷 轉折(粉紅) / 🩶 分隔(灰)：亦保留為節點
   if (node.isCross || node.isPurple || t.isCross || t.isPurple) return true;
   const nt = node.node_type ?? t.node_type;
   if (nt === 'connect' || nt === 'terminal') return true;
   const cc = String(t.node_class_color ?? node.node_class_color ?? '').toLowerCase();
   if (cc === '#ffd600' || cc === '#9c27b0') return true; // 黃(交叉) / 紫(切斷)
+  if (cc === '#e377c2' || cc === '#7f7f7f') return true; // 🩷 粉紅(轉折) / 🩶 灰(分隔)
   return false;
 }
 

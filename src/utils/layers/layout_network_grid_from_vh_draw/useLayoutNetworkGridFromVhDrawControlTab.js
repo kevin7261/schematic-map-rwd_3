@@ -22,6 +22,7 @@ import {
   refreshRmaLayoutNetworkGridFromVhIfVisible,
   SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID,
   SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID,
+  SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID,
 } from '@/utils/layers/json_grid_coord_normalized/index.js';
 import {
   layoutVhDrawAutoRandomWeightLayerId,
@@ -362,6 +363,7 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
     importRmaLayoutNetworkGridFrom,
     SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID,
     SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID,
+    SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID,
     LAYOUT_VH_DRAW_COPY_GRID_NEIGHBOR_HIDE_MIN_PT,
     /** 路網網格_2：layout-grid-viewer 目前滑鼠所在 pt 座標（{x,y}，無則為 null） */
     get layoutVhDrawViewerMousePt() {
