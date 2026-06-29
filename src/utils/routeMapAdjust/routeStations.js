@@ -85,6 +85,266 @@ const projectOnPolyline = (latlngs, point) => {
   return best;
 };
 
+/**
+ * 🩷 中段黑點「轉折（粉紅）」判定相關工具。
+ *   以「曲折度 + 折線簡化」找出過於曲折的骨架邊上的代表性轉折位置，把對應黑點標成粉紅：
+ *     (1) Sinuosity 量每條骨架邊（端點/交點之間子路徑）的曲折度＝弧長/直線距離；
+ *     (2) 曲折度超過門檻者，對其路徑跑 Douglas–Peucker 簡化，保留的中段轉折頂點
+ *         吸附到最近黑點 → 該黑點變粉紅（其餘照常黑色）。
+ *   另保留「兩路段夾角」計算，僅供 hover 顯示（不再用於粉紅判定）。
+ */
+/** 曲折度門檻：骨架邊 sinuosity > 此值才視為「太曲折」，才在其上挑轉折黑點變粉紅。預設 1.25（弧長比直線長 25%）。 */
+export const RIGHT_ANGLE_PINK_SINUOSITY_MIN = 1.25;
+/**
+ * Douglas–Peucker 容差「比例」：頂點到頭尾直線的垂直距離 ÷ 頭尾直線長度 > 此比例，才算「代表性轉折」。
+ *   為無單位比例（與路線大小無關）；越小→越多粉紅。預設 0.25（垂線約為頭尾直線長度的 25%）。
+ */
+export const RIGHT_ANGLE_PINK_DP_EPSILON_RATIO = 0.25;
+/** 轉折之中段黑點的粉紅色碼（與 ROUTE_MAP_ADJUST_PALETTE 之「粉紅色」一致）。 */
+export const RIGHT_ANGLE_PINK_HEX = '#e377c2';
+
+/**
+ * 由骨架邊建立「中段頂點 → 前後鄰點」查表，供計算每個黑點的路線轉折角。
+ *   walkChain 收縮時保留所有 degree-2 過路頂點（含中段黑點站）為 path 中段頂點，
+ *   故黑點即可在此以座標鍵查到其前後鄰點。
+ * @param {Array<{path:Array<[number,number]>}>} edges 骨架邊
+ * @returns {Map<string,{prev:[number,number],node:[number,number],next:[number,number]}>}
+ */
+export const buildSkeletonInteriorVertexLookup = (edges) => {
+  const key = (p) => `${Number(p[0]).toFixed(6)},${Number(p[1]).toFixed(6)}`;
+  const map = new Map();
+  for (const e of Array.isArray(edges) ? edges : []) {
+    const path = Array.isArray(e?.path) ? e.path : [];
+    for (let i = 1; i < path.length - 1; i++) {
+      const k = key(path[i]);
+      if (!map.has(k)) map.set(k, { prev: path[i - 1], node: path[i], next: path[i + 1] });
+    }
+  }
+  return map;
+};
+
+/**
+ * 在中段頂點 node 量兩路段的「夾角／交角」（度）：180°=直行、90°=直角、<90°=銳角、0°=原路折返。
+ *   即由 node 望向前後鄰點兩向量的夾角。以等距圓柱投影（經度乘 cos(lat)）在當地平面量，
+ *   避免經緯度尺度差造成角度失真。
+ */
+const skeletonCornerAngleDeg = (prev, node, next) => {
+  const kx = Math.cos((Number(node[0]) * Math.PI) / 180);
+  const u1x = (prev[1] - node[1]) * kx;
+  const u1y = prev[0] - node[0];
+  const u2x = (next[1] - node[1]) * kx;
+  const u2y = next[0] - node[0];
+  const m1 = Math.hypot(u1x, u1y);
+  const m2 = Math.hypot(u2x, u2y);
+  if (m1 < 1e-12 || m2 < 1e-12) return 180;
+  let cos = (u1x * u2x + u1y * u2y) / (m1 * m2);
+  cos = Math.max(-1, Math.min(1, cos));
+  return (Math.acos(cos) * 180) / Math.PI;
+};
+
+/**
+ * 取中段黑點兩路段的「夾角／交角」（度）；查不到鄰點（非中段頂點）回傳 null。
+ * @param {Map} lookup buildSkeletonInteriorVertexLookup 之回傳
+ * @param {[number,number]} blackDot 黑點座標 [lat,lng]
+ * @returns {number|null}
+ */
+export const blackDotCornerAngleDeg = (lookup, blackDot) => {
+  if (!lookup || !Array.isArray(blackDot) || blackDot.length < 2) return null;
+  const k = `${Number(blackDot[0]).toFixed(6)},${Number(blackDot[1]).toFixed(6)}`;
+  const hit = lookup.get(k);
+  if (!hit) return null;
+  return skeletonCornerAngleDeg(hit.prev, hit.node, hit.next);
+};
+
+/** 公尺/緯度度（近似）。 */
+const M_PER_DEG = 111320;
+
+/** 把 [lat,lng] 折線投影到以公尺為單位的當地平面（經度乘 cos(latRef)），供量距離／簡化用。 */
+const pathToMeters = (path) => {
+  if (!Array.isArray(path) || !path.length) return [];
+  const latRef = (Number(path[0][0]) * Math.PI) / 180;
+  const kx = Math.cos(latRef) * M_PER_DEG;
+  return path.map((p) => [Number(p[1]) * kx, Number(p[0]) * M_PER_DEG]);
+};
+
+/** 點 p 到線段 a-b 的垂直距離（與輸入同單位）。 */
+const perpDistToSegment = (p, a, b) => {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(p[0] - a[0], p[1] - a[1]);
+  let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+};
+
+/**
+ * Douglas–Peucker（容差為「比例」）：回傳 { keep, ratios }。
+ *   keep[i]＝是否保留頂點 i（含頭尾）；ratios[i]＝保留該頂點時「垂線 ÷ 頭尾直線長度」之比例（其餘為 null）。
+ *   每次以目前子段的頭尾兩點連線為基線，比較「最遠頂點到基線的垂線 ÷ 基線長度」是否 > ratio；
+ *   超過才保留該頂點並遞迴左右兩半。故容差與路線大小無關，只看相對彎曲程度。
+ *   頭尾近重合（環）時先強制保留離起點最遠的頂點，避免基線退化。
+ */
+const douglasPeuckerKeep = (xy, ratio) => {
+  const n = xy.length;
+  const keep = new Array(n).fill(false);
+  const ratios = new Array(n).fill(null);
+  if (n === 0) return { keep, ratios };
+  keep[0] = true;
+  keep[n - 1] = true;
+  if (n < 3) return { keep, ratios };
+  let stack = [[0, n - 1]];
+  if (Math.hypot(xy[0][0] - xy[n - 1][0], xy[0][1] - xy[n - 1][1]) < 1) {
+    let far = 1;
+    let farD = -1;
+    for (let i = 1; i < n - 1; i++) {
+      const d = Math.hypot(xy[i][0] - xy[0][0], xy[i][1] - xy[0][1]);
+      if (d > farD) {
+        farD = d;
+        far = i;
+      }
+    }
+    keep[far] = true;
+    stack = [
+      [0, far],
+      [far, n - 1],
+    ];
+  }
+  while (stack.length) {
+    const [a, b] = stack.pop();
+    let maxD = -1;
+    let idx = -1;
+    for (let i = a + 1; i < b; i++) {
+      const d = perpDistToSegment(xy[i], xy[a], xy[b]);
+      if (d > maxD) {
+        maxD = d;
+        idx = i;
+      }
+    }
+    const baseLen = Math.hypot(xy[b][0] - xy[a][0], xy[b][1] - xy[a][1]); // 頭尾直線長度
+    if (idx > a && baseLen > 0 && maxD / baseLen > ratio) {
+      keep[idx] = true;
+      ratios[idx] = maxD / baseLen; // 此頂點的轉折比例
+      stack.push([a, idx], [idx, b]);
+    }
+  }
+  return { keep, ratios };
+};
+
+/**
+ * 骨架邊「曲折度」= 弧長 / 兩端直線距離（公尺）。1＝直線；越大越曲折；頭尾近重合（環）回傳 Infinity。
+ * @param {Array<[number,number]>} path 折線 [lat,lng]
+ * @returns {number}
+ */
+export const edgeSinuosity = (path) => {
+  const xy = pathToMeters(path);
+  if (xy.length < 2) return 1;
+  let arc = 0;
+  for (let i = 0; i < xy.length - 1; i++) {
+    arc += Math.hypot(xy[i + 1][0] - xy[i][0], xy[i + 1][1] - xy[i][1]);
+  }
+  const chord = Math.hypot(xy[xy.length - 1][0] - xy[0][0], xy[xy.length - 1][1] - xy[0][1]);
+  if (chord < 1) return arc < 1 ? 1 : Infinity;
+  return arc / chord;
+};
+
+/**
+ * 以「Sinuosity 量曲折度 + Douglas–Peucker 找轉折」挑出應變粉紅的黑點。
+ *   逐骨架邊（端點/交點之間子路徑）：sinuosity > 門檻者視為太曲折，對其路徑跑 DP；
+ *   DP 保留的中段轉折頂點本身即為黑點站位置，直接標粉紅。
+ *   （傳入 blackDots 僅作保險：只標確實在黑點集合內的頂點，避免非站點幾何頂點被誤標。）
+ * @param {Array<{path:Array<[number,number]>}>} edges 骨架邊
+ * @param {Array<[number,number]>} blackDots 黑點 [lat,lng]
+ * @param {{sinuosityMin?:number, epsilonRatio?:number}} [opts]
+ * @returns {Map<string,number|null>} 應變粉紅之黑點 → 其轉折比例（垂線/頭尾直線；鍵＝`lat.toFixed(6),lng.toFixed(6)`）
+ */
+export const computeRightAnglePinkBlackDots = (edges, blackDots, opts = {}) => {
+  const sinuosityMin = opts.sinuosityMin ?? RIGHT_ANGLE_PINK_SINUOSITY_MIN;
+  const epsilonRatio = opts.epsilonRatio ?? RIGHT_ANGLE_PINK_DP_EPSILON_RATIO;
+  const key = (p) => `${Number(p[0]).toFixed(6)},${Number(p[1]).toFixed(6)}`;
+  const blackKeys = new Set(
+    (Array.isArray(blackDots) ? blackDots : [])
+      .filter((b) => Array.isArray(b) && b.length >= 2)
+      .map((b) => key(b))
+  );
+  const pink = new Map(); // key → 轉折比例（垂線/頭尾直線）
+  if (!blackKeys.size) return pink;
+  for (const e of Array.isArray(edges) ? edges : []) {
+    const path = Array.isArray(e?.path) ? e.path : [];
+    if (path.length < 3) continue;
+    if (edgeSinuosity(path) <= sinuosityMin) continue; // 不夠曲折（≤門檻）→ 不挑轉折
+    const xy = pathToMeters(path);
+    const { keep, ratios } = douglasPeuckerKeep(xy, epsilonRatio);
+    for (let i = 1; i < path.length - 1; i++) {
+      if (!keep[i]) continue; // 只在 DP 保留的代表性轉折頂點挑黑點
+      const k = key(path[i]);
+      if (!blackKeys.has(k)) continue; // 轉折頂點即黑點位置
+      const r = ratios[i];
+      // 同一黑點若出現在多條（共線）邊，取較大的轉折比例。
+      if (!pink.has(k) || (r != null && (pink.get(k) == null || r > pink.get(k)))) pink.set(k, r);
+    }
+  }
+  return pink;
+};
+
+/** 黑點上限：兩相鄰邊界點（紅/黃/紫/藍/粉紅/灰）之間最多容許的黑點數。超過則在中間把黑點改灰點。預設 4。 */
+export const GRAY_MAX_BLACK_BETWEEN = 4;
+/** 灰點色碼（與 ROUTE_MAP_ADJUST_PALETTE 之「灰色」一致）。 */
+export const GRAY_DOT_HEX = '#7f7f7f';
+
+/**
+ * 在骨架邊上，把過長的「黑點連續段」中間改為灰點，使任兩相鄰邊界點（紅/黃/紫/藍/粉紅/灰）之間
+ * 的黑點數 ≤ maxBetween（預設 4）。
+ *   邊界＝邊端點(真實節點) + 內部的粉紅點；其間連續的非粉紅黑點為一「連續段」。
+ *   連續段長 N：需改灰點數 G = ⌊N / (maxBetween+1)⌋（即 N≥5→1、≥10→2、餘類推）。
+ *   灰點取最接近均分（最中間）的位置，使每個子段黑點數 ≤ maxBetween。
+ * @param {Array<{path:Array<[number,number]>}>} edges 骨架邊
+ * @param {Array<[number,number]>} blackDots 黑點 [lat,lng]
+ * @param {Set<string>|Map<string,*>} pinkKeys 粉紅點鍵（需具 .has）
+ * @param {{maxBetween?:number}} [opts]
+ * @returns {Set<string>} 應改灰之黑點座標鍵集合（鍵＝`lat.toFixed(6),lng.toFixed(6)`）
+ */
+export const computeGrayBlackDots = (edges, blackDots, pinkKeys, opts = {}) => {
+  const maxBetween = opts.maxBetween ?? GRAY_MAX_BLACK_BETWEEN;
+  const groupCap = maxBetween + 1; // 每 groupCap 個黑點需 1 灰點（預設 5）
+  const key = (p) => `${Number(p[0]).toFixed(6)},${Number(p[1]).toFixed(6)}`;
+  const blackKeys = new Set(
+    (Array.isArray(blackDots) ? blackDots : [])
+      .filter((b) => Array.isArray(b) && b.length >= 2)
+      .map((b) => key(b))
+  );
+  const isPink = (k) => !!(pinkKeys && typeof pinkKeys.has === 'function' && pinkKeys.has(k));
+  const gray = new Set();
+  if (!blackKeys.size) return gray;
+  for (const e of Array.isArray(edges) ? edges : []) {
+    const path = Array.isArray(e?.path) ? e.path : [];
+    if (path.length < 3) continue;
+    let run = []; // 目前連續段之 path 索引
+    const flush = () => {
+      const N = run.length;
+      const G = Math.floor(N / groupCap);
+      for (let j = 1; j <= G; j++) {
+        // 均分位置：第 j 個灰點落在連續段的 round(j*(N+1)/(G+1))-1（最中間）。
+        let local = Math.round((j * (N + 1)) / (G + 1)) - 1;
+        local = Math.max(0, Math.min(N - 1, local));
+        gray.add(key(path[run[local]]));
+      }
+      run = [];
+    };
+    for (let i = 1; i < path.length - 1; i++) {
+      const k = key(path[i]);
+      if (isPink(k)) {
+        flush(); // 粉紅為邊界 → 切斷連續段
+        continue;
+      }
+      if (!blackKeys.has(k)) continue; // 非站點幾何頂點（理論上不會有）
+      run.push(i);
+    }
+    flush(); // 段尾（邊端點為邊界）
+  }
+  return gray;
+};
+
 /** 依容差合併相近的點 */
 const dedupePoints = (points, tol = 1e-5) => {
   const out = [];
@@ -1163,10 +1423,18 @@ export const routeMapAdjustSkeletonToGeoJson = (
     });
   });
   let nid = 1;
+  // 🩷 中段黑點轉折（粉紅）：以曲折度 + Douglas–Peucker 在太曲折的骨架邊上挑代表性轉折黑點。
+  const pinkKeys = computeRightAnglePinkBlackDots(edges, blackFeatures);
+  // 🩶 過長黑點段中間改灰點：使兩相鄰邊界點（紅/黃/紫/藍/粉紅/灰）之間黑點 ≤ 4。
+  const grayKeys = computeGrayBlackDots(edges, blackFeatures, pinkKeys);
   blackFeatures.forEach((p) => {
     if (!Array.isArray(p) || p.length < 2) return;
     const [lat, lng] = p;
     const meta = (stationMeta && stationMeta[llKey(lat, lng)]) || {};
+    const pinkKey = `${Number(lat).toFixed(6)},${Number(lng).toFixed(6)}`;
+    const isPink = pinkKeys.has(pinkKey);
+    const isGray = !isPink && grayKeys.has(pinkKey);
+    const dpRatio = isPink ? pinkKeys.get(pinkKey) : null; // 轉折比例（垂線/頭尾直線）
     features.push({
       type: 'Feature',
       properties: {
@@ -1176,9 +1444,11 @@ export const routeMapAdjustSkeletonToGeoJson = (
           station_id: meta.id != null ? String(meta.id) : `b${nid}`,
           station_name: meta.name || '',
           type: 'normal',
-          node_kind: 'black',
-          node_class_color: '#000000',
-          node_class_r: 3,
+          // 🩷 粉紅＝曲折邊轉折點；🩶 灰＝過長黑點段中間之分隔點；其餘黑點
+          node_kind: isPink ? 'right_angle_pink' : isGray ? 'gray' : 'black',
+          node_class_color: isPink ? RIGHT_ANGLE_PINK_HEX : isGray ? GRAY_DOT_HEX : '#000000',
+          node_class_r: isPink || isGray ? 4 : 3, // 🩷🩶 粉紅/灰大小同紅/藍/黃/紫節點(4)；一般黑點仍 3
+          dp_ratio: dpRatio != null ? Number(dpRatio.toFixed(4)) : undefined, // 🩷 轉折比例
         },
       },
       geometry: { type: 'Point', coordinates: [lng, lat] },

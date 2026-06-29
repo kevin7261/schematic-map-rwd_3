@@ -13,6 +13,13 @@ import {
   computeRouteMapAdjustSkeletonStations,
   computeRouteMapAdjustSharedEndpointSegments,
   computeRouteMapAdjustLoopRoutes,
+  buildSkeletonInteriorVertexLookup,
+  blackDotCornerAngleDeg,
+  computeRightAnglePinkBlackDots,
+  computeGrayBlackDots,
+  edgeSinuosity,
+  RIGHT_ANGLE_PINK_HEX,
+  GRAY_DOT_HEX,
 } from './routeStations.js';
 import { ROUTE_MAP_ADJUST_2_LAYER_ID } from './loadFromSelectRouteMap2.js';
 
@@ -123,7 +130,7 @@ export function mountRouteMapAdjust2(el, dataStore) {
     }
     return m;
   };
-  const stationTooltipHtml = (latlng, type, routesAtCoord) => {
+  const stationTooltipHtml = (latlng, type, routesAtCoord, cornerAngleDeg = null, dpRatio = null) => {
     const k = llKey(latlng[0], latlng[1]);
     const meta = (layer.routeMapAdjustStationMeta && layer.routeMapAdjustStationMeta[k]) || {};
     const routes = [...(routesAtCoord.get(k) || [])];
@@ -133,6 +140,12 @@ export function mountRouteMapAdjust2(el, dataStore) {
       rowHtml('station_id', meta.id) +
       rowHtml('osm_id', meta.osmId) +
       rowHtml('type', typeLabel(type)) +
+      // 🩷 黑點/粉紅點才顯示路線交角（兩路段夾角，180°=直行、90°=直角、<90°=銳角）
+      (cornerAngleDeg != null ? rowHtml('交角', `${cornerAngleDeg.toFixed(1)}°`) : '') +
+      // 🩷 粉紅點顯示其轉折比例（垂線/頭尾直線；即 RIGHT_ANGLE_PINK_DP_EPSILON_RATIO 比較對象）
+      (dpRatio != null
+        ? rowHtml('轉折比例', `${dpRatio.toFixed(3)}（${(dpRatio * 100).toFixed(1)}%）`)
+        : '') +
       (routes.length
         ? `<div><span style="color:#888">route_name_list</span> ${esc(routes.join('、'))}</div>`
         : '') +
@@ -450,9 +463,13 @@ export function mountRouteMapAdjust2(el, dataStore) {
   //   重疊路段則把每條路線依序列出。
   const skeletonEdgeTooltip = (e) => {
     const routes = Array.isArray(e.routes) ? e.routes : [];
+    // 🩷 Sinuosity（曲折度）＝弧長/直線距離；1=直線，越大越曲折。
+    const s = edgeSinuosity(e.path);
+    const sStr = Number.isFinite(s) ? s.toFixed(2) : '∞（環）';
     return (
       `<div style="font-size:12px;line-height:1.5">` +
       routes.map((r) => lineTooltipHtml(r)).join('<hr style="margin:3px 0;border:none;border-top:1px solid #eee">') +
+      `<div><span style="color:#888">Sinuosity</span> ${sStr}</div>` +
       `</div>`
     );
   };
@@ -547,20 +564,33 @@ export function mountRouteMapAdjust2(el, dataStore) {
       }
     }
     // 🖤 黑點站（一般中間站）：骨架化後仍照原位置畫出（不可消失）。先畫，讓端點/交點/交叉節點疊在其上。
+    //   🩷 以「曲折度 + Douglas–Peucker」在太曲折的骨架邊上挑代表性轉折黑點，標為粉紅色。
+    //   🩶 過長黑點段中間改灰點，使兩相鄰邊界點（紅/黃/紫/藍/粉紅/灰）之間黑點 ≤ 4。
     const routesAtCoord = buildRoutesAtCoord();
+    const bendLookup = buildSkeletonInteriorVertexLookup(sk.edges); // 供 hover 顯示交角
+    const pinkKeys = computeRightAnglePinkBlackDots(sk.edges, blacks);
+    const grayKeys = computeGrayBlackDots(sk.edges, blacks, pinkKeys);
     for (const p of blacks || []) {
       if (!Array.isArray(p) || p.length < 2) continue;
-      const r = 3;
+      const cornerDeg = blackDotCornerAngleDeg(bendLookup, p);
+      const pk = llKey(p[0], p[1]);
+      const isPink = pinkKeys.has(pk);
+      const isGray = !isPink && grayKeys.has(pk);
+      const dpRatio = isPink ? pinkKeys.get(pk) : null; // 🩷 轉折比例（垂線/頭尾直線）
+      const r = isPink || isGray ? 4 : 3; // 🩷🩶 粉紅/灰大小同紅/藍/黃/紫節點(4)；一般黑點仍 3
       const m = L.circleMarker(p, {
         radius: r,
         color: '#ffffff', // 白色 1px border
         weight: 1,
-        fillColor: '#000000',
+        fillColor: isPink ? RIGHT_ANGLE_PINK_HEX : isGray ? GRAY_DOT_HEX : '#000000',
         fillOpacity: 1,
         interactive: true,
         pane: 'srmaDots',
       });
-      m.bindTooltip(stationTooltipHtml(p, 'black', routesAtCoord), { sticky: true });
+      // 🩷 黑點/粉紅點 hover 顯示路線交角；粉紅點另顯示轉折比例
+      m.bindTooltip(stationTooltipHtml(p, 'black', routesAtCoord, cornerDeg, dpRatio), {
+        sticky: true,
+      });
       m.on('mouseover', () => m.setRadius(r + 3));
       m.on('mouseout', () => m.setRadius(r));
       m.addTo(skeletonGroup);
