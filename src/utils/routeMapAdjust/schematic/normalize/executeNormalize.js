@@ -130,136 +130,175 @@ function pointStrictlyOnSeg(px, py, ax, ay, bx, by) {
 }
 
 /**
- * 從 connect 骨架（2-point 段）建邊表，供黑點後矯正用。
- * 必須用 normalizedFlat（骨架），不可用 fullFlat（已插入黑點）——
- * 否則邊被黑點切成小段後，黑點落在切分端點時 t=0/1，pointStrictlyOnSeg 偵測不到。
+ * ⑨ 骨架後矯正（**在放回黑站之前**，只動骨架的彩色頂點 🔴🔵🟡🟣＝各 segment 端點；與黑點無關，
+ * 黑站是整個調整完才放回）。若某頂點出現以下任一狀況 →
+ *   ① 落在**別條路線邊的嚴格內部**、② 與**別條路線頂點同格碰撞**、③ 其相鄰段與**別條路線交叉**，
+ * 則把該頂點**（含所有同座標共點＝整個 junction 連動）位移到最近鄰格**（Chebyshev 半徑 1→R），
+ * 取「落線＋碰撞＋交叉」總分最小者。
+ *
+ * 保拓撲：同座標頂點一起移（junction 不拆）、不改連通順序、且**只在能改善時才移**（新分數 < 原分數），
+ * 故不破壞原拓撲、不新增交叉。
+ * @param {Array} skeletonFlat - connect→connect 骨架（放黑站前）
  */
-function buildSkeletonEdges(skeletonFlat) {
-  const edges = [];
-  for (const seg of skeletonFlat) {
-    const rn = seg.route_name ?? seg.name ?? '';
-    const pts = (seg.points || []).map(rdXY);
-    for (let k = 1; k < pts.length; k++) {
-      edges.push({ routeName: rn, ax: pts[k-1][0], ay: pts[k-1][1], bx: pts[k][0], by: pts[k][1] });
+function adjustSkeletonPointsOnRouteOrCrossing(skeletonFlat) {
+  const routeOf = (si) => skeletonFlat[si]?.route_name ?? skeletonFlat[si]?.name ?? '';
+  /** 同座標頂點分組：coordKey → [{si,pi}]（junction 連動單位）。 */
+  const buildGroups = () => {
+    const g = new Map();
+    for (let si = 0; si < skeletonFlat.length; si++) {
+      const pts = skeletonFlat[si]?.points;
+      if (!Array.isArray(pts)) continue;
+      for (let pi = 0; pi < pts.length; pi++) {
+        const [x, y] = rdXY(pts[pi]);
+        const k = `${x},${y}`;
+        if (!g.has(k)) g.set(k, []);
+        g.get(k).push({ si, pi });
+      }
     }
-  }
-  return edges;
-}
-
-/**
- * 從骨架段端點建「其他路線的 connect 節點位置」集合。
- * 黑點若恰好落在別條路線的整數 connect 點上，也算衝突（即使不在任一邊的嚴格內部）。
- */
-function buildOtherRouteConnectSet(skeletonFlat) {
-  // key: "x,y"  value: Set<routeName>
-  const pos = new Map();
-  for (const seg of skeletonFlat) {
-    const rn = seg.route_name ?? seg.name ?? '';
-    const pts = (seg.points || []).map(rdXY);
-    for (const pt of [pts[0], pts[pts.length - 1]]) {
-      const k = `${pt[0]},${pt[1]}`;
-      if (!pos.has(k)) pos.set(k, new Set());
-      pos.get(k).add(rn);
+    return g;
+  };
+  const buildEdges = () => {
+    const E = [];
+    for (let si = 0; si < skeletonFlat.length; si++) {
+      const pts = skeletonFlat[si]?.points;
+      if (!Array.isArray(pts)) continue;
+      const arr = pts.map(rdXY);
+      for (let k = 1; k < arr.length; k++) E.push({ si, pi: k - 1, rn: routeOf(si), a: arr[k - 1], b: arr[k] });
     }
-  }
-  return pos;
-}
-
-/**
- * 黑點後矯正：若某黑點（_forceDrawBlackDot）落在別條路線的
- *   ① 骨架邊的嚴格內部，或 ② 別條路線的 connect 節點位置，
- * 則沿自身路線微量往一端位移（±0.3 格，最多 8 次），直到脫離衝突。
- * 不改拓樸，不移動 connect 節點。
- * @param {Array} fullFlat - reinsertBlackStations 後的完整路段（含黑點）
- * @param {Array} normalizedFlat - 放入黑點之前的骨架（connect→connect 2-point 段）
- */
-function fixBlackDotsOnWrongRoutes(fullFlat, normalizedFlat) {
-  const skEdges = buildSkeletonEdges(normalizedFlat);
-  const otherConnects = buildOtherRouteConnectSet(normalizedFlat);
-  let fixCount = 0;
-
-  const isConflict = (px, py, ownRoute) => {
-    // 嚴格在別條路線骨架邊內部
-    if (skEdges.some(e => e.routeName !== ownRoute && pointStrictlyOnSeg(px, py, e.ax, e.ay, e.bx, e.by)))
-      return true;
-    // 落在別條路線的 connect 節點位置（整數格點碰撞）
-    const k = `${px},${py}`;
-    const routes = otherConnects.get(k);
-    return !!routes && [...routes].some(r => r !== ownRoute);
+    return E;
+  };
+  /** 頂點群放在 (x,y) 時之不良分數（refs＝共點群、ownRoutes＝其所屬路線、edges＝全邊）。 */
+  const badnessAt = (x, y, refs, ownRoutes, edges) => {
+    const moving = new Set(refs.map((r) => `${r.si}:${r.pi}`));
+    let bad = 0;
+    // ① 落在別條路線邊嚴格內部
+    for (const e of edges) {
+      if (ownRoutes.has(e.rn)) continue;
+      if (pointStrictlyOnSeg(x, y, e.a[0], e.a[1], e.b[0], e.b[1])) { bad += 1; break; }
+    }
+    // ② 與「非本群」任一頂點同格（含同路線：避免併點改拓撲）
+    for (let si = 0; si < skeletonFlat.length; si++) {
+      const pts = skeletonFlat[si]?.points;
+      if (!Array.isArray(pts)) continue;
+      for (let pi = 0; pi < pts.length; pi++) {
+        if (moving.has(`${si}:${pi}`)) continue;
+        const [vx, vy] = rdXY(pts[pi]);
+        if (vx === x && vy === y) { bad += 1; }
+      }
+    }
+    // ③ 相鄰段與別條路線交叉（以候選位置 (x,y) 重算入射邊）
+    for (const r of refs) {
+      const pts = skeletonFlat[r.si]?.points;
+      if (!Array.isArray(pts)) continue;
+      const rn = routeOf(r.si);
+      for (const adj of [r.pi - 1, r.pi + 1]) {
+        if (adj < 0 || adj >= pts.length) continue;
+        if (moving.has(`${r.si}:${adj}`)) continue; // 鄰點亦在移動群 → 該段整段移，略過
+        const nb = rdXY(pts[adj]);
+        for (const e of edges) {
+          if (e.rn === rn) continue; // 只看別條路線
+          if (moving.has(`${e.si}:${e.pi}`) || moving.has(`${e.si}:${e.pi + 1}`)) continue; // 本群自身入射邊
+          if (segsCross([x, y], nb, e.a, e.b)) bad += 1;
+        }
+      }
+    }
+    return bad;
   };
 
-  for (const seg of fullFlat) {
-    const rn = seg.route_name ?? seg.name ?? '';
-    const pts = seg.points || [];
-    const nodes = seg.nodes || [];
-    const segPts = pts.map(rdXY);
-    const n = segPts.length;
-    if (n < 2) continue;
+  const groups = buildGroups();
+  let fixCount = 0;
+  let failCount = 0;
+  const MAX_R = 6;
+  for (const [key, refs] of groups) {
+    const [ox, oy] = key.split(',').map(Number);
+    const ownRoutes = new Set(refs.map((r) => routeOf(r.si)));
+    const edges = buildEdges(); // 反映前面已套用之移動
+    const orig = badnessAt(ox, oy, refs, ownRoutes, edges);
+    if (orig === 0) continue;
 
-    const cum = [0];
-    for (let k = 1; k < n; k++) {
-      const dx = segPts[k][0] - segPts[k-1][0], dy = segPts[k][1] - segPts[k-1][1];
-      cum.push(cum[k-1] + Math.hypot(dx, dy));
-    }
-    const total = cum[n-1];
-    if (total < 1e-9) continue;
-
-    for (let i = 1; i < n - 1; i++) {
-      const nd = nodes[i];
-      if (!nd?.tags?._forceDrawBlackDot) continue;
-
-      const [px, py] = segPts[i];
-      if (!isConflict(px, py, rn)) continue;
-
-      const BASE = 0.3;
-      let moved = false;
-      const s0 = cum[i];
-      for (let attempt = 1; attempt <= 8 && !moved; attempt++) {
-        const delta = BASE * attempt;
-        for (const dir of [1, -1]) {
-          const sNew = s0 + dir * delta;
-          if (sNew <= 1e-6 || sNew >= total - 1e-6) continue;
-          let newPt = null;
-          for (let k = 1; k < n; k++) {
-            if (sNew <= cum[k] + 1e-9) {
-              const frac = (sNew - cum[k-1]) / (cum[k] - cum[k-1] + 1e-18);
-              newPt = [
-                segPts[k-1][0] + frac * (segPts[k][0] - segPts[k-1][0]),
-                segPts[k-1][1] + frac * (segPts[k][1] - segPts[k-1][1]),
-              ];
-              break;
-            }
-          }
-          if (!newPt) continue;
-          const [nx, ny] = newPt;
-          if (!isConflict(nx, ny, rn)) {
-            if (Array.isArray(pts[i])) { pts[i][0] = nx; pts[i][1] = ny; }
-            else { pts[i].x = nx; pts[i].y = ny; }
-            segPts[i] = [nx, ny];
-            if (nd) {
-              nd.x_grid = nx; nd.y_grid = ny;
-              if (!nd.tags) nd.tags = {};
-              nd.tags.x_grid = nx; nd.tags.y_grid = ny;
-            }
-            cum[i] = cum[i-1] + Math.hypot(nx - segPts[i-1][0], ny - segPts[i-1][1]);
-            for (let k = i + 1; k < n; k++) {
-              const dk = Math.hypot(segPts[k][0] - segPts[k-1][0], segPts[k][1] - segPts[k-1][1]);
-              cum[k] = cum[k-1] + dk;
-            }
-            fixCount++;
-            moved = true;
-            break;
+    let best = null;
+    let bestBad = orig;
+    let bestDist = Infinity;
+    for (let r = 1; r <= MAX_R; r++) {
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dy = -r; dy <= r; dy++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const nx = ox + dx;
+          const ny = oy + dy;
+          const bad = badnessAt(nx, ny, refs, ownRoutes, edges);
+          if (bad >= orig) continue; // 只接受能改善者
+          const dist = dx * dx + dy * dy;
+          if (bad < bestBad || (bad === bestBad && dist < bestDist)) {
+            best = [nx, ny];
+            bestBad = bad;
+            bestDist = dist;
           }
         }
       }
-      if (!moved) {
-        console.warn(`[⑨後矯正] 無法移開黑點 (${px},${py}) @ route=${rn}，保持原位。`);
+      if (best && bestBad === 0) break;
+    }
+
+    if (best) {
+      const [nx, ny] = best;
+      for (const r of refs) {
+        const seg = skeletonFlat[r.si];
+        const pts = seg.points;
+        if (Array.isArray(pts[r.pi])) { pts[r.pi][0] = nx; pts[r.pi][1] = ny; }
+        else { pts[r.pi].x = nx; pts[r.pi].y = ny; }
+        const nd = seg.nodes?.[r.pi];
+        if (nd) {
+          nd.x_grid = nx; nd.y_grid = ny;
+          if (!nd.tags) nd.tags = {};
+          nd.tags.x_grid = nx; nd.tags.y_grid = ny;
+        }
+        const ep = r.pi === 0 ? seg.properties_start : (r.pi === pts.length - 1 ? seg.properties_end : null);
+        if (ep) {
+          ep.x_grid = nx; ep.y_grid = ny;
+          if (!ep.tags) ep.tags = {};
+          ep.tags.x_grid = nx; ep.tags.y_grid = ny;
+        }
       }
+      fixCount++;
+    } else {
+      failCount++;
+      console.warn(`[⑨骨架後矯正] 頂點 (${ox},${oy}) 在鄰格(${MAX_R})內無法改善，保持原位。`);
     }
   }
 
-  if (fixCount > 0) {
-    console.log(`[⑨後矯正] 共矯正 ${fixCount} 個黑點（移離別條路線幾何線段）。`);
+  if (fixCount > 0 || failCount > 0) {
+    console.log(
+      `[⑨骨架後矯正] 位移 ${fixCount} 個落線/碰撞/交叉的彩色頂點到鄰格（junction 連動、保拓撲）` +
+        (failCount > 0 ? `；${failCount} 個無法改善保持原位。` : '。')
+    );
+  }
+}
+
+// ── 四分樹切割預覽（載入骨架時計算，供「開始執行」前顯示） ──────────────────────
+
+/**
+ * 自骨架 geojson 計算四分樹切割結果（與 Step 1 同一條：去黑站→骨架→四分樹），
+ * 回傳葉節點矩形（經緯度座標，與骨架同空間，可直接用渲染 xScale/yScale 畫出）。
+ * 不執行正規化、不改任何資料；純供「載入骨架後、按開始執行前」預覽切割。
+ * @returns {{ leaves: Array<{xmin:number,xmax:number,ymin:number,ymax:number}>,
+ *            bounds: {minLon:number,maxLon:number,minLat:number,maxLat:number} } | null}
+ */
+export function computeQuadtreePartitionFromGeojson(geojson) {
+  if (!geojson?.features?.length) return null;
+  try {
+    const fields = buildTaipeiB3ExecuteLayerFieldsFromGeojson(geojson, {});
+    const baseFlat = fields?.spaceNetworkGridJsonData;
+    if (!Array.isArray(baseFlat) || baseFlat.length === 0) return null;
+    const { skeletonFlat: c3Flat } = buildConnectSkeleton(baseFlat);
+    if (!c3Flat?.length) return null;
+    const snap = buildSnapLonLatFromC3Segments(c3Flat, { allColorSplitNodes: true });
+    if (!snap?.leaves?.length) return null;
+    const leaves = snap.leaves.map((L) => ({
+      xmin: L.xmin, xmax: L.xmax, ymin: L.ymin, ymax: L.ymax,
+    }));
+    return { leaves, bounds: snap.bounds };
+  } catch (e) {
+    console.error('computeQuadtreePartitionFromGeojson 失敗', e);
+    return null;
   }
 }
 
@@ -278,6 +317,8 @@ export function executeNormalizeRma() {
     console.warn('executeNormalizeRma：圖層尚無輸入資料，請先載入骨架。');
     return false;
   }
+  // 開始執行 → 清掉「載入骨架時」的四分樹切割預覽（結果改為整數格空間，預覽已不再對齊）。
+  layer.quadtreePartition = null;
 
   // ── 讀路網 → flat segments（含 lon/lat） ─────────────────────────────────
   let fields;
@@ -301,7 +342,9 @@ export function executeNormalizeRma() {
   }
 
   // ── Step 1-b：四分樹正規化 → d3（整數格，與 c3 同結構） ─────────────────────
-  const snapResult = buildSnapLonLatFromC3Segments(c3Flat);
+  // 四分樹以「所有彩色點 🔴connect／🔵terminal／🟡cross／🟣purple」切格（不含黑點），
+  // 讓藍/黃/紫點也被分隔，避免不同路線被 snap 擠到同一格行/列而重疊（如迴龍分支）。
+  const snapResult = buildSnapLonLatFromC3Segments(c3Flat, { allColorSplitNodes: true });
   if (!snapResult) {
     console.warn('executeNormalizeRma：四分樹建立失敗。');
     return false;
@@ -380,16 +423,16 @@ export function executeNormalizeRma() {
     }
   }
 
-  // ── 建共軌圖（路線間走向偵測） ────────────────────────────────────────────
+  // ── 骨架後矯正（放黑站之前）：彩色頂點若落在別條路線線上/頂點、或相鄰段與他線交叉 →
+  //     整個 junction 連動位移到最近鄰格（保拓撲，只在能改善時才移）。黑站尚未放回。
+  adjustSkeletonPointsOnRouteOrCrossing(normalizedFlat);
+
+  // ── 建共軌圖（路線間走向偵測；以矯正後骨架建立） ──────────────────────────────
   let graph = buildSchematicGraph(normalizedFlat);
   try { graph = splitHighDegreeNodes(graph); } catch { /* 非致命 */ }
 
   // ── 放回黑站（沿各自路線弧長插值，不改 connect 拓樸） ───────────────────────
   const fullFlat = reinsertBlackStations(normalizedFlat, sections);
-
-  // ── 後矯正：確保黑點不落在別條路線的幾何線段內部，也不與別條 connect 節點重疊 ──
-  // 使用 normalizedFlat（骨架）而非 fullFlat（已插黑點），避免邊被黑點切段導致誤判。
-  fixBlackDotsOnWrongRoutes(fullFlat, normalizedFlat);
 
   // ── 寫回圖層 ───────────────────────────────────────────────────────────────
   const result = writeSchematicResultToLayer(LAYER_ID, fullFlat, {

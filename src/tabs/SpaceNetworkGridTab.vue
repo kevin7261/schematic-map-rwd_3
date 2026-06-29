@@ -10863,6 +10863,70 @@
       }
     }
 
+    // 站點與路線調整：以「紅/藍/黃/紫 頂點（各 segment 端點，不含黑點）」之**中位數位置**畫紅色虛線十字
+    // （純參考線，不改資料）。中位數中心由 getMedianAnchorCenterGrid 取得。
+    if (layerTab === 'schematic_rma_route_adjust') {
+      const adjLayer = dataStore.findLayerById(layerTab);
+      const med = layerStationsTowardSchematicCenter.getMedianAnchorCenterGrid(adjLayer);
+      if (med) {
+        const crossG = zoomGroup
+          .append('g')
+          .attr('class', 'route-adjust-median-crosshair')
+          .style('pointer-events', 'none');
+        const xL = margin.left;
+        const xR = margin.left + width;
+        const yT = margin.top;
+        const yB = margin.top + height;
+        const xP = xScale(med.gx);
+        const yP = yScale(med.gy);
+        const applyStrokeAttrs = (el) =>
+          el
+            .attr('stroke', '#e53935')
+            .attr('stroke-width', 2)
+            .attr('stroke-dasharray', '8,5')
+            .attr('opacity', 0.92)
+            .attr('vector-effect', 'non-scaling-stroke');
+        applyStrokeAttrs(
+          crossG.append('line').attr('x1', xP).attr('y1', yT).attr('x2', xP).attr('y2', yB)
+        );
+        applyStrokeAttrs(
+          crossG.append('line').attr('x1', xL).attr('y1', yP).attr('x2', xR).attr('y2', yP)
+        );
+        crossG.raise();
+      }
+    }
+
+    // ⑨ 示意圖正規化：載入骨架後、按「開始執行」前，疊畫**四分樹切割結果**（葉矩形，與骨架同空間）。
+    // 執行後 layer.quadtreePartition 會被清掉，故只在預覽階段顯示。
+    if (layerTab === 'schematic_rma_normalize') {
+      const nmLayer = dataStore.findLayerById(layerTab);
+      const part = nmLayer?.quadtreePartition;
+      if (part && Array.isArray(part.leaves) && part.leaves.length) {
+        const qtG = zoomGroup
+          .append('g')
+          .attr('class', 'schematic-normalize-quadtree-partition')
+          .style('pointer-events', 'none');
+        for (const L of part.leaves) {
+          const x1 = xScale(L.xmin);
+          const x2 = xScale(L.xmax);
+          const y1 = yScale(L.ymin);
+          const y2 = yScale(L.ymax);
+          qtG
+            .append('rect')
+            .attr('x', Math.min(x1, x2))
+            .attr('y', Math.min(y1, y2))
+            .attr('width', Math.abs(x2 - x1))
+            .attr('height', Math.abs(y2 - y1))
+            .attr('fill', 'none')
+            .attr('stroke', '#1976d2')
+            .attr('stroke-width', 1)
+            .attr('opacity', 0.55)
+            .attr('vector-effect', 'non-scaling-stroke');
+        }
+        qtG.lower(); // 置於路線/站點之下，當背景格
+      }
+    }
+
     // 紅／藍／黑站點、路線中段黑點、站名：置於路線／網格／流量等標註之上
     const gVhMidDots = zoomGroup.select('g.layout-vh-draw-line-stations-pt');
     if (!gVhMidDots.empty()) gVhMidDots.raise();

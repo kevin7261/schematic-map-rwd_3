@@ -30,6 +30,7 @@
   import { useRouteMapAdjust2 } from '@/utils/routeMapAdjust/loadFromSelectRouteMap2.js';
   import { useRouteMapAdjustStraight } from '@/utils/routeMapAdjust/loadFromSelectRouteMapStraight.js';
   import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
+  import { computeQuadtreePartitionFromGeojson } from '@/utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
   import { collectStraightSkeletonStationCoords } from '@/utils/routeMapAdjust/straightenLinesAtRedBlue.js';
   import {
     LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
@@ -2874,6 +2875,8 @@
     // 路線圖調整（RMA）示意圖管線：MILP結果正規化（RMA）→ 先橫後直 → 先直後橫
     schematic_rma_toward_center_hv: 'schematic_rma_milp_read',
     schematic_rma_toward_center_vh: 'schematic_rma_toward_center_hv',
+    // 站點與路線調整：自「路線正規化（RMA）」鏡像同一份路網（含黑點），供畫中位數虛線參考線。
+    schematic_rma_route_adjust: 'schematic_rma_milp_read',
   };
   /** 路網內容廉價簽章：段數:總點數:座標雜湊（供「上游是否變更」判斷）。 */
   const cheapSegSig = (segs) => {
@@ -3577,8 +3580,21 @@
     layer.geojsonData = fc;
     layer.isLoaded = true;
     if (!layer.visible) layer.visible = true;
+    maybeShowQuadtreePartitionForNormalize(layer); // ⑨：載入骨架即先顯示四分樹切割
     dataStore.setRouteSchematicActiveLayer(layer.layerId); // 獨立顯示：畫此圖層的骨架
     window.alert(`已載入骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`);
+  };
+
+  /** ⑨ 正規化專用：載入骨架後，先算出四分樹切割（葉矩形）存到圖層，供「開始執行」前顯示。 */
+  const maybeShowQuadtreePartitionForNormalize = (layer) => {
+    if (!layer || layer.layerId !== 'schematic_rma_normalize') return;
+    try {
+      layer.quadtreePartition = computeQuadtreePartitionFromGeojson(layer.geojsonData) || null;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('⑨ 四分樹切割預覽計算失敗', e);
+      layer.quadtreePartition = null;
+    }
   };
 
   /** 📥「示意圖佈局」：把「路線圖轉換直線骨架」的骨架轉成 geojson 寫入此圖層之 geojsonData */
@@ -3613,6 +3629,7 @@
     layer.geojsonData = fc;
     layer.isLoaded = true;
     if (!layer.visible) layer.visible = true;
+    maybeShowQuadtreePartitionForNormalize(layer); // ⑨：載入骨架即先顯示四分樹切割
     dataStore.setRouteSchematicActiveLayer(layer.layerId);
     window.alert(
       `已載入直線骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`

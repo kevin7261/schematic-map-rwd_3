@@ -24,7 +24,11 @@
         "osm_id": "3495094887",
         "station_name": "紅樹林",
         "element_type": "node",
-        "station_id": "R27"
+        "station_id": "R27;V01",
+        "route_name_list": [
+          "淡水信義線",
+          "淡海輕軌"
+        ]
       },
       "geometry": {
         "type": "Point",
@@ -2347,7 +2351,10 @@
         "osm_id": "3743802021",
         "station_name": "竿蓁林",
         "element_type": "node",
-        "station_id": ""
+        "station_id": "V02",
+        "route_name_list": [
+          "淡海輕軌"
+        ]
       },
       "geometry": {
         "type": "Point",
@@ -2491,7 +2498,10 @@
         "osm_id": "9001013375",
         "station_name": "沙崙",
         "element_type": "node",
-        "station_id": ""
+        "station_id": "V27",
+        "route_name_list": [
+          "淡海輕軌"
+        ]
       },
       "geometry": {
         "type": "Point",
@@ -2539,7 +2549,10 @@
         "osm_id": "6522757003",
         "station_name": "崁頂",
         "element_type": "node",
-        "station_id": ""
+        "station_id": "V11",
+        "route_name_list": [
+          "淡海輕軌"
+        ]
       },
       "geometry": {
         "type": "Point",
@@ -4284,38 +4297,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            121.458892,
-            25.155032
-          ],
-          [
-            121.456235,
-            25.162185
-          ],
-          [
-            121.460826,
-            25.169304
-          ],
-          [
-            121.455977,
-            25.177076
-          ],
-          [
-            121.452165,
-            25.181214
-          ],
-          [
-            121.448123,
-            25.183898
-          ],
-          [
-            121.444504,
-            25.188953
-          ],
-          [
-            121.437372,
-            25.189718
-          ],
-          [
             121.431635,
             25.190466
           ],
@@ -4381,6 +4362,28 @@
             121.437372,
             25.189718
           ],
+          [
+            121.431635,
+            25.190466
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "route_company": "新北大眾捷運股份有限公司",
+        "route_id": "V",
+        "element_type": "way",
+        "color": "#e5554f",
+        "route_name": "淡海輕軌",
+        "osm_id": "5990742",
+        "railway": "light_rail",
+        "status": "open"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
           [
             121.431635,
             25.190466

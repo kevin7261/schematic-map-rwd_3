@@ -19,32 +19,36 @@ function num(v) {
  * 不同路線會被 snap 擠到同一格行/列而重疊（如迴龍分支）。判準與骨架 isSkeletonKeepNode 一致。
  */
 function isGridSplitNode(node) {
+  // #9 規則：「所有點都切格，唯獨黑點不用」。故只要**不是黑點**就切格，
+  // 不依賴型別標得多完整（🔴connect／🔵terminal／🟡cross／🟣purple 及任何非黑端點皆切）。
   if (!node || typeof node !== 'object') return false;
   const t = node.tags || {};
-  const kind = node.node_kind ?? t.node_kind;
-  if (kind === 'black') return false; // 黑點不切格
-  if (kind === 'cross' || kind === 'purple') return true;
-  if (node.isCross || node.isPurple || t.isCross || t.isPurple) return true;
-  const nt = node.node_type ?? t.node_type;
-  if (nt === 'connect' || nt === 'terminal') return true;
+  const kind = String(node.node_kind ?? t.node_kind ?? '').toLowerCase();
+  if (kind === 'black') return false; // 🖤 黑點：不切格
   const cc = String(t.node_class_color ?? node.node_class_color ?? '').toLowerCase();
-  if (cc === '#000000' || cc === '#000') return false; // 黑點不切格
-  if (cc === '#ffd600' || cc === '#9c27b0') return true; // 🟡交叉 / 🟣切斷
-  return false;
+  if (cc === '#000000' || cc === '#000') return false; // 黑色分類色：不切格
+  return true; // 其餘（彩色點）一律切格
 }
 
-/** 四分樹切格用之「彩色點」座標：🔴connect／🔵terminal／🟡cross／🟣purple（不含黑點）。 */
-function extractConnectCoords(segments) {
+/**
+ * 四分樹切格用之點座標。
+ * - 預設（allColorSplitNodes=false）：**只用 🔴connect**（與原 OSM 座標正規化行為一致，不動）。
+ * - allColorSplitNodes=true（#9 示意圖正規化用）：用**所有彩色點 🔴/🔵/🟡/🟣**（不含黑點），
+ *   讓藍/黃/紫點也被分隔，避免不同路線被 snap 擠到同一格行/列而重疊（如迴龍分支）。
+ */
+function extractConnectCoords(segments, allColorSplitNodes = false) {
+  const isSplit = (node) =>
+    allColorSplitNodes ? isGridSplitNode(node) : (node?.node_type === 'connect');
   const connCoords = new Set();
   for (const seg of segments) {
     const points = seg.points || [];
     if (!points.length) continue;
     const pStart = seg.properties_start || {};
     const pEnd = seg.properties_end || {};
-    if (isGridSplitNode(pStart)) {
+    if (isSplit(pStart)) {
       connCoords.add(JSON.stringify([num(points[0][0]), num(points[0][1])]));
     }
-    if (isGridSplitNode(pEnd)) {
+    if (isSplit(pEnd)) {
       const pt = points[points.length - 1];
       connCoords.add(JSON.stringify([num(pt[0]), num(pt[1])]));
     }
@@ -52,7 +56,7 @@ function extractConnectCoords(segments) {
     if (nodes.length === points.length) {
       for (let i = 0; i < points.length; i++) {
         const props = nodes[i] || {};
-        if (isGridSplitNode(props)) {
+        if (isSplit(props)) {
           const pt = points[i];
           connCoords.add(JSON.stringify([num(pt[0]), num(pt[1])]));
         }
@@ -320,11 +324,13 @@ function findStationNameAtLonLat(segments, lon, lat) {
  *   bounds: { minLon: number, maxLon: number, minLat: number, maxLat: number },
  * }}
  */
-export function buildSnapLonLatFromC3Segments(c3FlatSegments) {
+export function buildSnapLonLatFromC3Segments(c3FlatSegments, opts = {}) {
   const segments = Array.isArray(c3FlatSegments) ? c3FlatSegments : [];
   if (segments.length === 0) return null;
 
-  const connectCoords = extractConnectCoords(segments);
+  // allColorSplitNodes：四分樹是否以「所有彩色點(🔴/🔵/🟡/🟣)」切格（#9 用 true）；
+  // 預設 false＝只用 🔴connect（OSM 座標正規化原行為，不變）。
+  const connectCoords = extractConnectCoords(segments, opts.allColorSplitNodes === true);
   const uniqueReds = dedupeConnectCoords(connectCoords);
   let nearestPairSource = closestDistinctPair(connectCoords);
   if (nearestPairSource == null) {
@@ -353,21 +359,48 @@ export function buildSnapLonLatFromC3Segments(c3FlatSegments) {
   const leaves = [];
   collectQuadLeaves(qtRoot, leaves);
 
-  const xs = new Set();
-  const ys = new Set();
-  for (const L of leaves) {
-    xs.add(L.xmin);
-    xs.add(L.xmax);
-    ys.add(L.ymin);
-    ys.add(L.ymax);
+  let sortedX;
+  let sortedY;
+  let snapLonLat;
+  if (opts.allColorSplitNodes === true) {
+    // #9：對彩色點座標做**嚴格秩變換**（strictly-monotonic separable map ＝ 同胚）。
+    // 每個相異的彩色 x → 自己一欄、相異的彩色 y → 自己一列，**絕不會把兩個相異 x（或 y）
+    // 擠成同一格**。同胚保拓樸 → 輸入沒重疊，正規化後也保證沒重疊（解決 snap 後兩條
+    // 不同路線的邊落到同一格線而重疊的問題）。
+    sortedX = [...new Set(uniqueReds.map((p) => num(p[0])))].sort((a, b) => a - b);
+    sortedY = [...new Set(uniqueReds.map((p) => num(p[1])))].sort((a, b) => a - b);
+    const xIdx = new Map(sortedX.map((v, i) => [v, i]));
+    const yIdx = new Map(sortedY.map((v, i) => [v, i]));
+    const rankOf = (v, sorted, idx) => {
+      const n = num(v);
+      if (idx.has(n)) return idx.get(n);
+      // 非彩色點（skeleton snap 僅用到彩色端點；此為保險）：取 ≤n 的最大秩。
+      let lo = 0;
+      let hi = sorted.length - 1;
+      let best = 0;
+      while (lo <= hi) {
+        const m = (lo + hi) >> 1;
+        if (sorted[m] <= n + QT_EPS) { best = m; lo = m + 1; } else hi = m - 1;
+      }
+      return best;
+    };
+    snapLonLat = (lon, lat) => [rankOf(lon, sortedX, xIdx), rankOf(lat, sortedY, yIdx)];
+  } else {
+    const xs = new Set();
+    const ys = new Set();
+    for (const L of leaves) {
+      xs.add(L.xmin);
+      xs.add(L.xmax);
+      ys.add(L.ymin);
+      ys.add(L.ymax);
+    }
+    sortedX = uniqueSortedBoundaries(xs);
+    sortedY = uniqueSortedBoundaries(ys);
+    snapLonLat = (lon, lat) => [
+      valueToStripIndex(num(lon), sortedX),
+      valueToStripIndex(num(lat), sortedY),
+    ];
   }
-  const sortedX = uniqueSortedBoundaries(xs);
-  const sortedY = uniqueSortedBoundaries(ys);
-
-  const snapLonLat = (lon, lat) => [
-    valueToStripIndex(num(lon), sortedX),
-    valueToStripIndex(num(lat), sortedY),
-  ];
 
   return {
     segments,
