@@ -22,7 +22,7 @@ import {
   refreshRmaLayoutNetworkGridFromVhIfVisible,
   SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID,
   SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID,
-  SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID,
+  ROUTE_NORMALIZATION_IMPORT_SOURCES,
 } from '@/utils/layers/json_grid_coord_normalized/index.js';
 import {
   layoutVhDrawAutoRandomWeightLayerId,
@@ -97,17 +97,19 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
   const isRmaLayer = (lyr) => isRmaLayoutNetworkGridFromVhDrawLayerId(lyr?.layerId);
 
   /**
-   * 路網網格（RMA）：自指定「站點與路線往中心聚集」層（先直後橫／先橫後直）匯入路網（強制重建本層）。
+   * 路網網格（RMA）：自「路線正規化」群組任一路網層匯入（強制重建本層）。
    * @param {object} lyr 本層
-   * @param {string} sourceLayerId schematic_rma_toward_center_vh／_hv
+   * @param {string} sourceLayerId 路線正規化群組內任一层 layerId
    */
   const importRmaLayoutNetworkGridFrom = async (lyr, sourceLayerId) => {
     if (!isRmaLayer(lyr)) return;
     const src = dataStore.findLayerById(sourceLayerId);
     if (!src || !Array.isArray(src.spaceNetworkGridJsonData) || !src.spaceNetworkGridJsonData.length) {
-      window.alert(
-        `圖層「${src?.layerName || sourceLayerId}」尚無路網，請先完成該層的「往中心聚集」。`
-      );
+      const label =
+        ROUTE_NORMALIZATION_IMPORT_SOURCES.find((s) => s.layerId === sourceLayerId)?.label ||
+        src?.layerName ||
+        sourceLayerId;
+      window.alert(`「${label}」尚無路網；請先完成該層運算或匯入。`);
       return;
     }
     refreshRmaLayoutNetworkGridFromVhIfVisible(
@@ -118,6 +120,11 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
     );
     await nextTick();
     dataStore.requestSpaceNetworkGridFullRedraw();
+  };
+
+  const routeNormSourceHasData = (sourceLayerId) => {
+    const src = dataStore.findLayerById(sourceLayerId);
+    return !!(src && Array.isArray(src.spaceNetworkGridJsonData) && src.spaceNetworkGridJsonData.length);
   };
 
   const layoutVhDrawCopyRowsSortedByWeightDiffAsc = (lyr) => {
@@ -361,9 +368,10 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
     isRmaLayer,
     /** RMA：自指定往中心聚集層匯入路網 */
     importRmaLayoutNetworkGridFrom,
+    routeNormalizationImportSources: ROUTE_NORMALIZATION_IMPORT_SOURCES,
+    routeNormSourceHasData,
     SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID,
     SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID,
-    SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID,
     LAYOUT_VH_DRAW_COPY_GRID_NEIGHBOR_HIDE_MIN_PT,
     /** 路網網格_2：layout-grid-viewer 目前滑鼠所在 pt 座標（{x,y}，無則為 null） */
     get layoutVhDrawViewerMousePt() {

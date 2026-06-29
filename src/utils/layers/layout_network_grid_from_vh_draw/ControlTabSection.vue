@@ -230,36 +230,22 @@
       <LayoutVhDrawBlackDotRatioTables :layer="layer" />
     </div>
 
-    <!-- RMA 路網網格：自 RMA「站點與路線往中心聚集」匯入路網（先直後橫／先橫後直） -->
+    <!-- RMA 路網網格／路網網格_2：自「路線正規化」群組任一路網層匯入 -->
     <div v-if="api.isRmaLayer(layer)" class="pb-3 mb-3 border-bottom">
-      <div class="my-title-xs-gray pb-2">匯入路網</div>
+      <div class="my-title-xs-gray pb-2">匯入路網（路線正規化群組）</div>
       <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
-        自上面「站點與路線往中心聚集」(RMA) 之路網匯入本層（黑點站沿線放回）。匯入後沿用所選來源，
-        切換分頁不會被預設來源覆寫。
+        自「路線正規化」群組任一有路網之圖層匯入本層（黑點站沿線放回）。匯入後沿用所選來源，
+        切換分頁不會被預設來源覆寫。無路網之來源按鈕為停用。
       </div>
       <button
+        v-for="src in api.routeNormalizationImportSources"
+        :key="'rma-import-' + layer.layerId + '-' + src.layerId"
         type="button"
         class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
-        :disabled="isExecuting || layer.isLoading"
-        @click="api.importRmaLayoutNetworkGridFrom(layer, api.SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID)"
+        :disabled="isExecuting || layer.isLoading || !api.routeNormSourceHasData(src.layerId)"
+        @click="api.importRmaLayoutNetworkGridFrom(layer, src.layerId)"
       >
-        從站點與路線調整
-      </button>
-      <button
-        type="button"
-        class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
-        :disabled="isExecuting || layer.isLoading"
-        @click="api.importRmaLayoutNetworkGridFrom(layer, api.SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID)"
-      >
-        從站點與路線往中心聚集（先直後橫）
-      </button>
-      <button
-        type="button"
-        class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
-        :disabled="isExecuting || layer.isLoading"
-        @click="api.importRmaLayoutNetworkGridFrom(layer, api.SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID)"
-      >
-        從站點與路線往中心聚集（先橫後直）
+        從 {{ src.label }}
       </button>
     </div>
 

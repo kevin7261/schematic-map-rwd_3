@@ -152,6 +152,7 @@ export {
   findBestConnectPointMoveForHV,
   runConnectPointsHVMaximizeToFixpoint,
 } from './axisAlignGridNetworkHillClimb.js';
+export { ROUTE_NORMALIZATION_IMPORT_SOURCES } from '../../routeMapAdjust/routeAdjustLayout/routeNormalizationImportSources.js';
 export { tryOrthoTowardCrossNudgeFromReportItem } from './orthoNudgeTowardCrossCenter.js';
 export { applyLineOrthoHubBlueDiagonalPrepassSegments } from './lineOrthoHubBlueDiagonalPrepass.js';
 export {
