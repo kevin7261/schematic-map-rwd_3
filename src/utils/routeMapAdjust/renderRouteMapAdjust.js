@@ -166,12 +166,12 @@ export function mountRouteMapAdjust(el, dataStore) {
         stationTooltipHtml(latlng, type, routesAtCoord, fillColor)
       );
       // hover：圓點放大
-      m.on('mouseover', () => m.setRadius(radius + 3));
+      m.on('mouseover', () => m.setRadius(radius + 2));
       m.on('mouseout', () => m.setRadius(radius));
       m.addTo(stationGroup);
     };
     // 繪製順序：黑點 → 端點(藍) → 交點(紅) → 交叉(黃)，讓 cross 顯示在最上層
-    blacks.forEach((p) => addStationDot(p, '#000000', 3, 'black'));
+    blacks.forEach((p) => addStationDot(p, '#000000', 4, 'black'));
     terminals.forEach((p) => addStationDot(p, '#1565c0', 4, 'terminal'));
     connects.forEach((p) => addStationDot(p, '#ff0000', 4, 'connect'));
     // 🟡 交叉站點（cross）：路線幾何交叉但無站點處。以黃色底色 halo + 黃點 highlight。
@@ -536,7 +536,7 @@ export function mountRouteMapAdjust(el, dataStore) {
     const routesAtCoord = buildRoutesAtCoord();
     for (const p of blacks || []) {
       if (!Array.isArray(p) || p.length < 2) continue;
-      const r = 3;
+      const r = 4;
       const m = L.circleMarker(p, {
         radius: r,
         color: '#ffffff', // 白色 1px border
@@ -552,7 +552,7 @@ export function mountRouteMapAdjust(el, dataStore) {
         dataStore,
         stationTooltipHtml(p, 'black', routesAtCoord, '#000000')
       );
-      m.on('mouseover', () => m.setRadius(r + 3));
+      m.on('mouseover', () => m.setRadius(r + 2));
       m.on('mouseout', () => m.setRadius(r));
       m.addTo(skeletonGroup);
     }
@@ -582,7 +582,7 @@ export function mountRouteMapAdjust(el, dataStore) {
         dataStore,
         skeletonNodeTooltip(n)
       );
-      m.on('mouseover', () => m.setRadius(baseR + 3));
+      m.on('mouseover', () => m.setRadius(baseR + 2));
       m.on('mouseout', () => m.setRadius(baseR));
       m.addTo(skeletonGroup);
     }

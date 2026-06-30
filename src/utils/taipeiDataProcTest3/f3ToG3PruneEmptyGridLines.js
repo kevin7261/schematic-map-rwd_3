@@ -21,6 +21,40 @@ function isConnectProps(n) {
   return false;
 }
 
+function isBlackNodeProps(n) {
+  if (!n || typeof n !== 'object') return false;
+  const t = n.tags || {};
+  const kind = String(n.node_kind ?? t.node_kind ?? '').toLowerCase();
+  if (kind === 'black') return true;
+  const cc = String(t.node_class_color ?? n.node_class_color ?? '').toLowerCase();
+  return cc === '#000000' || cc === '#000';
+}
+
+function isNonBlackSkeletonProps(n) {
+  if (!n || typeof n !== 'object') return false;
+  if (isBlackNodeProps(n)) return false;
+  const t = n.tags || {};
+  const kind = String(n.node_kind ?? t.node_kind ?? '').toLowerCase();
+  if (
+    kind === 'cross' ||
+    kind === 'purple' ||
+    kind === 'right_angle_pink' ||
+    kind === 'gray' ||
+    kind === 'brown'
+  ) return true;
+  if (n.isCross || n.isPurple || t.isCross || t.isPurple) return true;
+  const nt = String(n.node_type ?? t.node_type ?? '').toLowerCase();
+  if (nt === 'connect' || nt === 'terminal') return true;
+  const cc = String(t.node_class_color ?? n.node_class_color ?? '').toLowerCase();
+  return (
+    cc === '#ffd600' ||
+    cc === '#9c27b0' ||
+    cc === '#e377c2' ||
+    cc === '#7f7f7f' ||
+    cc === '#9a6324'
+  );
+}
+
 /** 第 idx 個頂點是否為 connect（紅或藍） */
 function vertexIsConnect(seg, idx) {
   const pts = seg.points || [];
@@ -31,6 +65,19 @@ function vertexIsConnect(seg, idx) {
   }
   if (idx === 0) return isConnectProps(seg.properties_start || {});
   if (idx === pts.length - 1) return isConnectProps(seg.properties_end || {});
+  return false;
+}
+
+/** 第 idx 個頂點是否為不可刪格線的非黑色骨架點（#9 示意圖正規化用）。 */
+function vertexIsNonBlackSkeleton(seg, idx) {
+  const pts = seg.points || [];
+  const nodes = seg.nodes || [];
+  if (!pts.length || idx < 0 || idx >= pts.length) return false;
+  if (nodes.length === pts.length) {
+    return isNonBlackSkeletonProps(nodes[idx] || {});
+  }
+  if (idx === 0) return isNonBlackSkeletonProps(seg.properties_start || {});
+  if (idx === pts.length - 1) return isNonBlackSkeletonProps(seg.properties_end || {});
   return false;
 }
 
@@ -67,13 +114,14 @@ function updateNodeGrid(node, x, y) {
  *   rowCount: number,
  * }}
  */
-export function pruneGridLinesWithoutConnectVertices(segments) {
+export function pruneGridLinesWithoutConnectVertices(segments, opts = {}) {
   if (!Array.isArray(segments) || segments.length === 0) {
     return { segments: [], removedCols: [], removedRows: [], colCount: 0, rowCount: 0 };
   }
 
-  const colHasConnect = new Set();
-  const rowHasConnect = new Set();
+  const protectAllNonBlackSkeleton = opts.protectAllNonBlackSkeleton === true;
+  const colHasProtectedVertex = new Set();
+  const rowHasProtectedVertex = new Set();
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
@@ -89,9 +137,12 @@ export function pruneGridLinesWithoutConnectVertices(segments) {
       maxX = Math.max(maxX, ix);
       minY = Math.min(minY, iy);
       maxY = Math.max(maxY, iy);
-      if (vertexIsConnect(seg, i)) {
-        colHasConnect.add(ix);
-        rowHasConnect.add(iy);
+      const protectedVertex = protectAllNonBlackSkeleton
+        ? vertexIsNonBlackSkeleton(seg, i)
+        : vertexIsConnect(seg, i);
+      if (protectedVertex) {
+        colHasProtectedVertex.add(ix);
+        rowHasProtectedVertex.add(iy);
       }
     }
   }
@@ -102,11 +153,11 @@ export function pruneGridLinesWithoutConnectVertices(segments) {
 
   const removedCols = [];
   for (let x = minX; x <= maxX; x++) {
-    if (!colHasConnect.has(x)) removedCols.push(x);
+    if (!colHasProtectedVertex.has(x)) removedCols.push(x);
   }
   const removedRows = [];
   for (let y = minY; y <= maxY; y++) {
-    if (!rowHasConnect.has(y)) removedRows.push(y);
+    if (!rowHasProtectedVertex.has(y)) removedRows.push(y);
   }
 
   if (removedCols.length === 0 && removedRows.length === 0) {

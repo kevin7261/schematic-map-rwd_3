@@ -83,6 +83,46 @@ function countCrossings(segs) {
   return n;
 }
 
+function coordKey(pt) {
+  const [x, y] = rdXY(pt);
+  return `${x},${y}`;
+}
+
+/**
+ * 檢查正規化是否把「原本不同座標」的骨架頂點壓成同一格。
+ * 原本同座標的 junction 可共點；不同原始座標變同格則視為拓撲被改。
+ */
+function findNewCoincidentSkeletonVertices(referenceFlat, candidateFlat) {
+  const byOut = new Map();
+  const nSegs = Math.min(referenceFlat?.length ?? 0, candidateFlat?.length ?? 0);
+  for (let si = 0; si < nSegs; si++) {
+    const refPts = referenceFlat[si]?.points || [];
+    const outPts = candidateFlat[si]?.points || [];
+    const nPts = Math.min(refPts.length, outPts.length);
+    for (let pi = 0; pi < nPts; pi++) {
+      const outKey = coordKey(outPts[pi]);
+      const refKey = coordKey(refPts[pi]);
+      if (!byOut.has(outKey)) {
+        byOut.set(outKey, { refKeys: new Set(), samples: [] });
+      }
+      const rec = byOut.get(outKey);
+      rec.refKeys.add(refKey);
+      if (rec.samples.length < 4) rec.samples.push({ si, pi, refKey });
+    }
+  }
+  return [...byOut.entries()]
+    .filter(([, rec]) => rec.refKeys.size > 1)
+    .map(([outKey, rec]) => ({ outKey, refKeys: [...rec.refKeys], samples: rec.samples }));
+}
+
+function warnNewCoincidentSkeletonVertices(stage, collisions) {
+  if (!Array.isArray(collisions) || collisions.length === 0) return;
+  console.warn(
+    `[⑨] ${stage} 會把 ${collisions.length} 組原本不同的骨架點壓成共點，已阻止以保拓撲。`,
+    collisions.slice(0, 5)
+  );
+}
+
 // ── 四分樹 snap 套用 ──────────────────────────────────────────────────────────
 
 function applySnapToSkeleton(flat, snapLonLat) {
@@ -348,6 +388,11 @@ export function executeNormalizeRma() {
   }
   const d3Flat = JSON.parse(JSON.stringify(c3Flat));
   applySnapToSkeleton(d3Flat, snapResult.snapLonLat);
+  const snapCoincidences = findNewCoincidentSkeletonVertices(c3Flat, d3Flat);
+  if (snapCoincidences.length > 0) {
+    warnNewCoincidentSkeletonVertices('四分樹正規化', snapCoincidences);
+    return false;
+  }
 
   // ── Step 1-c：記錄 c3 快照 + 拓撲比對 ────────────────────────────────────
   try {
@@ -372,7 +417,10 @@ export function executeNormalizeRma() {
       const fixResult = applyNeighborSideTopologyFix(c3Flat, d3Flat);
       if (fixResult.ok && Array.isArray(fixResult.patched) && fixResult.patched.length) {
         const crossAfter = countCrossings(fixResult.patched);
-        if (crossAfter <= crossBefore) {
+        const fixCoincidences = findNewCoincidentSkeletonVertices(c3Flat, fixResult.patched);
+        if (fixCoincidences.length > 0) {
+          warnNewCoincidentSkeletonVertices('鄰線錯邊修正', fixCoincidences);
+        } else if (crossAfter <= crossBefore) {
           normalizedFlat = fixResult.patched;
           neighborFixApplied = true;
           fixLog = fixResult.moveLines || null;
@@ -399,11 +447,15 @@ export function executeNormalizeRma() {
     const crossBefore = countCrossings(normalizedFlat);
     try {
       const pruneResult = pruneGridLinesWithoutConnectVertices(
-        JSON.parse(JSON.stringify(normalizedFlat))
+        JSON.parse(JSON.stringify(normalizedFlat)),
+        { protectAllNonBlackSkeleton: true }
       );
       if (pruneResult?.segments?.length) {
         const crossAfter = countCrossings(pruneResult.segments);
-        if (crossAfter <= crossBefore) {
+        const pruneCoincidences = findNewCoincidentSkeletonVertices(c3Flat, pruneResult.segments);
+        if (pruneCoincidences.length > 0) {
+          warnNewCoincidentSkeletonVertices('刪空欄列', pruneCoincidences);
+        } else if (crossAfter <= crossBefore) {
           normalizedFlat = pruneResult.segments;
           prunedCols = pruneResult.colCount ?? 0;
           prunedRows = pruneResult.rowCount ?? 0;
@@ -422,7 +474,13 @@ export function executeNormalizeRma() {
 
   // ── 骨架後矯正（放黑站之前）：彩色頂點若落在別條路線線上/頂點、或相鄰段與他線交叉 →
   //     整個 junction 連動位移到最近鄰格（保拓撲，只在能改善時才移）。黑站尚未放回。
+  const beforeSkeletonAdjust = JSON.parse(JSON.stringify(normalizedFlat));
   adjustSkeletonPointsOnRouteOrCrossing(normalizedFlat);
+  const adjustCoincidences = findNewCoincidentSkeletonVertices(c3Flat, normalizedFlat);
+  if (adjustCoincidences.length > 0) {
+    warnNewCoincidentSkeletonVertices('骨架後矯正', adjustCoincidences);
+    normalizedFlat = beforeSkeletonAdjust;
+  }
 
   // ── 建共軌圖（路線間走向偵測；以矯正後骨架建立） ──────────────────────────────
   let graph = buildSchematicGraph(normalizedFlat);

@@ -470,6 +470,28 @@
     return (base + (hover ? 2 : 0)) / kk;
   }
 
+  const SCHEMATIC_COLORED_DOT_R = 4;
+  const SCHEMATIC_COLORED_DOT_STROKE = '#ffffff';
+  const SCHEMATIC_COLORED_DOT_STROKE_W = 1;
+  const SCHEMATIC_COLORED_NODE_COLORS = new Set([
+    '#000',
+    '#000000',
+    '#ff0000',
+    '#1565c0',
+    '#ffd600',
+    '#9c27b0',
+    '#7f7f7f',
+    '#e377c2',
+    '#9a6324',
+  ]);
+
+  function schematicNodeClassColor(props = {}, tags = {}) {
+    const raw = props.node_class_color ?? tags.node_class_color;
+    if (typeof raw !== 'string' || raw.trim() === '') return '';
+    const c = raw.trim().toLowerCase();
+    return SCHEMATIC_COLORED_NODE_COLORS.has(c) ? raw.trim() : '';
+  }
+
   const emit = defineEmits(['active-layer-change']);
 
   /** taipei_f／taipei_g：與邊緣欄／列最大權重標籤同源，供權重比例格寬／列高用 */
@@ -7180,7 +7202,7 @@
       };
 
       const layoutStaG = zoomGroup.append('g').attr('class', 'layout-vh-draw-line-stations-pt');
-      const layoutVhDrawMidBlackDotRadius = 2.5;
+      const layoutVhDrawMidBlackDotRadius = SCHEMATIC_COLORED_DOT_R;
       /** 黑點（中段站）車站名稱開關：開啟時於黑點上方標註小字站名。 */
       const layoutShowMidBlackDotNames =
         activeTabLayer?.layoutVhDrawShowMidBlackDotStationNames === true;
@@ -7502,19 +7524,23 @@
                 .attr('cy', cy)
                 .attr('r', layoutVhDrawMidBlackDotRadius)
                 .attr('fill', '#000000')
-                .attr('stroke', '#000000')
-                .attr('stroke-width', 1)
+                .attr('stroke', SCHEMATIC_COLORED_DOT_STROKE)
+                .attr('stroke-width', SCHEMATIC_COLORED_DOT_STROKE_W)
                 .style('cursor', 'pointer')
                 .style('pointer-events', 'all')
                 .on('mouseover', function (event) {
-                  d3.select(this).attr('r', 5).attr('stroke-width', 2);
+                  d3.select(this)
+                    .attr('r', layoutVhDrawMidBlackDotRadius + 2)
+                    .attr('stroke-width', 2);
                   showLayoutVHDrawMidStationTooltip(event, sta, gxy[0], gxy[1], row);
                 })
                 .on('mousemove', function (event) {
                   mapHover.move(event);
                 })
                 .on('mouseout', function () {
-                  d3.select(this).attr('r', layoutVhDrawMidBlackDotRadius).attr('stroke-width', 1);
+                  d3.select(this)
+                    .attr('r', layoutVhDrawMidBlackDotRadius)
+                    .attr('stroke-width', SCHEMATIC_COLORED_DOT_STROKE_W);
                   mapHover.hide();
                 });
               paintMidBlackDotName(cx, cy, trafficMidName);
@@ -8036,12 +8062,14 @@
                   .attr('cy', cy)
                   .attr('r', layoutVhDrawMidBlackDotRadius)
                   .attr('fill', '#000000')
-                  .attr('stroke', '#000000')
-                  .attr('stroke-width', 1)
+                  .attr('stroke', SCHEMATIC_COLORED_DOT_STROKE)
+                  .attr('stroke-width', SCHEMATIC_COLORED_DOT_STROKE_W)
                   .style('cursor', 'pointer')
                   .style('pointer-events', 'all')
                   .on('mouseover', function (event) {
-                    d3.select(this).attr('r', 5).attr('stroke-width', 2);
+                    d3.select(this)
+                      .attr('r', layoutVhDrawMidBlackDotRadius + 2)
+                      .attr('stroke-width', 2);
                     showLayoutVHDrawMidStationTooltip(event, staV, gxTip, gyTip, rowP);
                   })
                   .on('mousemove', function (event) {
@@ -8050,7 +8078,7 @@
                   .on('mouseout', function () {
                     d3.select(this)
                       .attr('r', layoutVhDrawMidBlackDotRadius)
-                      .attr('stroke-width', 1);
+                      .attr('stroke-width', SCHEMATIC_COLORED_DOT_STROKE_W);
                     mapHover.hide();
                   });
                 paintMidBlackDotName(cx, cy, layoutTrafficStationName(staV));
@@ -8997,7 +9025,9 @@
               Math.abs(Number(gyLine) - Number(hbL3.y)) < coordEpsL3);
         isHighlighted = isConnectHl || isH2ConnectHl;
         isOnOtherRoute = isHighlighted || isH2BlackHl || isL3ReductionBlackHl;
-        radius = isHighlighted || isH2BlackHl || isL3ReductionBlackHl ? 5 : isConnect ? 2.5 : 1.5;
+        radius = isHighlighted || isH2BlackHl || isL3ReductionBlackHl
+          ? 5
+          : SCHEMATIC_COLORED_DOT_R;
         strokeWidth = isHighlighted || isH2BlackHl || isL3ReductionBlackHl ? 2.5 : 1;
         strokeColor =
           isHighlighted || isH2BlackHl || isL3ReductionBlackHl
@@ -9010,12 +9040,17 @@
             : '#ffffff'; // 白邊（與骨架點一致；非高亮時）
       }
 
-      // 🎨「路線圖處理」示意圖佈局骨架：點用骨架分類色（黃交叉/紫切斷/紅 connect/藍 terminal/灰）+ 白色 1px border
-      if (tags.node_class_color && typeof tags.node_class_color === 'string') {
-        fillColor = tags.node_class_color;
-        radius = Number(tags.node_class_r) || radius;
-        strokeColor = '#ffffff';
-        strokeWidth = 1;
+      // 🎨 Pipeline 彩色骨架點：紅/藍/黃/紫/灰/粉紅/棕一律同尺寸、同白邊樣式，只保留 fill 色差異。
+      const nodeClassColor = schematicNodeClassColor(props, tags);
+      if (nodeClassColor) {
+        fillColor = nodeClassColor;
+        radius = SCHEMATIC_COLORED_DOT_R;
+        strokeColor = SCHEMATIC_COLORED_DOT_STROKE;
+        strokeWidth = SCHEMATIC_COLORED_DOT_STROKE_W;
+      } else if (useSchematicVisualStyle) {
+        radius = SCHEMATIC_COLORED_DOT_R;
+        strokeColor = SCHEMATIC_COLORED_DOT_STROKE;
+        strokeWidth = SCHEMATIC_COLORED_DOT_STROKE_W;
       }
 
       const schematicR0 = useSchematicVisualStyle ? radius : null;
@@ -9163,7 +9198,7 @@
               .attr('fill', hov.fill)
               .attr('stroke', hov.stroke);
           } else {
-            const highlightRadius = isConnect ? 4 : 3;
+            const highlightRadius = SCHEMATIC_COLORED_DOT_R + 2;
             sel.attr('r', highlightRadius).attr('stroke-width', 2);
           }
 
@@ -9592,9 +9627,11 @@
                   cnDot === dataStore.highlightedConnectNumber) ||
                 isH2Conn
               : isBlackHighlighted;
-            const r = isHighlighted ? 5 : isConnect ? 2.5 : 1.5;
-            const strokeColor = isHighlighted ? '#ff6600' : '#ffffff'; // 白邊（與骨架點一致）
-            const strokeWidth = isHighlighted ? 2.5 : 1;
+            const classColor = schematicNodeClassColor(props, props.tags || {});
+            if (classColor) fillColor = classColor;
+            const r = isHighlighted ? 5 : SCHEMATIC_COLORED_DOT_R;
+            const strokeColor = isHighlighted ? '#ff6600' : SCHEMATIC_COLORED_DOT_STROKE;
+            const strokeWidth = isHighlighted ? 2.5 : SCHEMATIC_COLORED_DOT_STROKE_W;
             const el = zoomGroup
               .append('circle')
               .attr('cx', plotRemapSvgX(xScale(px)))
@@ -9953,7 +9990,7 @@
               ? String(sid ?? '').trim() === String(hbSid).trim()
               : Math.abs(Number(x) - Number(hb.x)) < coordEps &&
                 Math.abs(Number(y) - Number(hb.y)) < coordEps);
-          const radius = isBlackHighlighted ? 5 : 1.5;
+          const radius = isBlackHighlighted ? 5 : SCHEMATIC_COLORED_DOT_R;
           const strokeWidth = isBlackHighlighted ? 2.5 : 1;
           const fillColor = '#000000';
           const strokeColor = isBlackHighlighted ? '#ff6600' : '#ffffff'; // 白邊（與骨架點一致）
@@ -9993,7 +10030,7 @@
 
           el.on('mouseover', function (event) {
             d3.select(this)
-              .attr('r', isBlackHighlighted ? 5 : 3)
+              .attr('r', isBlackHighlighted ? 5 : SCHEMATIC_COLORED_DOT_R + 2)
               .attr('stroke-width', 2);
             const dispFmt = (v) =>
               typeof v === 'number' && v.toFixed
@@ -10102,7 +10139,7 @@
                 : Math.abs(Number(x) - Number(hb.x)) < coordEps &&
                   Math.abs(Number(y) - Number(hb.y)) < coordEps)) ||
             matchH2TrafficBlack(x, y, sid);
-          const radius = isBlackHighlighted ? 5 : 1.5;
+          const radius = isBlackHighlighted ? 5 : SCHEMATIC_COLORED_DOT_R;
           const strokeWidth = isBlackHighlighted ? 2.5 : 1;
           const fillColor = '#000000';
           const hlColor =
@@ -10163,7 +10200,7 @@
 
           el.on('mouseover', function (event) {
             d3.select(this)
-              .attr('r', isBlackHighlighted ? 5 : 3)
+              .attr('r', isBlackHighlighted ? 5 : SCHEMATIC_COLORED_DOT_R + 2)
               .attr('stroke-width', 2);
             const dispFmt = (v) => (typeof v === 'number' && v.toFixed ? String(Math.round(v)) : v);
             const parts = [
@@ -10234,7 +10271,7 @@
               ? String(sid ?? '').trim() === String(hbSid).trim()
               : Math.abs(Number(x) - Number(hb.x)) < coordEps &&
                 Math.abs(Number(y) - Number(hb.y)) < coordEps);
-          const radius = isBlackHighlighted ? 5 : 1.5;
+          const radius = isBlackHighlighted ? 5 : SCHEMATIC_COLORED_DOT_R;
           const strokeWidth = isBlackHighlighted ? 2.5 : 1;
           const fillColor = '#000000';
           const strokeColor = isBlackHighlighted ? '#ff6600' : '#ffffff'; // 白邊（與骨架點一致）
@@ -10252,7 +10289,7 @@
 
           el.on('mouseover', function (event) {
             d3.select(this)
-              .attr('r', isBlackHighlighted ? 5 : 3)
+              .attr('r', isBlackHighlighted ? 5 : SCHEMATIC_COLORED_DOT_R + 2)
               .attr('stroke-width', 2);
             const dispFmt = (v) =>
               typeof v === 'number' && v.toFixed
@@ -11403,7 +11440,7 @@
         m.addTo(stationGroup);
       };
       // 繪製順序：黑點 → 端點(藍) → 交點(紅)，讓交點顯示在最上層
-      blacks.forEach((p) => addStationDot(p, '#000000', 3, 'black'));
+      blacks.forEach((p) => addStationDot(p, '#000000', SCHEMATIC_COLORED_DOT_R, 'black'));
       terminals.forEach((p) => addStationDot(p, '#1565c0', 4, 'terminal'));
       connects.forEach((p) => addStationDot(p, '#ff0000', 4, 'connect'));
     };

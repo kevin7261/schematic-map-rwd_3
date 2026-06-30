@@ -154,12 +154,12 @@ export function mountRouteMap(el, dataStore) {
         stationTooltipHtml(latlng, type, routesAtCoord, fillColor)
       );
       // hover：圓點放大
-      m.on('mouseover', () => m.setRadius(radius + 3));
+      m.on('mouseover', () => m.setRadius(radius + 2));
       m.on('mouseout', () => m.setRadius(radius));
       m.addTo(stationGroup);
     };
     // 繪製順序：黑點 → 端點(藍) → 交點(紅)，讓交點顯示在最上層
-    blacks.forEach((p) => addStationDot(p, '#000000', 3, 'black'));
+    blacks.forEach((p) => addStationDot(p, '#000000', 4, 'black'));
     terminals.forEach((p) => addStationDot(p, '#1565c0', 4, 'terminal'));
     connects.forEach((p) => addStationDot(p, '#ff0000', 4, 'connect'));
   };

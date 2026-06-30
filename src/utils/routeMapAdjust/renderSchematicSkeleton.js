@@ -19,6 +19,9 @@ import {
   schematicSkeletonNodeDisplay,
 } from '@/utils/control/pipelineMapHoverHtml.js';
 
+const SCHEMATIC_COLORED_DOT_R = 4;
+const SCHEMATIC_COLORED_DOT_STROKE = '#ffffff';
+const SCHEMATIC_COLORED_DOT_STROKE_W = 1;
 const nodeFill = (tags) => tags?.node_class_color || '#555555';
 
 // 線 tooltip：route_name/route_id/railway + 路線色（單色或多色 route_colors）
@@ -140,18 +143,18 @@ export function mountSchematicSkeleton(el, dataStore) {
         const [lng, lat] = g.coordinates || [];
         if (lng == null || lat == null) continue;
         const nodeProps = f?.properties || {};
-        const r = Number(tags.node_class_r) || 5;
+        const r = SCHEMATIC_COLORED_DOT_R;
         const m = L.circleMarker([lat, lng], {
           radius: r,
-          color: '#ffffff', // 白色 1px border
-          weight: 1,
+          color: SCHEMATIC_COLORED_DOT_STROKE,
+          weight: SCHEMATIC_COLORED_DOT_STROKE_W,
           fillColor: nodeFill(tags),
           fillOpacity: 1,
           interactive: true,
           pane: 'schDots',
         });
         bindLeafletHoverOrControlPanel(m, id, dataStore, nodeTooltipHtml(nodeProps));
-        m.on('mouseover', () => m.setRadius(r + 3));
+        m.on('mouseover', () => m.setRadius(r + 2));
         m.on('mouseout', () => m.setRadius(r));
         m.addTo(dotGroup);
         pts.push([lat, lng]);

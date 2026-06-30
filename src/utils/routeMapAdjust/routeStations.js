@@ -2225,7 +2225,7 @@ export const routeMapAdjustSkeletonToGeoJson = (
     if (terminalKeys.has(k)) return '#1565c0'; // 🔵 端點
     return '#000000'; // 🖤 其餘 → 黑
   };
-  const nodeRadius = (n) => (n.isCross ? 8 : n.isPurple ? 6 : 4);
+  const nodeRadius = () => 4;
   const features = [];
   // 🖤 黑點站：優先用呼叫端傳入的 blackDots（直線骨架為拉直後重新分配之位置）；否則用骨架重算的 blacks。
   const blackFeatures = Array.isArray(blackDots) && blackDots.length ? blackDots : blacks;
@@ -2308,7 +2308,7 @@ export const routeMapAdjustSkeletonToGeoJson = (
           // 🩷 粉紅＝曲折邊轉折點；🩶 灰＝過長黑點段中間之分隔點；其餘黑點
           node_kind: isPink ? 'right_angle_pink' : isGray ? 'gray' : 'black',
           node_class_color: isPink ? RIGHT_ANGLE_PINK_HEX : isGray ? GRAY_DOT_HEX : '#000000',
-          node_class_r: isPink || isGray ? 4 : 3, // 🩷🩶 粉紅/灰大小同紅/藍/黃/紫節點(4)；一般黑點仍 3
+          node_class_r: 4, // 黑/紅/藍/黃/紫/灰/粉紅/棕骨架點同尺寸
           dp_ratio: dpRatio != null ? Number(dpRatio.toFixed(4)) : undefined, // 🩷 轉折比例
         },
       },

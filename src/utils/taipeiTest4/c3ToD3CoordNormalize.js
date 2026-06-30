@@ -180,6 +180,12 @@ function valueToStripIndex(val, sorted) {
   return Math.min(lo, n - 2);
 }
 
+function valueToUniformStripIndex(val, origin, step, count) {
+  if (!Number.isFinite(step) || step <= 0) return 0;
+  const idx = Math.floor((num(val) - origin) / step + QT_EPS);
+  return Math.max(0, Math.min(idx, Math.max(0, count - 1)));
+}
+
 /** 歐式距離最小的一對相異點（距離 > 0） */
 function closestDistinctPair(points) {
   if (!points || points.length < 2) return null;
@@ -383,8 +389,8 @@ export function buildSnapLonLatFromC3Segments(c3FlatSegments, opts = {}) {
     sortedX = Array.from({ length: cols + 1 }, (_, i) => ox + i * minW);
     sortedY = Array.from({ length: rows + 1 }, (_, i) => oy + i * minH);
     snapLonLat = (lon, lat) => [
-      Math.round((num(lon) - ox) / minW),
-      Math.round((num(lat) - oy) / minH),
+      valueToUniformStripIndex(lon, ox, minW, cols),
+      valueToUniformStripIndex(lat, oy, minH, rows),
     ];
   } else {
     const xs = new Set();

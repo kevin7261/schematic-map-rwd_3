@@ -248,12 +248,12 @@ export function mountRouteMapAdjust2(el, dataStore) {
         stationTooltipHtml(latlng, type, routesAtCoord, null, null, null, leafletRouteMapStationDisplay(type, fillColor))
       );
       // hover：圓點放大
-      m.on('mouseover', () => m.setRadius(radius + 3));
+      m.on('mouseover', () => m.setRadius(radius + 2));
       m.on('mouseout', () => m.setRadius(radius));
       m.addTo(stationGroup);
     };
     // 繪製順序：黑點 → 端點(藍) → 交點(紅) → 交叉(黃)，讓 cross 顯示在最上層
-    blacks.forEach((p) => addStationDot(p, '#000000', 3, 'black'));
+    blacks.forEach((p) => addStationDot(p, '#000000', 4, 'black'));
     terminals.forEach((p) => addStationDot(p, '#1565c0', 4, 'terminal'));
     connects.forEach((p) => addStationDot(p, '#ff0000', 4, 'connect'));
     // 🟡 交叉站點（cross）：路線幾何交叉但無站點處。以黃色底色 halo + 黃點 highlight。
@@ -633,7 +633,7 @@ export function mountRouteMapAdjust2(el, dataStore) {
       const isGray = !isPink && grayKeys.has(pk);
       const dpDetail = isPink ? pinkDpDetailMap.get(pk) ?? null : null;
       const dpRatio = dpDetail?.ratio ?? (isPink ? pinkKeys.get(pk) : null);
-      const r = isPink || isGray ? 4 : 3; // 🩷🩶 粉紅/灰大小同紅/藍/黃/紫節點(4)；一般黑點仍 3
+      const r = 4;
       const m = L.circleMarker(p, {
         radius: r,
         color: '#ffffff', // 白色 1px border
@@ -659,7 +659,7 @@ export function mountRouteMapAdjust2(el, dataStore) {
         )
       );
       m.on('mouseover', () => {
-        m.setRadius(r + 3);
+        m.setRadius(r + 2);
         if (dpDetail) drawPinkDpHoverOverlay(dpDetail);
       });
       m.on('mouseout', () => {
@@ -694,7 +694,7 @@ export function mountRouteMapAdjust2(el, dataStore) {
         dataStore,
         skeletonNodeTooltip(n)
       );
-      m.on('mouseover', () => m.setRadius(baseR + 3));
+      m.on('mouseover', () => m.setRadius(baseR + 2));
       m.on('mouseout', () => m.setRadius(baseR));
       m.addTo(skeletonGroup);
     }
