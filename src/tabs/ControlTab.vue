@@ -2474,8 +2474,7 @@
     const layer = currentLayer.value;
     const d = layer?.dashboardData;
     if (
-      (layer?.layerId !== 'taipei_d3' &&
-        layer?.layerId !== 'json_grid_coord_normalized') ||
+      (layer?.layerId !== 'taipei_d3' && layer?.layerId !== 'json_grid_coord_normalized') ||
       !d?.coordNormalize ||
       !d.gridSizeCells
     )
@@ -2947,7 +2946,8 @@
     const srcData = src.spaceNetworkGridJsonData;
     if (!Array.isArray(srcData) || srcData.length === 0) return; // 上游尚無結果
     const sig = cheapSegSig(srcData);
-    const has = Array.isArray(lyr.spaceNetworkGridJsonData) && lyr.spaceNetworkGridJsonData.length > 0;
+    const has =
+      Array.isArray(lyr.spaceNetworkGridJsonData) && lyr.spaceNetworkGridJsonData.length > 0;
     if (has && lyr.seededFromSig === sig) return; // 上游未變、已有資料 → 保留本層（含已操作結果）
 
     if (layerId === 'schematic_toward_center_hv' || layerId === 'schematic_rma_toward_center_hv') {
@@ -2960,7 +2960,10 @@
       // 細部調整：保留完整路網（含黑點），自路線正規化鏡像。
       applyConnectStraightenSegmentsToLayer(lyr, JSON.parse(JSON.stringify(srcData)));
       lyr.schematicBlackSections = null;
-    } else if (layerId === 'schematic_toward_center_vh' || layerId === 'schematic_rma_toward_center_vh') {
+    } else if (
+      layerId === 'schematic_toward_center_vh' ||
+      layerId === 'schematic_rma_toward_center_vh'
+    ) {
       // 上游＝先橫後直（已是骨架）：複製骨架；沿用其黑點 sections metadata。
       lyr.schematicBlackSections = src.schematicBlackSections || [];
       applyConnectStraightenSegmentsToLayer(lyr, JSON.parse(JSON.stringify(srcData)));
@@ -2971,7 +2974,9 @@
       // 來源若已含黑點（_forceDrawBlackDot）則不可再放回一次，否則黑點翻倍。
       const alreadyFull = flatSegmentsAlreadyHaveReinsertedBlackStations(skel);
       const full =
-        !alreadyFull && sections.length === skel.length ? reinsertBlackStations(skel, sections) : skel;
+        !alreadyFull && sections.length === skel.length
+          ? reinsertBlackStations(skel, sections)
+          : skel;
       applyConnectStraightenSegmentsToLayer(lyr, full);
       milpReadStep.value = -1;
       milpReadStepInfo.value = '';
@@ -3750,7 +3755,15 @@
   };
   onMounted(loadMetroCatalog);
 
-  const CONTINENT_ORDER = ['亞洲 Asia', '歐洲 Europe', '北美 North America', '南美 South America', '大洋洲 Oceania', '非洲 Africa', '其他 Other'];
+  const CONTINENT_ORDER = [
+    '亞洲 Asia',
+    '歐洲 Europe',
+    '北美 North America',
+    '南美 South America',
+    '大洋洲 Oceania',
+    '非洲 Africa',
+    '其他 Other',
+  ];
   const selContinent = ref('');
   const selCountry = ref('');
   const selCity = ref('');
@@ -3763,7 +3776,8 @@
   const drawCountries = computed(() => {
     const map = new Map();
     for (const c of loadableCities.value)
-      if (c.continent === selContinent.value && !map.has(c.country)) map.set(c.country, c.countryZh || '');
+      if (c.continent === selContinent.value && !map.has(c.country))
+        map.set(c.country, c.countryZh || '');
     return [...map.entries()]
       .map(([country, zh]) => ({ country, label: (zh ? zh + ' ' : '') + country }))
       .sort((a, b) => a.country.localeCompare(b.country));
@@ -3805,7 +3819,11 @@
     for (const f of feats) {
       if (!isNode(f)) continue;
       const [lon, lat] = f.geometry.coordinates;
-      stationMeta[ll6(lat, lon)] = { id: f.properties.station_id, name: f.properties.station_name, osmId: f.properties.osm_id };
+      stationMeta[ll6(lat, lon)] = {
+        id: f.properties.station_id,
+        name: f.properties.station_name,
+        osmId: f.properties.osm_id,
+      };
       nodes.push([lat, lon]);
     }
     const memb = new Map();
@@ -3986,7 +4004,15 @@
       let guard = 0;
       while (cells.length < maxStations && guard++ < 400) {
         // 候選方向：直行 → ±45° → ±90° → ±135°（排除 180° 回頭），越偏離越後 → 線條平順
-        const cand = [d, (d + 1) % 8, (d + 7) % 8, (d + 2) % 8, (d + 6) % 8, (d + 3) % 8, (d + 5) % 8];
+        const cand = [
+          d,
+          (d + 1) % 8,
+          (d + 7) % 8,
+          (d + 2) % 8,
+          (d + 6) % 8,
+          (d + 3) % 8,
+          (d + 5) % 8,
+        ];
         if (Math.random() < 0.35) {
           // 約 35% 機率優先嘗試轉 45°，增加彎折變化（仍受不重疊限制）
           cand.unshift(Math.random() < 0.5 ? (d + 1) % 8 : (d + 7) % 8);
@@ -4178,7 +4204,10 @@
     );
   };
 
-  const RMA_TOWARD_CENTER_LAYER_IDS = ['schematic_rma_toward_center_hv', 'schematic_rma_toward_center_vh'];
+  const RMA_TOWARD_CENTER_LAYER_IDS = [
+    'schematic_rma_toward_center_hv',
+    'schematic_rma_toward_center_vh',
+  ];
 
   /**
    * 站點與路線細部調整：自站點與路線調整①～⑧匯入完整排版結果（保留黑點）。
@@ -4254,7 +4283,11 @@
 
   const routeAdjustTowardCenterSourceHasData = (sourceLayerId) => {
     const src = dataStore.findLayerById(sourceLayerId);
-    return !!(src && Array.isArray(src.spaceNetworkGridJsonData) && src.spaceNetworkGridJsonData.length);
+    return !!(
+      src &&
+      Array.isArray(src.spaceNetworkGridJsonData) &&
+      src.spaceNetworkGridJsonData.length
+    );
   };
 
   /** 路線正規化（RMA）：座標正規化前，以紅/黃/藍為邊界重算粉紅點，不需者改棕色（獨立按鈕）。 */
@@ -4392,7 +4425,11 @@
         window.alert('Leaflet 畫線圖層尚無路線，請先在「空間網絡網格 → Leaflet 畫線」畫線。');
         return;
       }
-      fc = leafletDrawToOsmRouteGeoJson(lines, draw?.leafletDrawBlackDots || [], draw?.leafletDrawStationMeta || null);
+      fc = leafletDrawToOsmRouteGeoJson(
+        lines,
+        draw?.leafletDrawBlackDots || [],
+        draw?.leafletDrawStationMeta || null
+      );
     } else {
       const osm = dataStore.findLayerById(OSM_2_GEOJSON_2_JSON_LAYER_ID);
       if (!osm?.geojsonData?.features?.length) {
@@ -4500,11 +4537,7 @@
 
   /** `point_orthogonal`：本層有路網即可刪空欄列（與父層拓撲狀態無關） */
   const jsonGridFromCoordPruneEmptyGridLinesEnabled = (lyr) => {
-    if (
-      !lyr ||
-      lyr.layerId !== POINT_ORTHOGONAL_LAYER_ID
-    )
-      return false;
+    if (!lyr || lyr.layerId !== POINT_ORTHOGONAL_LAYER_ID) return false;
     return Array.isArray(lyr.spaceNetworkGridJsonData) && lyr.spaceNetworkGridJsonData.length > 0;
   };
 
@@ -4523,11 +4556,7 @@
    * @returns {Array<{ row: number, segIdx: number, ptIdx: number, routeName: string, x: number, y: number, role: string, label: string }>}
    */
   const jsonGridFromCoordNormalizedVertexList = (lyr) => {
-    if (
-      !lyr ||
-      lyr.layerId !== POINT_ORTHOGONAL_LAYER_ID
-    )
-      return [];
+    if (!lyr || lyr.layerId !== POINT_ORTHOGONAL_LAYER_ID) return [];
     const resolved = resolveB3InputSpaceNetwork(lyr, { routeLineFromExportRows: 'full' });
     if (!resolved?.spaceNetwork?.length) return [];
     const flat = normalizeSpaceNetworkDataToFlatSegments(
@@ -5798,7 +5827,10 @@
   /** @type Record<string, ReturnType<typeof makeLineOrthoTowardCrossUiState>> */
   const lineOrthoTowardCrossUiByLayerId = reactive(
     Object.fromEntries(
-      LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL.map((id) => [id, makeLineOrthoTowardCrossUiState()])
+      LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL.map((id) => [
+        id,
+        makeLineOrthoTowardCrossUiState(),
+      ])
     )
   );
   /** @type Record<string, ReturnType<typeof setInterval> | null> */
@@ -5988,7 +6020,7 @@
     if (total > 0) {
       const rowFirst = !isVertFirstAnyLayerId(lyr.layerId);
       // 地圖橘標＝「剛處理過」的那筆＝seqIdx−1（pulse 後 seqIdx 已 +1）；對齊之，避免訊息指到別筆。
-      const idx = (((Number(ui?.seqIdx) || 0) - 1) % total + total) % total;
+      const idx = ((((Number(ui?.seqIdx) || 0) - 1) % total) + total) % total;
       let cur = null;
       let item = null;
       let axisLabel = '';
@@ -6128,7 +6160,10 @@
    * 單按一次「朝紅十字縮進」：`clearMovePreview`、`queue[idx]`、`seqIdx+=1`；每次最多移一格。與自動排程同軌。
    * @returns {Promise<boolean>} 是否發生評估類嚴重失敗（!r.ok，需視情況中斷自動／批次）
    */
-  async function pulseOnceLineOrthoTowardCross(lyr, { muteEvalErrorAlert = false, batch = false } = {}) {
+  async function pulseOnceLineOrthoTowardCross(
+    lyr,
+    { muteEvalErrorAlert = false, batch = false } = {}
+  ) {
     const uiLine = lineOrthoTowardCrossUiFor(lyr);
     if (
       !lyr ||
@@ -6305,7 +6340,11 @@
   }
 
   const onLineOrthoTowardCrossStepClick = async (lyr) => {
-    if (!lyr || !LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL.includes(lyr.layerId) || isExecuting.value)
+    if (
+      !lyr ||
+      !LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL.includes(lyr.layerId) ||
+      isExecuting.value
+    )
       return;
     await pulseOnceLineOrthoTowardCross(lyr, { muteEvalErrorAlert: false });
   };
@@ -6870,7 +6909,9 @@
       return true;
     }
     const up = dataStore.findLayerById(LINE_ORTHOGONAL_LAYER_ID);
-    const resolved = up ? resolveB3InputSpaceNetwork(up, { routeLineFromExportRows: 'full' }) : null;
+    const resolved = up
+      ? resolveB3InputSpaceNetwork(up, { routeLineFromExportRows: 'full' })
+      : null;
     if (!resolved?.spaceNetwork?.length) return false;
     const segs = normalizeSpaceNetworkDataToFlatSegments(
       JSON.parse(JSON.stringify(resolved.spaceNetwork))
@@ -7037,17 +7078,19 @@
       await nextTick();
       dataStore.requestSpaceNetworkGridFullRedraw();
     }
-    const topo = (r.invalidBefore ?? 0) > 0
-      ? `\n（注意：原路網本有 ${r.invalidBefore} 處交叉/重疊/頂點落線；拉直後為 ${r.invalidAfter}，過程未使其增加。）`
-      : '';
+    const topo =
+      (r.invalidBefore ?? 0) > 0
+        ? `\n（注意：原路網本有 ${r.invalidBefore} 處交叉/重疊/頂點落線；拉直後為 ${r.invalidAfter}，過程未使其增加。）`
+        : '';
     const rs = r.rejectSummary;
-    const why = (r.moves === 0 && rs)
-      ? `\n（評估 ${rs.connects} 個 connect、試移 ${rs.tried} 次；被擋原因：目標格已有其他線/點 ${rs.targetNotFree}、會改變拓撲 ${rs.topoWorse}、水平/垂直線會變少 ${rs.hvLoss}、既沒增加水平/垂直也沒縮短總長 ${rs.noGain}）`
-      : '';
+    const why =
+      r.moves === 0 && rs
+        ? `\n（評估 ${rs.connects} 個 connect、試移 ${rs.tried} 次；被擋原因：目標格已有其他線/點 ${rs.targetNotFree}、會改變拓撲 ${rs.topoWorse}、水平/垂直線會變少 ${rs.hvLoss}、既沒增加水平/垂直也沒縮短總長 ${rs.noGain}）`
+        : '';
     window.alert(
       (r.moves > 0
         ? `紅／藍 connect 拉直：移動 ${r.moves} 個 connect（${r.rounds} 輪），水平／垂直邊數 ${r.hvBefore} → ${r.hvAfter}。` +
-            (r.hitMaxMoves ? '（已達單次上限，請再按一次續跑。）' : '')
+          (r.hitMaxMoves ? '（已達單次上限，請再按一次續跑。）' : '')
         : '已無任一 connect 可用軸對齊跳格增加水平／垂直路線。' + why) + topo
     );
   };
@@ -7081,17 +7124,19 @@
       await nextTick();
       dataStore.requestSpaceNetworkGridFullRedraw();
     }
-    const topo = (r.invalidBefore ?? 0) > 0
-      ? `\n（注意：原路網本有 ${r.invalidBefore} 處交叉/重疊/頂點落線；拉直後為 ${r.invalidAfter}，過程未使其增加。）`
-      : '';
+    const topo =
+      (r.invalidBefore ?? 0) > 0
+        ? `\n（注意：原路網本有 ${r.invalidBefore} 處交叉/重疊/頂點落線；拉直後為 ${r.invalidAfter}，過程未使其增加。）`
+        : '';
     const rs = r.rejectSummary;
-    const why = (r.moves === 0 && rs)
-      ? `\n（評估 ${rs.connects} 個 connect、試移 ${rs.tried} 次；被擋原因：目標格已有其他線/點 ${rs.targetNotFree}、會改變拓撲 ${rs.topoWorse}、水平/垂直線會變少 ${rs.hvLoss}、既沒增加水平/垂直也沒縮短總長 ${rs.noGain}）`
-      : '';
+    const why =
+      r.moves === 0 && rs
+        ? `\n（評估 ${rs.connects} 個 connect、試移 ${rs.tried} 次；被擋原因：目標格已有其他線/點 ${rs.targetNotFree}、會改變拓撲 ${rs.topoWorse}、水平/垂直線會變少 ${rs.hvLoss}、既沒增加水平/垂直也沒縮短總長 ${rs.noGain}）`
+        : '';
     window.alert(
       (r.moves > 0
         ? `紅／藍 connect 拉直：移動 ${r.moves} 個 connect（${r.rounds} 輪），水平／垂直邊數 ${r.hvBefore} → ${r.hvAfter}。` +
-            (r.hitMaxMoves ? '（已達單次上限，請再按一次續跑。）' : '')
+          (r.hitMaxMoves ? '（已達單次上限，請再按一次續跑。）' : '')
         : '已無任一 connect 可用軸對齊跳格增加水平／垂直路線。' + why) + topo
     );
   };
@@ -7186,8 +7231,7 @@
       }
       const fullFlat = reinsertBlackStations(r.segments, sections);
       applyConnectStraightenSegmentsToLayer(lyr, fullFlat);
-      milpReadStepInfo.value =
-        `第 ${nextIdx + 1}/${n} 點 (${it.x},${it.y}) → (${toGx},${toGy})：✓ 移動，水平/垂直邊 ${r.hvBefore} → ${r.hvAfter}`;
+      milpReadStepInfo.value = `第 ${nextIdx + 1}/${n} 點 (${it.x},${it.y}) → (${toGx},${toGy})：✓ 移動，水平/垂直邊 ${r.hvBefore} → ${r.hvAfter}`;
     } else {
       const rj = r.reject || {};
       const parts = [
@@ -7197,8 +7241,7 @@
         `既沒增加水平/垂直也沒縮短總長 ${rj.noGain || 0}`,
       ];
       if (rj.zeroLen) parts.push(`零長邊 ${rj.zeroLen}`);
-      milpReadStepInfo.value =
-        `第 ${nextIdx + 1}/${n} 點 (${it.x},${it.y})：✗ 不移動。候選對齊格 ${rj.tried || 0} 個全被擋 — ${parts.join('、')}`;
+      milpReadStepInfo.value = `第 ${nextIdx + 1}/${n} 點 (${it.x},${it.y})：✗ 不移動。候選對齊格 ${rj.tried || 0} 個全被擋 — ${parts.join('、')}`;
     }
     await nextTick();
     dataStore.requestSpaceNetworkGridFullRedraw();
@@ -7327,12 +7370,20 @@
     dataStore.saveLayerState(lyr.layerId, jsonGridFromCoordNormalizedPersistPayload(lyr));
     await nextTick();
     dataStore.requestSpaceNetworkGridFullRedraw();
-    setControlLoadFeedback(lyr.layerId, '已重新自上游「往中心聚集（先橫後直）」鏡像最新結果。', 'success');
+    setControlLoadFeedback(
+      lyr.layerId,
+      '已重新自上游「往中心聚集（先橫後直）」鏡像最新結果。',
+      'success'
+    );
   };
   // ── end connect_straighten_hv ────────────────────────────────────────────
 
   const maybeLineOrthoHubBlueDiagonalPrepassOnce = async (lyr) => {
-    if (!lyr || !LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL.includes(lyr.layerId) || isExecuting.value)
+    if (
+      !lyr ||
+      !LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL.includes(lyr.layerId) ||
+      isExecuting.value
+    )
       return;
     const resolved = resolveB3InputSpaceNetwork(lyr, { routeLineFromExportRows: 'full' });
     if (!resolved?.spaceNetwork?.length) return;
@@ -10047,7 +10098,9 @@
       JSON.parse(JSON.stringify(layer?.spaceNetworkGridJsonData || []))
     );
     if (!Array.isArray(skel) || skel.length === 0) return null;
-    const sections = Array.isArray(layer.schematicBlackSections) ? layer.schematicBlackSections : [];
+    const sections = Array.isArray(layer.schematicBlackSections)
+      ? layer.schematicBlackSections
+      : [];
     const full = sections.length === skel.length ? reinsertBlackStations(skel, sections) : skel;
     try {
       return flatSegmentsToGeojsonStyleExportRows(full);
@@ -10174,7 +10227,6 @@
       milpRoutePairAuditing.value = false;
     }
   };
-
 </script>
 
 <template>
@@ -10224,10 +10276,7 @@
     </div>
 
     <!-- 管線四階段：地圖 hover 資訊（取代浮動 tooltip，僅 hover 時顯示） -->
-    <div
-      v-if="pipelineMapHoverHtml"
-      class="px-3 pt-2 pb-2 border-bottom my-bgcolor-gray-200"
-    >
+    <div v-if="pipelineMapHoverHtml" class="px-3 pt-2 pb-2 border-bottom my-bgcolor-gray-200">
       <div class="my-title-xs-gray pb-1">地圖 hover</div>
       <div
         class="my-font-size-xs"
@@ -10273,7 +10322,20 @@
 
         <!-- 🗺️ 示意圖佈局（從路線圖調整）：載入 + 執行（僅①②③演算法層） -->
         <div
-          v-if="layer.isRouteSchematicLayer && ['schematic_rma_stroke', 'schematic_rma_hillclimb', 'schematic_rma_milp', 'schematic_rma_force', 'schematic_rma_wangchi', 'schematic_rma_bast', 'schematic_rma_merrick', 'schematic_rma_sat', 'schematic_rma_normalize'].includes(layer.layerId)"
+          v-if="
+            layer.isRouteSchematicLayer &&
+            [
+              'schematic_rma_stroke',
+              'schematic_rma_hillclimb',
+              'schematic_rma_milp',
+              'schematic_rma_force',
+              'schematic_rma_wangchi',
+              'schematic_rma_bast',
+              'schematic_rma_merrick',
+              'schematic_rma_sat',
+              'schematic_rma_normalize',
+            ].includes(layer.layerId)
+          "
           class="pb-3 mb-3 border-bottom"
         >
           <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
@@ -10302,13 +10364,21 @@
             從路線圖轉換直線骨架載入
           </button>
           <ControlLoadFeedback :layer-id="layer.layerId" />
-          <div v-if="layer.geojsonData && layer.geojsonData.features" class="my-font-size-xs text-muted pb-2">
+          <div
+            v-if="layer.geojsonData && layer.geojsonData.features"
+            class="my-font-size-xs text-muted pb-2"
+          >
             已載入輸入：{{ layer.geojsonData.features.length }} 個 features
           </div>
           <button
             type="button"
             class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
-            :disabled="!layer.geojsonData || !layer.geojsonData.features || !layer.geojsonData.features.length || isExecuting"
+            :disabled="
+              !layer.geojsonData ||
+              !layer.geojsonData.features ||
+              !layer.geojsonData.features.length ||
+              isExecuting
+            "
             @click="executeLayerFunction"
           >
             {{ isExecuting ? '執行中…' : '開始執行' }}
@@ -10339,36 +10409,38 @@
             <div class="text-muted pb-1" style="font-size: 10px; line-height: 1.4">
               例：景安站檢查「景安→南勢角」支線與環狀線等之相對順序，非骨架段行進方向。
             </div>
-            <div
-              v-if="layer.milpRoutePairAudit.primaryVerdict === 'PASS'"
-              class="text-success"
-            >
+            <div v-if="layer.milpRoutePairAudit.primaryVerdict === 'PASS'" class="text-success">
               正確 — {{ layer.milpRoutePairAudit.junctionCountGe3 }} 個分歧點路線對順序一致
             </div>
             <div v-else class="text-danger pb-1">
               錯誤 — {{ layer.milpRoutePairAudit.violationCount }} 組路線對順序與骨架不符
             </div>
-            <ul
-              v-if="layer.milpRoutePairAudit.reasonLines?.length"
-              class="mb-0 ps-3"
-            >
+            <ul v-if="layer.milpRoutePairAudit.reasonLines?.length" class="mb-0 ps-3">
               <li
                 v-for="(r, ri) in layer.milpRoutePairAudit.reasonLines"
                 :key="'mra-' + ri"
-                :class="layer.milpRoutePairAudit.primaryVerdict === 'PASS' ? 'text-muted' : 'text-danger'"
+                :class="
+                  layer.milpRoutePairAudit.primaryVerdict === 'PASS' ? 'text-muted' : 'text-danger'
+                "
               >
                 {{ r }}
               </li>
             </ul>
           </div>
           <div
-            v-if="layer.layerId === 'schematic_rma_milp' && layer.dashboardData?.rotationStructureCheck?.layoutDone"
+            v-if="
+              layer.layerId === 'schematic_rma_milp' &&
+              layer.dashboardData?.rotationStructureCheck?.layoutDone
+            "
             class="mt-2 p-2 rounded border my-font-size-xs"
             style="line-height: 1.45"
           >
             <div class="my-title-xs-gray pb-1">入射方向順序（讀入骨架）</div>
             <div
-              v-if="layer.dashboardData.rotationStructureCheck.preserved && !layer.dashboardData.rotationStructureCheck.detectedCount"
+              v-if="
+                layer.dashboardData.rotationStructureCheck.preserved &&
+                !layer.dashboardData.rotationStructureCheck.detectedCount
+              "
               class="text-muted"
             >
               與讀入骨架一致（≥3 分支之 360° 環序，另一端點順序正確）
@@ -10422,9 +10494,13 @@
               仍重疊 {{ layer.schematicOverlapScan.total ?? 0 }} 處（橘）
             </div>
             <ul v-if="layer.schematicOverlapScan.rows?.length" class="mb-0 ps-3">
-              <li v-for="(row, ri) in layer.schematicOverlapScan.rows" :key="ri">{{ row.label }}</li>
+              <li v-for="(row, ri) in layer.schematicOverlapScan.rows" :key="ri">
+                {{ row.label }}
+              </li>
             </ul>
-            <div v-if="layer.schematicOverlapScan.truncated" class="text-muted pt-1">（僅顯示前 60 筆）</div>
+            <div v-if="layer.schematicOverlapScan.truncated" class="text-muted pt-1">
+              （僅顯示前 60 筆）
+            </div>
           </div>
         </div>
 
@@ -10453,7 +10529,15 @@
           >
             <option value="">依站點數排序…</option>
             <option v-for="c in srmStationSortedCities" :key="c.id" :value="c.id">
-              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city + '（' + c.stations + ' 站・' + c.routes + ' 線）' }}
+              {{
+                (c.cityZh ? c.cityZh + ' ' : '') +
+                c.city +
+                '（' +
+                c.stations +
+                ' 站・' +
+                c.routes +
+                ' 線）'
+              }}
             </option>
           </select>
 
@@ -10472,7 +10556,9 @@
             class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
           >
             <option value="">選擇國家…</option>
-            <option v-for="c in srmCountries" :key="c.country" :value="c.country">{{ c.label }}</option>
+            <option v-for="c in srmCountries" :key="c.country" :value="c.country">
+              {{ c.label }}
+            </option>
           </select>
           <select
             v-model="srmCity"
@@ -10521,84 +10607,98 @@
 
           <!-- 目前路線／站點 + 各路線站點：整塊限高 320pt，內容過長可捲動 -->
           <div style="max-height: 320pt; overflow-y: auto">
-          <!-- 目前路線／站點統計 -->
-          <div class="my-title-xs-gray pb-2">目前路線／站點</div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span>路線</span><span>{{ srmStats.routes }} 條</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #ff0000"
-              ></span>
-              connect（交點）
-            </span>
-            <span>{{ srmStats.connect }}</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #1565c0"
-              ></span>
-              terminal（端點）
-            </span>
-            <span>{{ srmStats.terminal }}</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-3">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #000000"
-              ></span>
-              一般（黑點）
-            </span>
-            <span>{{ srmStats.black }}</span>
-          </div>
-
-          <!-- 各路線站點（依序：起點 → 終點） -->
-          <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
-          <div v-if="srmRouteList.length === 0" class="my-font-size-xs pb-3">尚未載入任何路線</div>
-          <div v-for="route in srmRouteList" :key="route.routeIndex" class="pb-2">
-            <div class="d-flex align-items-center my-font-size-xs pb-1">
-              <span
-                class="d-inline-block rounded-pill me-2"
-                :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
-              ></span>
-              {{ srmRouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
-                route.stations.length
-              }}
-              站）
+            <!-- 目前路線／站點統計 -->
+            <div class="my-title-xs-gray pb-2">目前路線／站點</div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span>路線</span><span>{{ srmStats.routes }} 條</span>
             </div>
-            <div class="ps-3">
-              <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
-                <div class="d-flex align-items-center">
-                  <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
-                  <span
-                    class="d-inline-block rounded-circle me-2"
-                    :style="{ width: '8px', height: '8px', backgroundColor: srmStationColor(st.type) }"
-                  ></span>
-                  <span>{{ st.name || srmStationLabel(st.type) }}</span>
-                </div>
-                <!-- 交會路線：第二行、縮排顯示 -->
-                <div
-                  v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
-                  class="d-flex align-items-center flex-wrap ps-4 pt-1"
-                >
-                  <span class="me-1">· 交會</span>
-                  <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #ff0000"
+                ></span>
+                connect（交點）
+              </span>
+              <span>{{ srmStats.connect }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #1565c0"
+                ></span>
+                terminal（端點）
+              </span>
+              <span>{{ srmStats.terminal }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-3">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #000000"
+                ></span>
+                一般（黑點）
+              </span>
+              <span>{{ srmStats.black }}</span>
+            </div>
+
+            <!-- 各路線站點（依序：起點 → 終點） -->
+            <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
+            <div v-if="srmRouteList.length === 0" class="my-font-size-xs pb-3">
+              尚未載入任何路線
+            </div>
+            <div v-for="route in srmRouteList" :key="route.routeIndex" class="pb-2">
+              <div class="d-flex align-items-center my-font-size-xs pb-1">
+                <span
+                  class="d-inline-block rounded-pill me-2"
+                  :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
+                ></span>
+                {{ srmRouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
+                  route.stations.length
+                }}
+                站）
+              </div>
+              <div class="ps-3">
+                <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
+                  <div class="d-flex align-items-center">
+                    <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
                     <span
-                      class="d-inline-block rounded-pill me-1"
-                      :style="{ width: '16px', height: '5px', backgroundColor: srmRouteColor(ri) }"
+                      class="d-inline-block rounded-circle me-2"
+                      :style="{
+                        width: '8px',
+                        height: '8px',
+                        backgroundColor: srmStationColor(st.type),
+                      }"
                     ></span>
-                    {{ srmRouteName(ri) }}
-                  </span>
+                    <span>{{ st.name || srmStationLabel(st.type) }}</span>
+                  </div>
+                  <!-- 交會路線：第二行、縮排顯示 -->
+                  <div
+                    v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
+                    class="d-flex align-items-center flex-wrap ps-4 pt-1"
+                  >
+                    <span class="me-1">· 交會</span>
+                    <span
+                      v-for="ri in st.connectRoutes"
+                      :key="ri"
+                      class="d-flex align-items-center me-2"
+                    >
+                      <span
+                        class="d-inline-block rounded-pill me-1"
+                        :style="{
+                          width: '16px',
+                          height: '5px',
+                          backgroundColor: srmRouteColor(ri),
+                        }"
+                      ></span>
+                      {{ srmRouteName(ri) }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="pb-2"></div>
+            <div class="pb-2"></div>
           </div>
         </div>
 
@@ -10673,205 +10773,217 @@
 
           <!-- 紅/黃/綠/藍 highlight 清單：整塊限高 320pt，內容過長可捲動 -->
           <div style="max-height: 320pt; overflow-y: auto">
-          <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
-          <div class="my-title-xs-gray pb-2">
-            共線段（重疊）
-            <span class="text-muted">· 預設於地圖以紅色底色高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #ff1744"
-              ></span>
-              共線段數
-            </span>
-            <span>{{ rmaSharedList.length }}</span>
-          </div>
-          <div v-if="rmaSharedList.length === 0" class="my-font-size-xs pb-3">
-            無共線段（沒有多條路線共用同一段）。
-          </div>
-          <div
-            v-for="s in rmaSharedList"
-            :key="s.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ s.index + 1 }}.</span>
-            <span>{{ s.routeCount }} 路線：{{ s.routeNames.join('、') }}</span>
-          </div>
-          <div v-if="rmaSharedList.length" class="pb-2"></div>
+            <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
+            <div class="my-title-xs-gray pb-2">
+              共線段（重疊）
+              <span class="text-muted">· 預設於地圖以紅色底色高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block me-2"
+                  style="width: 14px; height: 8px; background-color: #ff1744"
+                ></span>
+                共線段數
+              </span>
+              <span>{{ rmaSharedList.length }}</span>
+            </div>
+            <div v-if="rmaSharedList.length === 0" class="my-font-size-xs pb-3">
+              無共線段（沒有多條路線共用同一段）。
+            </div>
+            <div
+              v-for="s in rmaSharedList"
+              :key="s.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ s.index + 1 }}.</span>
+              <span>{{ s.routeCount }} 路線：{{ s.routeNames.join('、') }}</span>
+            </div>
+            <div v-if="rmaSharedList.length" class="pb-2"></div>
 
-          <!-- 🟡 交叉站點 cross（黃，預設顯示） -->
-          <div class="my-title-xs-gray pb-2">
-            交叉站點（cross）
-            <span class="text-muted">· 路線幾何交叉但無站點處，地圖以黃色 halo 高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
+            <!-- 🟡 交叉站點 cross（黃，預設顯示） -->
+            <div class="my-title-xs-gray pb-2">
+              交叉站點（cross）
+              <span class="text-muted">· 路線幾何交叉但無站點處，地圖以黃色 halo 高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #ffd600"
+                ></span>
+                cross 數
+              </span>
+              <span>{{ rmaCrossList.length }}</span>
+            </div>
+            <div v-if="rmaCrossList.length === 0" class="my-font-size-xs pb-3">
+              無交叉站點（沒有路線幾何交叉但無站點之處）。
+            </div>
+            <div
+              v-for="c in rmaCrossList"
+              :key="c.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ c.index + 1 }}.</span>
               <span
                 class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #ffd600"
+                style="width: 8px; height: 8px; background-color: #ffd600"
               ></span>
-              cross 數
-            </span>
-            <span>{{ rmaCrossList.length }}</span>
-          </div>
-          <div v-if="rmaCrossList.length === 0" class="my-font-size-xs pb-3">
-            無交叉站點（沒有路線幾何交叉但無站點之處）。
-          </div>
-          <div
-            v-for="c in rmaCrossList"
-            :key="c.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ c.index + 1 }}.</span>
-            <span
-              class="d-inline-block rounded-circle me-2"
-              style="width: 8px; height: 8px; background-color: #ffd600"
-            ></span>
-            <span>cross（{{ c.latlng[0].toFixed(5) }}, {{ c.latlng[1].toFixed(5) }}）</span>
-          </div>
-          <div v-if="rmaCrossList.length" class="pb-2"></div>
+              <span>cross（{{ c.latlng[0].toFixed(5) }}, {{ c.latlng[1].toFixed(5) }}）</span>
+            </div>
+            <div v-if="rmaCrossList.length" class="pb-2"></div>
 
-          <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
-          <div class="my-title-xs-gray pb-2">
-            頭尾同點（環線）
-            <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #00c853"
-              ></span>
-              環線數
-            </span>
-            <span>{{ rmaLoopList.length }}</span>
-          </div>
-          <div v-if="rmaLoopList.length === 0" class="my-font-size-xs pb-3">
-            無環線（沒有頭尾為同一點的路線）。
-          </div>
-          <div
-            v-for="e in rmaLoopList"
-            :key="e.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
-            <span>{{ e.routeName }}</span>
-          </div>
-          <div v-if="rmaLoopList.length" class="pb-2"></div>
+            <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
+            <div class="my-title-xs-gray pb-2">
+              頭尾同點（環線）
+              <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block me-2"
+                  style="width: 14px; height: 8px; background-color: #00c853"
+                ></span>
+                環線數
+              </span>
+              <span>{{ rmaLoopList.length }}</span>
+            </div>
+            <div v-if="rmaLoopList.length === 0" class="my-font-size-xs pb-3">
+              無環線（沒有頭尾為同一點的路線）。
+            </div>
+            <div
+              v-for="e in rmaLoopList"
+              :key="e.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+              <span>{{ e.routeName }}</span>
+            </div>
+            <div v-if="rmaLoopList.length" class="pb-2"></div>
 
-          <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
-          <div class="my-title-xs-gray pb-2">
-            頭尾共點
-            <span class="text-muted">· 頭尾兩端皆為紅點（交點）之路線段，地圖以藍色線高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #1e88e5"
-              ></span>
-              線段數
-            </span>
-            <span>{{ rmaEndpointList.length }}</span>
-          </div>
-          <div v-if="rmaEndpointList.length === 0" class="my-font-size-xs pb-3">
-            無此類線段（沒有頭尾兩端皆為紅點之路線段）。
-          </div>
-          <div
-            v-for="e in rmaEndpointList"
-            :key="e.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
-            <span>{{ e.routeName }}（紅點×{{ e.aRouteCount }} → 紅點×{{ e.bRouteCount }}）</span>
-          </div>
-          <div v-if="rmaEndpointList.length" class="pb-2"></div>
-
+            <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
+            <div class="my-title-xs-gray pb-2">
+              頭尾共點
+              <span class="text-muted">· 頭尾兩端皆為紅點（交點）之路線段，地圖以藍色線高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block me-2"
+                  style="width: 14px; height: 8px; background-color: #1e88e5"
+                ></span>
+                線段數
+              </span>
+              <span>{{ rmaEndpointList.length }}</span>
+            </div>
+            <div v-if="rmaEndpointList.length === 0" class="my-font-size-xs pb-3">
+              無此類線段（沒有頭尾兩端皆為紅點之路線段）。
+            </div>
+            <div
+              v-for="e in rmaEndpointList"
+              :key="e.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+              <span>{{ e.routeName }}（紅點×{{ e.aRouteCount }} → 紅點×{{ e.bRouteCount }}）</span>
+            </div>
+            <div v-if="rmaEndpointList.length" class="pb-2"></div>
           </div>
 
           <!-- 目前路線／站點 + 明細：整塊限高 320pt，內容過長可捲動 -->
           <div style="max-height: 320pt; overflow-y: auto">
-          <!-- 目前路線／站點統計 -->
-          <div class="my-title-xs-gray pb-2">目前路線／站點</div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span>路線</span><span>{{ rmaStats.routes }} 條</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #ff0000"
-              ></span>
-              connect（交點）
-            </span>
-            <span>{{ rmaStats.connect }}</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #1565c0"
-              ></span>
-              terminal（端點）
-            </span>
-            <span>{{ rmaStats.terminal }}</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-3">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #000000"
-              ></span>
-              一般（黑點）
-            </span>
-            <span>{{ rmaStats.black }}</span>
-          </div>
-
-
-          <!-- 各路線站點（依序：起點 → 終點） -->
-          <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
-          <div v-if="rmaRouteList.length === 0" class="my-font-size-xs pb-3">尚未載入任何路線</div>
-          <div v-for="route in rmaRouteList" :key="route.routeIndex" class="pb-2">
-            <div class="d-flex align-items-center my-font-size-xs pb-1">
-              <span
-                class="d-inline-block rounded-pill me-2"
-                :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
-              ></span>
-              {{ rmaRouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
-                route.stations.length
-              }}
-              站）
+            <!-- 目前路線／站點統計 -->
+            <div class="my-title-xs-gray pb-2">目前路線／站點</div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span>路線</span><span>{{ rmaStats.routes }} 條</span>
             </div>
-            <div class="ps-3">
-              <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
-                <div class="d-flex align-items-center">
-                  <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
-                  <span
-                    class="d-inline-block rounded-circle me-2"
-                    :style="{ width: '8px', height: '8px', backgroundColor: rmaStationColor(st.type) }"
-                  ></span>
-                  <span>{{ st.name || rmaStationLabel(st.type) }}</span>
-                </div>
-                <!-- 交會路線：第二行、縮排顯示 -->
-                <div
-                  v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
-                  class="d-flex align-items-center flex-wrap ps-4 pt-1"
-                >
-                  <span class="me-1">· 交會</span>
-                  <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #ff0000"
+                ></span>
+                connect（交點）
+              </span>
+              <span>{{ rmaStats.connect }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #1565c0"
+                ></span>
+                terminal（端點）
+              </span>
+              <span>{{ rmaStats.terminal }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-3">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #000000"
+                ></span>
+                一般（黑點）
+              </span>
+              <span>{{ rmaStats.black }}</span>
+            </div>
+
+            <!-- 各路線站點（依序：起點 → 終點） -->
+            <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
+            <div v-if="rmaRouteList.length === 0" class="my-font-size-xs pb-3">
+              尚未載入任何路線
+            </div>
+            <div v-for="route in rmaRouteList" :key="route.routeIndex" class="pb-2">
+              <div class="d-flex align-items-center my-font-size-xs pb-1">
+                <span
+                  class="d-inline-block rounded-pill me-2"
+                  :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
+                ></span>
+                {{ rmaRouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
+                  route.stations.length
+                }}
+                站）
+              </div>
+              <div class="ps-3">
+                <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
+                  <div class="d-flex align-items-center">
+                    <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
                     <span
-                      class="d-inline-block rounded-pill me-1"
-                      :style="{ width: '16px', height: '5px', backgroundColor: rmaRouteColor(ri) }"
+                      class="d-inline-block rounded-circle me-2"
+                      :style="{
+                        width: '8px',
+                        height: '8px',
+                        backgroundColor: rmaStationColor(st.type),
+                      }"
                     ></span>
-                    {{ rmaRouteName(ri) }}
-                  </span>
+                    <span>{{ st.name || rmaStationLabel(st.type) }}</span>
+                  </div>
+                  <!-- 交會路線：第二行、縮排顯示 -->
+                  <div
+                    v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
+                    class="d-flex align-items-center flex-wrap ps-4 pt-1"
+                  >
+                    <span class="me-1">· 交會</span>
+                    <span
+                      v-for="ri in st.connectRoutes"
+                      :key="ri"
+                      class="d-flex align-items-center me-2"
+                    >
+                      <span
+                        class="d-inline-block rounded-pill me-1"
+                        :style="{
+                          width: '16px',
+                          height: '5px',
+                          backgroundColor: rmaRouteColor(ri),
+                        }"
+                      ></span>
+                      {{ rmaRouteName(ri) }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="pb-2"></div>
+            <div class="pb-2"></div>
           </div>
         </div>
 
@@ -10946,204 +11058,217 @@
 
           <!-- 紅/黃/綠/藍 highlight 清單：整塊限高 320pt，內容過長可捲動 -->
           <div style="max-height: 320pt; overflow-y: auto">
-          <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
-          <div class="my-title-xs-gray pb-2">
-            共線段（重疊）
-            <span class="text-muted">· 預設於地圖以紅色底色高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #ff1744"
-              ></span>
-              共線段數
-            </span>
-            <span>{{ rma2SharedList.length }}</span>
-          </div>
-          <div v-if="rma2SharedList.length === 0" class="my-font-size-xs pb-3">
-            無共線段（沒有多條路線共用同一段）。
-          </div>
-          <div
-            v-for="s in rma2SharedList"
-            :key="s.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ s.index + 1 }}.</span>
-            <span>{{ s.routeCount }} 路線：{{ s.routeNames.join('、') }}</span>
-          </div>
-          <div v-if="rma2SharedList.length" class="pb-2"></div>
+            <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
+            <div class="my-title-xs-gray pb-2">
+              共線段（重疊）
+              <span class="text-muted">· 預設於地圖以紅色底色高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block me-2"
+                  style="width: 14px; height: 8px; background-color: #ff1744"
+                ></span>
+                共線段數
+              </span>
+              <span>{{ rma2SharedList.length }}</span>
+            </div>
+            <div v-if="rma2SharedList.length === 0" class="my-font-size-xs pb-3">
+              無共線段（沒有多條路線共用同一段）。
+            </div>
+            <div
+              v-for="s in rma2SharedList"
+              :key="s.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ s.index + 1 }}.</span>
+              <span>{{ s.routeCount }} 路線：{{ s.routeNames.join('、') }}</span>
+            </div>
+            <div v-if="rma2SharedList.length" class="pb-2"></div>
 
-          <!-- 🟡 交叉站點 cross（黃，預設顯示） -->
-          <div class="my-title-xs-gray pb-2">
-            交叉站點（cross）
-            <span class="text-muted">· 路線幾何交叉但無站點處，地圖以黃色 halo 高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
+            <!-- 🟡 交叉站點 cross（黃，預設顯示） -->
+            <div class="my-title-xs-gray pb-2">
+              交叉站點（cross）
+              <span class="text-muted">· 路線幾何交叉但無站點處，地圖以黃色 halo 高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #ffd600"
+                ></span>
+                cross 數
+              </span>
+              <span>{{ rma2CrossList.length }}</span>
+            </div>
+            <div v-if="rma2CrossList.length === 0" class="my-font-size-xs pb-3">
+              無交叉站點（沒有路線幾何交叉但無站點之處）。
+            </div>
+            <div
+              v-for="c in rma2CrossList"
+              :key="c.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ c.index + 1 }}.</span>
               <span
                 class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #ffd600"
+                style="width: 8px; height: 8px; background-color: #ffd600"
               ></span>
-              cross 數
-            </span>
-            <span>{{ rma2CrossList.length }}</span>
-          </div>
-          <div v-if="rma2CrossList.length === 0" class="my-font-size-xs pb-3">
-            無交叉站點（沒有路線幾何交叉但無站點之處）。
-          </div>
-          <div
-            v-for="c in rma2CrossList"
-            :key="c.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ c.index + 1 }}.</span>
-            <span
-              class="d-inline-block rounded-circle me-2"
-              style="width: 8px; height: 8px; background-color: #ffd600"
-            ></span>
-            <span>cross（{{ c.latlng[0].toFixed(5) }}, {{ c.latlng[1].toFixed(5) }}）</span>
-          </div>
-          <div v-if="rma2CrossList.length" class="pb-2"></div>
+              <span>cross（{{ c.latlng[0].toFixed(5) }}, {{ c.latlng[1].toFixed(5) }}）</span>
+            </div>
+            <div v-if="rma2CrossList.length" class="pb-2"></div>
 
-          <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
-          <div class="my-title-xs-gray pb-2">
-            頭尾同點（環線）
-            <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #00c853"
-              ></span>
-              環線數
-            </span>
-            <span>{{ rma2LoopList.length }}</span>
-          </div>
-          <div v-if="rma2LoopList.length === 0" class="my-font-size-xs pb-3">
-            無環線（沒有頭尾為同一點的路線）。
-          </div>
-          <div
-            v-for="e in rma2LoopList"
-            :key="e.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
-            <span>{{ e.routeName }}</span>
-          </div>
-          <div v-if="rma2LoopList.length" class="pb-2"></div>
+            <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
+            <div class="my-title-xs-gray pb-2">
+              頭尾同點（環線）
+              <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block me-2"
+                  style="width: 14px; height: 8px; background-color: #00c853"
+                ></span>
+                環線數
+              </span>
+              <span>{{ rma2LoopList.length }}</span>
+            </div>
+            <div v-if="rma2LoopList.length === 0" class="my-font-size-xs pb-3">
+              無環線（沒有頭尾為同一點的路線）。
+            </div>
+            <div
+              v-for="e in rma2LoopList"
+              :key="e.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+              <span>{{ e.routeName }}</span>
+            </div>
+            <div v-if="rma2LoopList.length" class="pb-2"></div>
 
-          <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
-          <div class="my-title-xs-gray pb-2">
-            頭尾共點
-            <span class="text-muted">· 頭尾兩端皆為紅點（交點）之路線段，地圖以藍色線高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #1e88e5"
-              ></span>
-              線段數
-            </span>
-            <span>{{ rma2EndpointList.length }}</span>
-          </div>
-          <div v-if="rma2EndpointList.length === 0" class="my-font-size-xs pb-3">
-            無此類線段（沒有頭尾兩端皆為紅點之路線段）。
-          </div>
-          <div
-            v-for="e in rma2EndpointList"
-            :key="e.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
-            <span>{{ e.routeName }}（紅點×{{ e.aRouteCount }} → 紅點×{{ e.bRouteCount }}）</span>
-          </div>
-          <div v-if="rma2EndpointList.length" class="pb-2"></div>
-
+            <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
+            <div class="my-title-xs-gray pb-2">
+              頭尾共點
+              <span class="text-muted">· 頭尾兩端皆為紅點（交點）之路線段，地圖以藍色線高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block me-2"
+                  style="width: 14px; height: 8px; background-color: #1e88e5"
+                ></span>
+                線段數
+              </span>
+              <span>{{ rma2EndpointList.length }}</span>
+            </div>
+            <div v-if="rma2EndpointList.length === 0" class="my-font-size-xs pb-3">
+              無此類線段（沒有頭尾兩端皆為紅點之路線段）。
+            </div>
+            <div
+              v-for="e in rma2EndpointList"
+              :key="e.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+              <span>{{ e.routeName }}（紅點×{{ e.aRouteCount }} → 紅點×{{ e.bRouteCount }}）</span>
+            </div>
+            <div v-if="rma2EndpointList.length" class="pb-2"></div>
           </div>
 
           <!-- 目前路線／站點 + 明細：整塊限高 320pt，內容過長可捲動 -->
           <div style="max-height: 320pt; overflow-y: auto">
-          <!-- 目前路線／站點統計 -->
-          <div class="my-title-xs-gray pb-2">目前路線／站點</div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span>路線</span><span>{{ rma2Stats.routes }} 條</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #ff0000"
-              ></span>
-              connect（交點）
-            </span>
-            <span>{{ rma2Stats.connect }}</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #1565c0"
-              ></span>
-              terminal（端點）
-            </span>
-            <span>{{ rma2Stats.terminal }}</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-3">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #000000"
-              ></span>
-              一般（黑點）
-            </span>
-            <span>{{ rma2Stats.black }}</span>
-          </div>
-
-          <!-- 各路線站點（依序：起點 → 終點） -->
-          <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
-          <div v-if="rma2RouteList.length === 0" class="my-font-size-xs pb-3">尚未載入任何路線</div>
-          <div v-for="route in rma2RouteList" :key="route.routeIndex" class="pb-2">
-            <div class="d-flex align-items-center my-font-size-xs pb-1">
-              <span
-                class="d-inline-block rounded-pill me-2"
-                :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
-              ></span>
-              {{ rma2RouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
-                route.stations.length
-              }}
-              站）
+            <!-- 目前路線／站點統計 -->
+            <div class="my-title-xs-gray pb-2">目前路線／站點</div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span>路線</span><span>{{ rma2Stats.routes }} 條</span>
             </div>
-            <div class="ps-3">
-              <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
-                <div class="d-flex align-items-center">
-                  <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
-                  <span
-                    class="d-inline-block rounded-circle me-2"
-                    :style="{ width: '8px', height: '8px', backgroundColor: rma2StationColor(st.type) }"
-                  ></span>
-                  <span>{{ st.name || rma2StationLabel(st.type) }}</span>
-                </div>
-                <!-- 交會路線：第二行、縮排顯示 -->
-                <div
-                  v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
-                  class="d-flex align-items-center flex-wrap ps-4 pt-1"
-                >
-                  <span class="me-1">· 交會</span>
-                  <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #ff0000"
+                ></span>
+                connect（交點）
+              </span>
+              <span>{{ rma2Stats.connect }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #1565c0"
+                ></span>
+                terminal（端點）
+              </span>
+              <span>{{ rma2Stats.terminal }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-3">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #000000"
+                ></span>
+                一般（黑點）
+              </span>
+              <span>{{ rma2Stats.black }}</span>
+            </div>
+
+            <!-- 各路線站點（依序：起點 → 終點） -->
+            <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
+            <div v-if="rma2RouteList.length === 0" class="my-font-size-xs pb-3">
+              尚未載入任何路線
+            </div>
+            <div v-for="route in rma2RouteList" :key="route.routeIndex" class="pb-2">
+              <div class="d-flex align-items-center my-font-size-xs pb-1">
+                <span
+                  class="d-inline-block rounded-pill me-2"
+                  :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
+                ></span>
+                {{ rma2RouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
+                  route.stations.length
+                }}
+                站）
+              </div>
+              <div class="ps-3">
+                <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
+                  <div class="d-flex align-items-center">
+                    <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
                     <span
-                      class="d-inline-block rounded-pill me-1"
-                      :style="{ width: '16px', height: '5px', backgroundColor: rma2RouteColor(ri) }"
+                      class="d-inline-block rounded-circle me-2"
+                      :style="{
+                        width: '8px',
+                        height: '8px',
+                        backgroundColor: rma2StationColor(st.type),
+                      }"
                     ></span>
-                    {{ rma2RouteName(ri) }}
-                  </span>
+                    <span>{{ st.name || rma2StationLabel(st.type) }}</span>
+                  </div>
+                  <!-- 交會路線：第二行、縮排顯示 -->
+                  <div
+                    v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
+                    class="d-flex align-items-center flex-wrap ps-4 pt-1"
+                  >
+                    <span class="me-1">· 交會</span>
+                    <span
+                      v-for="ri in st.connectRoutes"
+                      :key="ri"
+                      class="d-flex align-items-center me-2"
+                    >
+                      <span
+                        class="d-inline-block rounded-pill me-1"
+                        :style="{
+                          width: '16px',
+                          height: '5px',
+                          backgroundColor: rma2RouteColor(ri),
+                        }"
+                      ></span>
+                      {{ rma2RouteName(ri) }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="pb-2"></div>
+            <div class="pb-2"></div>
           </div>
         </div>
 
@@ -11211,212 +11336,228 @@
           <div class="d-flex align-items-center justify-content-between mb-3">
             <div class="my-content-sm-black">顯示車站名</div>
             <div class="layer-toggle" @click.stop>
-              <input type="checkbox" id="switch-route-map-adjust-straight-names" v-model="rmasShowNames" />
+              <input
+                type="checkbox"
+                id="switch-route-map-adjust-straight-names"
+                v-model="rmasShowNames"
+              />
               <label for="switch-route-map-adjust-straight-names"></label>
             </div>
           </div>
 
           <!-- 紅/黃/綠/藍 highlight 清單：整塊限高 320pt，內容過長可捲動 -->
           <div style="max-height: 320pt; overflow-y: auto">
-          <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
-          <div class="my-title-xs-gray pb-2">
-            共線段（重疊）
-            <span class="text-muted">· 預設於地圖以紅色底色高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #ff1744"
-              ></span>
-              共線段數
-            </span>
-            <span>{{ rmasSharedList.length }}</span>
-          </div>
-          <div v-if="rmasSharedList.length === 0" class="my-font-size-xs pb-3">
-            無共線段（沒有多條路線共用同一段）。
-          </div>
-          <div
-            v-for="s in rmasSharedList"
-            :key="s.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ s.index + 1 }}.</span>
-            <span>{{ s.routeCount }} 路線：{{ s.routeNames.join('、') }}</span>
-          </div>
-          <div v-if="rmasSharedList.length" class="pb-2"></div>
+            <!-- 🔶 共線段（預設顯示）：被 ≥2 路線共用之重疊段 -->
+            <div class="my-title-xs-gray pb-2">
+              共線段（重疊）
+              <span class="text-muted">· 預設於地圖以紅色底色高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block me-2"
+                  style="width: 14px; height: 8px; background-color: #ff1744"
+                ></span>
+                共線段數
+              </span>
+              <span>{{ rmasSharedList.length }}</span>
+            </div>
+            <div v-if="rmasSharedList.length === 0" class="my-font-size-xs pb-3">
+              無共線段（沒有多條路線共用同一段）。
+            </div>
+            <div
+              v-for="s in rmasSharedList"
+              :key="s.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ s.index + 1 }}.</span>
+              <span>{{ s.routeCount }} 路線：{{ s.routeNames.join('、') }}</span>
+            </div>
+            <div v-if="rmasSharedList.length" class="pb-2"></div>
 
-          <!-- 🟡 交叉站點 cross（黃，預設顯示） -->
-          <div class="my-title-xs-gray pb-2">
-            交叉站點（cross）
-            <span class="text-muted">· 路線幾何交叉但無站點處，地圖以黃色 halo 高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
+            <!-- 🟡 交叉站點 cross（黃，預設顯示） -->
+            <div class="my-title-xs-gray pb-2">
+              交叉站點（cross）
+              <span class="text-muted">· 路線幾何交叉但無站點處，地圖以黃色 halo 高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #ffd600"
+                ></span>
+                cross 數
+              </span>
+              <span>{{ rmasCrossList.length }}</span>
+            </div>
+            <div v-if="rmasCrossList.length === 0" class="my-font-size-xs pb-3">
+              無交叉站點（沒有路線幾何交叉但無站點之處）。
+            </div>
+            <div
+              v-for="c in rmasCrossList"
+              :key="c.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ c.index + 1 }}.</span>
               <span
                 class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #ffd600"
+                style="width: 8px; height: 8px; background-color: #ffd600"
               ></span>
-              cross 數
-            </span>
-            <span>{{ rmasCrossList.length }}</span>
-          </div>
-          <div v-if="rmasCrossList.length === 0" class="my-font-size-xs pb-3">
-            無交叉站點（沒有路線幾何交叉但無站點之處）。
-          </div>
-          <div
-            v-for="c in rmasCrossList"
-            :key="c.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ c.index + 1 }}.</span>
-            <span
-              class="d-inline-block rounded-circle me-2"
-              style="width: 8px; height: 8px; background-color: #ffd600"
-            ></span>
-            <span>cross（{{ c.latlng[0].toFixed(5) }}, {{ c.latlng[1].toFixed(5) }}）</span>
-          </div>
-          <div v-if="rmasCrossList.length" class="pb-2"></div>
+              <span>cross（{{ c.latlng[0].toFixed(5) }}, {{ c.latlng[1].toFixed(5) }}）</span>
+            </div>
+            <div v-if="rmasCrossList.length" class="pb-2"></div>
 
-          <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
-          <div class="my-title-xs-gray pb-2">
-            頭尾同點（環線）
-            <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #00c853"
-              ></span>
-              環線數
-            </span>
-            <span>{{ rmasLoopList.length }}</span>
-          </div>
-          <div v-if="rmasLoopList.length === 0" class="my-font-size-xs pb-3">
-            無環線（沒有頭尾為同一點的路線）。
-          </div>
-          <div
-            v-for="e in rmasLoopList"
-            :key="e.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
-            <span>{{ e.routeName }}</span>
-          </div>
-          <div v-if="rmasLoopList.length" class="pb-2"></div>
+            <!-- 🟢 頭尾同點（環線，預設顯示）：單一路線頭尾為同一點 -->
+            <div class="my-title-xs-gray pb-2">
+              頭尾同點（環線）
+              <span class="text-muted">· 單一路線頭尾為同一點，地圖以綠色線高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block me-2"
+                  style="width: 14px; height: 8px; background-color: #00c853"
+                ></span>
+                環線數
+              </span>
+              <span>{{ rmasLoopList.length }}</span>
+            </div>
+            <div v-if="rmasLoopList.length === 0" class="my-font-size-xs pb-3">
+              無環線（沒有頭尾為同一點的路線）。
+            </div>
+            <div
+              v-for="e in rmasLoopList"
+              :key="e.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+              <span>{{ e.routeName }}</span>
+            </div>
+            <div v-if="rmasLoopList.length" class="pb-2"></div>
 
-          <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
-          <div class="my-title-xs-gray pb-2">
-            頭尾共點
-            <span class="text-muted">· 頭尾兩端皆為紅點（交點）之路線段，地圖以藍色線高亮</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block me-2"
-                style="width: 14px; height: 8px; background-color: #1e88e5"
-              ></span>
-              線段數
-            </span>
-            <span>{{ rmasEndpointList.length }}</span>
-          </div>
-          <div v-if="rmasEndpointList.length === 0" class="my-font-size-xs pb-3">
-            無此類線段（沒有頭尾兩端皆為紅點之路線段）。
-          </div>
-          <div
-            v-for="e in rmasEndpointList"
-            :key="e.index"
-            class="d-flex align-items-center my-font-size-xs pb-1"
-          >
-            <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
-            <span>{{ e.routeName }}（紅點×{{ e.aRouteCount }} → 紅點×{{ e.bRouteCount }}）</span>
-          </div>
-          <div v-if="rmasEndpointList.length" class="pb-2"></div>
-
+            <!-- 🔵 頭尾共點（預設顯示）：多條路線端點相接處 -->
+            <div class="my-title-xs-gray pb-2">
+              頭尾共點
+              <span class="text-muted">· 頭尾兩端皆為紅點（交點）之路線段，地圖以藍色線高亮</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block me-2"
+                  style="width: 14px; height: 8px; background-color: #1e88e5"
+                ></span>
+                線段數
+              </span>
+              <span>{{ rmasEndpointList.length }}</span>
+            </div>
+            <div v-if="rmasEndpointList.length === 0" class="my-font-size-xs pb-3">
+              無此類線段（沒有頭尾兩端皆為紅點之路線段）。
+            </div>
+            <div
+              v-for="e in rmasEndpointList"
+              :key="e.index"
+              class="d-flex align-items-center my-font-size-xs pb-1"
+            >
+              <span class="me-2" style="min-width: 18px">{{ e.index + 1 }}.</span>
+              <span>{{ e.routeName }}（紅點×{{ e.aRouteCount }} → 紅點×{{ e.bRouteCount }}）</span>
+            </div>
+            <div v-if="rmasEndpointList.length" class="pb-2"></div>
           </div>
 
           <!-- 目前路線／站點 + 明細：整塊限高 320pt，內容過長可捲動 -->
           <div style="max-height: 320pt; overflow-y: auto">
-          <!-- 目前路線／站點統計 -->
-          <div class="my-title-xs-gray pb-2">目前路線／站點</div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span>路線</span><span>{{ rmasStats.routes }} 條</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #ff0000"
-              ></span>
-              connect（交點）
-            </span>
-            <span>{{ rmasStats.connect }}</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-1">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #1565c0"
-              ></span>
-              terminal（端點）
-            </span>
-            <span>{{ rmasStats.terminal }}</span>
-          </div>
-          <div class="d-flex justify-content-between my-font-size-xs pb-3">
-            <span class="d-flex align-items-center">
-              <span
-                class="d-inline-block rounded-circle me-2"
-                style="width: 10px; height: 10px; background-color: #000000"
-              ></span>
-              一般（黑點）
-            </span>
-            <span>{{ rmasStats.black }}</span>
-          </div>
-
-
-          <!-- 各路線站點（依序：起點 → 終點） -->
-          <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
-          <div v-if="rmasRouteList.length === 0" class="my-font-size-xs pb-3">尚未載入任何路線</div>
-          <div v-for="route in rmasRouteList" :key="route.routeIndex" class="pb-2">
-            <div class="d-flex align-items-center my-font-size-xs pb-1">
-              <span
-                class="d-inline-block rounded-pill me-2"
-                :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
-              ></span>
-              {{ rmasRouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
-                route.stations.length
-              }}
-              站）
+            <!-- 目前路線／站點統計 -->
+            <div class="my-title-xs-gray pb-2">目前路線／站點</div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span>路線</span><span>{{ rmasStats.routes }} 條</span>
             </div>
-            <div class="ps-3">
-              <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
-                <div class="d-flex align-items-center">
-                  <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
-                  <span
-                    class="d-inline-block rounded-circle me-2"
-                    :style="{ width: '8px', height: '8px', backgroundColor: rmasStationColor(st.type) }"
-                  ></span>
-                  <span>{{ st.name || rmasStationLabel(st.type) }}</span>
-                </div>
-                <!-- 交會路線：第二行、縮排顯示 -->
-                <div
-                  v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
-                  class="d-flex align-items-center flex-wrap ps-4 pt-1"
-                >
-                  <span class="me-1">· 交會</span>
-                  <span v-for="ri in st.connectRoutes" :key="ri" class="d-flex align-items-center me-2">
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #ff0000"
+                ></span>
+                connect（交點）
+              </span>
+              <span>{{ rmasStats.connect }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-1">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #1565c0"
+                ></span>
+                terminal（端點）
+              </span>
+              <span>{{ rmasStats.terminal }}</span>
+            </div>
+            <div class="d-flex justify-content-between my-font-size-xs pb-3">
+              <span class="d-flex align-items-center">
+                <span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 10px; height: 10px; background-color: #000000"
+                ></span>
+                一般（黑點）
+              </span>
+              <span>{{ rmasStats.black }}</span>
+            </div>
+
+            <!-- 各路線站點（依序：起點 → 終點） -->
+            <div class="my-title-xs-gray pb-2">各路線站點（依序）</div>
+            <div v-if="rmasRouteList.length === 0" class="my-font-size-xs pb-3">
+              尚未載入任何路線
+            </div>
+            <div v-for="route in rmasRouteList" :key="route.routeIndex" class="pb-2">
+              <div class="d-flex align-items-center my-font-size-xs pb-1">
+                <span
+                  class="d-inline-block rounded-pill me-2"
+                  :style="{ width: '24px', height: '6px', backgroundColor: route.color }"
+                ></span>
+                {{ rmasRouteName(route.routeIndex) }}{{ route.closed ? '（封閉）' : '' }}（{{
+                  route.stations.length
+                }}
+                站）
+              </div>
+              <div class="ps-3">
+                <div v-for="(st, si) in route.stations" :key="si" class="my-font-size-xs pb-1">
+                  <div class="d-flex align-items-center">
+                    <span class="me-2" style="min-width: 18px">{{ si + 1 }}.</span>
                     <span
-                      class="d-inline-block rounded-pill me-1"
-                      :style="{ width: '16px', height: '5px', backgroundColor: rmasRouteColor(ri) }"
+                      class="d-inline-block rounded-circle me-2"
+                      :style="{
+                        width: '8px',
+                        height: '8px',
+                        backgroundColor: rmasStationColor(st.type),
+                      }"
                     ></span>
-                    {{ rmasRouteName(ri) }}
-                  </span>
+                    <span>{{ st.name || rmasStationLabel(st.type) }}</span>
+                  </div>
+                  <!-- 交會路線：第二行、縮排顯示 -->
+                  <div
+                    v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
+                    class="d-flex align-items-center flex-wrap ps-4 pt-1"
+                  >
+                    <span class="me-1">· 交會</span>
+                    <span
+                      v-for="ri in st.connectRoutes"
+                      :key="ri"
+                      class="d-flex align-items-center me-2"
+                    >
+                      <span
+                        class="d-inline-block rounded-pill me-1"
+                        :style="{
+                          width: '16px',
+                          height: '5px',
+                          backgroundColor: rmasRouteColor(ri),
+                        }"
+                      ></span>
+                      {{ rmasRouteName(ri) }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="pb-2"></div>
+            <div class="pb-2"></div>
           </div>
         </div>
 
@@ -11477,7 +11618,9 @@
             class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
           >
             <option value="">選擇國家…</option>
-            <option v-for="c in drawCountries" :key="c.country" :value="c.country">{{ c.label }}</option>
+            <option v-for="c in drawCountries" :key="c.country" :value="c.country">
+              {{ c.label }}
+            </option>
           </select>
           <select
             v-model="selCity"
@@ -11499,7 +11642,11 @@
             {{ isTracingRefMap ? '讀取中…' : '讀取並畫出' }}
           </button>
           <ControlLoadFeedback layer-id="leaflet_josm_draw" />
-          <div v-if="leafletDrawSource" class="text-muted my-font-size-xs pb-3" style="line-height: 1.45">
+          <div
+            v-if="leafletDrawSource"
+            class="text-muted my-font-size-xs pb-3"
+            style="line-height: 1.45"
+          >
             資料來源：{{ leafletDrawSource }}
           </div>
 
@@ -11572,7 +11719,9 @@
                 ></span>
                 <span class="d-flex align-items-center">
                   {{ leafletStationLabel(st.type) }}
-                  <template v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length">
+                  <template
+                    v-if="st.type === 'connect' && st.connectRoutes && st.connectRoutes.length"
+                  >
                     <span class="ms-1 me-1">· 交會</span>
                     <span
                       v-for="ri in st.connectRoutes"
@@ -11581,7 +11730,11 @@
                     >
                       <span
                         class="d-inline-block rounded-pill me-1"
-                        :style="{ width: '16px', height: '5px', backgroundColor: leafletRouteColor(ri) }"
+                        :style="{
+                          width: '16px',
+                          height: '5px',
+                          backgroundColor: leafletRouteColor(ri),
+                        }"
                       ></span>
                       {{ leafletRouteName(ri) }}
                     </span>
@@ -11607,7 +11760,6 @@
             <div class="my-font-size-xs pb-1">目前為瀏覽模式（不編輯），可自由拖曳地圖。</div>
             <div class="my-font-size-xs pb-3">按「畫線」開始繪製路線，或「畫黑點」新增站點。</div>
           </template>
-
         </div>
 
         <!-- 示意圖佈局 ①②③：輸入來源匯入 -->
@@ -11706,10 +11858,7 @@
         </div>
 
         <!-- JSON·網格·座標正規化 — 空間網絡網格 -->
-        <div
-          v-if="layer.layerId === 'json_grid_coord_normalized'"
-          class="pb-3 mb-3 border-bottom"
-        >
+        <div v-if="layer.layerId === 'json_grid_coord_normalized'" class="pb-3 mb-3 border-bottom">
           <div class="my-title-xs-gray pb-2">座標正規化</div>
           <button
             type="button"
@@ -11876,10 +12025,7 @@
         </div>
 
         <!-- point_orthogonal：所有頂點列表 -->
-        <div
-          v-if="layer.layerId === POINT_ORTHOGONAL_LAYER_ID"
-          class="pb-3 mb-3 border-bottom"
-        >
+        <div v-if="layer.layerId === POINT_ORTHOGONAL_LAYER_ID" class="pb-3 mb-3 border-bottom">
           <div class="my-title-xs-gray pb-2">所有頂點列表</div>
           <div class="d-flex flex-wrap gap-2 mb-2">
             <button
@@ -12113,7 +12259,6 @@
           :api="orthogonalVhDrawControlTabApi"
         />
 
-
         <!-- 站點與路線細部調整：自站點與路線調整①～⑧匯入 -->
         <div
           v-if="layer.layerId === SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID"
@@ -12122,7 +12267,8 @@
           <div class="my-title-xs-gray pb-2">從站點與路線調整（①～⑧）匯入排版結果</div>
           <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
             自上方八種「站點與路線調整」任一有結果之圖層匯入本層（<strong>保留完整路網含黑點</strong>，供檢視／細部編修）。
-            下游「往中心聚集」會自本層自動鏡像。跨工作階段存檔請用頂部「匯出／匯入 JSON（斷點存檔）」。
+            下游「往中心聚集」會自本層自動鏡像。跨工作階段存檔請用頂部「匯出／匯入
+            JSON（斷點存檔）」。
           </div>
           <button
             v-for="src in ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES"
@@ -12202,12 +12348,18 @@
               </div>
               <template
                 v-for="loSummary in [lineOrthoTowardCrossReasonSummary(layer)]"
-                :key="'lo-summary-' + (loSummary ? loSummary.total + '-' + loSummary.movable : 'none')"
+                :key="
+                  'lo-summary-' + (loSummary ? loSummary.total + '-' + loSummary.movable : 'none')
+                "
               >
                 <div
                   v-if="loSummary"
                   class="border rounded px-2 py-1 mb-2"
-                  :class="loSummary.movable > 0 ? 'border-success bg-success bg-opacity-10' : 'border-danger bg-danger bg-opacity-10'"
+                  :class="
+                    loSummary.movable > 0
+                      ? 'border-success bg-success bg-opacity-10'
+                      : 'border-danger bg-danger bg-opacity-10'
+                  "
                   style="font-size: 10px; line-height: 1.5; white-space: pre-wrap"
                 >
                   <div
@@ -12224,9 +12376,7 @@
                   </div>
                   <div class="fw-semibold mb-1">
                     可移動 {{ loSummary.movable }} 筆 / 共 {{ loSummary.total }} 筆（被擋
-                    {{ loSummary.blocked }} 筆）{{
-                      loSummary.movable === 0 ? '— 全被擋' : ''
-                    }}
+                    {{ loSummary.blocked }} 筆）{{ loSummary.movable === 0 ? '— 全被擋' : '' }}
                   </div>
                   <div v-for="(ln, li) in loSummary.lines" :key="'lo-sum-ln-' + li">{{ ln }}</div>
                 </div>
@@ -12305,7 +12455,9 @@
                 :key="'lo-reasons-' + loReasons.row.length + '-' + loReasons.col.length"
               >
                 <div class="small text-secondary mb-1">
-                  列（row／離紅線 y）<span class="text-muted">— 「原因」欄為試算結果，不會更動圖層</span>
+                  列（row／離紅線 y）<span class="text-muted"
+                    >— 「原因」欄為試算結果，不會更動圖層</span
+                  >
                 </div>
                 <div
                   class="border rounded overflow-auto bg-body mb-3"
@@ -12447,11 +12599,7 @@
                 : startConnectStraightenAuto()
             "
           >
-            {{
-              connectStraightenAutoActive
-                ? '停止自動'
-                : '自動（每秒一次；整輪無移動則停）'
-            }}
+            {{ connectStraightenAutoActive ? '停止自動' : '自動（每秒一次；整輪無移動則停）' }}
           </button>
           <button
             type="button"
@@ -12486,7 +12634,10 @@
             class="d-none"
             @change="onConnectStraightenLocalJsonInputChange"
           />
-          <div v-if="resolveConnectStraightenLayer()?.jsonFileName" class="text-muted my-font-size-xs">
+          <div
+            v-if="resolveConnectStraightenLayer()?.jsonFileName"
+            class="text-muted my-font-size-xs"
+          >
             目前來源檔：{{ resolveConnectStraightenLayer()?.jsonFileName }}
           </div>
           <ControlLoadFeedback :layer-id="CONNECT_STRAIGHTEN_HV_LAYER_ID" />
@@ -12607,15 +12758,16 @@
             @click="onControlExecuteNextClick"
             :disabled="controlExecuteNextDisabled"
           >
-            {{ currentLayer && currentLayer.layerId === 'schematic_milp_read' ? '座標正規化' : '執行下一步' }}
+            {{
+              currentLayer && currentLayer.layerId === 'schematic_milp_read'
+                ? '座標正規化'
+                : '執行下一步'
+            }}
           </button>
         </div>
 
         <!-- MILP結果正規化：匯入下載的 MILP 結果 JSON 檔並做座標正規化 -->
-        <div
-          v-if="layer.layerId === 'schematic_milp_read'"
-          class="pb-3 mb-3 border-bottom"
-        >
+        <div v-if="layer.layerId === 'schematic_milp_read'" class="pb-3 mb-3 border-bottom">
           <div class="my-title-xs-gray pb-2">匯入 JSON（下載的 MILP 結果）並正規化</div>
           <label
             class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-0"
@@ -12652,15 +12804,13 @@
           </button>
           <ControlLoadFeedback layer-id="schematic_milp_read" />
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
-            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP 結果。後續步驟（往中心聚集 先橫後直／先直後橫、connect 拉直）在下方各圖層。
+            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③
+            MILP 結果。後續步驟（往中心聚集 先橫後直／先直後橫、connect 拉直）在下方各圖層。
           </div>
         </div>
 
         <!-- 路線正規化（RMA）：座標正規化 + 匯入下載的 MILP 結果 JSON / 從①②③（RMA）匯入 -->
-        <div
-          v-if="layer.layerId === 'schematic_rma_milp_read'"
-          class="pb-3 mb-3 border-bottom"
-        >
+        <div v-if="layer.layerId === 'schematic_rma_milp_read'" class="pb-3 mb-3 border-bottom">
           <!-- 座標正規化前：以紅/黃/藍邊界重算粉紅點，不需者→棕色（獨立按鈕） -->
           <button
             type="button"
@@ -12753,18 +12903,17 @@
           </button>
           <ControlLoadFeedback layer-id="schematic_rma_milp_read" />
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
-            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP（RMA）結果。跨工作階段存檔請用上方「匯出／匯入 JSON（斷點存檔）」。
+            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③
+            MILP（RMA）結果。跨工作階段存檔請用上方「匯出／匯入 JSON（斷點存檔）」。
           </div>
         </div>
 
         <!-- 站點與路線調整（RMA）#1–#8：讀「路線正規化」→ 八演算法重佈局（同示意圖佈局，獨立管線） -->
-        <div
-          v-if="layer.isRouteAdjustLayoutLayer"
-          class="pb-3 mb-3 border-bottom"
-        >
+        <div v-if="layer.isRouteAdjustLayoutLayer" class="pb-3 mb-3 border-bottom">
           <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
           <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
-            輸入固定為上游「路線正規化」（{{ ROUTE_ADJUST_UPSTREAM_LAYER_ID }}）：讀取已正規化之路網 connect
+            輸入固定為上游「路線正規化」（{{ ROUTE_ADJUST_UPSTREAM_LAYER_ID }}）：讀取已正規化之路網
+            connect
             骨架，以與「示意圖佈局」相同的八演算法重新佈局，黑點沿新邊均分插回。不含⑨正規化。
           </div>
           <div
@@ -12783,7 +12932,10 @@
             {{ isExecuting ? '計算中…' : '開始執行' }}
           </button>
           <div
-            v-if="layer.layerId === 'schematic_rma_route_adjust_milp' && layer.dashboardData?.rotationStructureCheck?.layoutDone"
+            v-if="
+              layer.layerId === 'schematic_rma_route_adjust_milp' &&
+              layer.dashboardData?.rotationStructureCheck?.layoutDone
+            "
             class="text-muted mt-2"
             style="font-size: 10px; line-height: 1.45"
           >
@@ -12797,12 +12949,10 @@
         </div>
 
         <!-- connect 拉直：自「MILP結果正規化」移入結果，於此做紅/藍 connect 拉直（一鍵＋逐點除錯） -->
-        <div
-          v-if="layer.layerId === 'schematic_milp_straighten'"
-          class="pb-3 mb-3 border-bottom"
-        >
+        <div v-if="layer.layerId === 'schematic_milp_straighten'" class="pb-3 mb-3 border-bottom">
           <div class="my-title-xs-gray pb-2" style="line-height: 1.3">
-            本層會自動抓上游「往中心聚集（先直後橫）」目前結果顯示；直接做 connect 拉直即可（「執行下一步」可重新抓取上游）。
+            本層會自動抓上游「往中心聚集（先直後橫）」目前結果顯示；直接做 connect
+            拉直即可（「執行下一步」可重新抓取上游）。
           </div>
           <button
             type="button"
@@ -12813,7 +12963,8 @@
             紅／藍 connect 拉直（一鍵完成）
           </button>
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
-            一鍵把所有 connect 拉直到不動點（最多移 1 格；水平／垂直線變多、或總長縮短且 H/V 不變少）。
+            一鍵把所有 connect 拉直到不動點（最多移 1 格；水平／垂直線變多、或總長縮短且 H/V
+            不變少）。
           </div>
 
           <!-- 逐點除錯：每按一次 highlight 一個紅/藍點，並移動或顯示不移動的原因 -->
@@ -14759,16 +14910,13 @@
             </div>
           </div>
           <!-- taipei_b4：僅 a 產出與 b→c 複製；snap／近距／重疊診斷／手動合併等請在 taipei_c4 -->
-          <template
-            v-if="currentLayer?.layerId !== 'taipei_b4'"
-          >
+          <template v-if="currentLayer?.layerId !== 'taipei_b4'">
             <div class="text-muted" style="font-size: 11px; line-height: 1.4">
               權重數字同步 <code class="small">space-network-grid</code> 與
               <code class="small">space-network-grid-k3</code>／
               <code class="small">space-network-grid-k4</code> 折線上
-              <code class="small">station_weights</code>。
-              紅／藍站名開關為 <code class="small">connect</code>（交叉紅／末端藍）上之文字標籤；與
-              taipei_f
+              <code class="small">station_weights</code>。 紅／藍站名開關為
+              <code class="small">connect</code>（交叉紅／末端藍）上之文字標籤；與 taipei_f
               專區「顯示站名」同一全域設定。黑點（沿線站）站名為下一項獨立開關。預設皆關閉。
             </div>
             <div class="d-flex align-items-center justify-content-between mt-2 mb-1">
@@ -15115,7 +15263,12 @@
 
         <!-- 沒有可執行操作的提示（taipei_g／taipei_h 另有底部專區，不顯示此列） -->
         <div
-          v-if="currentLayer && !isTaipeiF && !hasSpaceNetworkStandaloneRouteWeightToggle && !isCurrentLayerPipelineGroup"
+          v-if="
+            currentLayer &&
+            !isTaipeiF &&
+            !hasSpaceNetworkStandaloneRouteWeightToggle &&
+            !isCurrentLayerPipelineGroup
+          "
           class="pb-3 mb-3"
         >
           <div class="my-title-xs-gray text-center">此圖層沒有可執行的操作</div>

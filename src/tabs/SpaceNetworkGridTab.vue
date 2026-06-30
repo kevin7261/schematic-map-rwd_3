@@ -2734,6 +2734,17 @@
         valueToNearestIndex(Number(lat), ys),
       ];
     })();
+    /** 路段 hover「轉折點」：僅幾何 bend／非黑點頂點；黑點為事後均分插回，不算轉折。 */
+    const isLayoutPolylineTurnVertex = (nodeProps) => {
+      if (!nodeProps || typeof nodeProps !== 'object') return false;
+      if (nodeProps.node_type === 'bend') return true;
+      if (nodeProps.node_type === 'connect') return false;
+      if (nodeProps.tags?._forceDrawBlackDot) return false;
+      if (nodeProps.station_name || nodeProps.station_id) return false;
+      if (nodeProps.tags?.station_name || nodeProps.tags?.station_id) return false;
+      if (nodeProps.node_type === 'line') return false;
+      return false;
+    };
     /** 示意圖佈局：中段黑點 node_type=line 須繪製（非 bend 幾何轉折）。 */
     const isDrawableMidStation = (nodeProps) => {
       if (!nodeProps || typeof nodeProps !== 'object') return false;
@@ -3088,6 +3099,7 @@
                   : 1,
               original_points: seg.original_points || seg.points, // 傳遞原始點用於計算距離
               points: seg.points, // 傳遞 points 用於計算距離
+              nodes: seg.nodes,
               l3_black_dot_reduced_weight_green: Boolean(seg.l3_black_dot_reduced_weight_green),
               _flatSegmentIndex: flatSegmentIndex,
               map_draw_row_index: resolveMapStyleExportRowIndexForSegment(seg, flatSegmentIndex),
@@ -3116,6 +3128,7 @@
                   : 1,
               original_points: seg.original_points || seg.points, // 傳遞原始點用於計算距離
               points: seg.points, // 傳遞 points 用於計算距離
+              nodes: seg.nodes,
               l3_black_dot_reduced_weight_green: Boolean(seg.l3_black_dot_reduced_weight_green),
               _flatSegmentIndex: flatSegmentIndex,
               map_draw_row_index: resolveMapStyleExportRowIndexForSegment(seg, flatSegmentIndex),
@@ -5547,7 +5560,8 @@
       /** 加權模式專用：已在加權 SVG 空間計算完成的 H/V/45° 座標，直接畫線不再套 remap。 */
       svgCoordsOverride = null,
       /** 路網網格_2 最短路徑：此段在路徑上 → 加粗顯示。 */
-      pathHighlightThicken = false
+      pathHighlightThicken = false,
+      segmentNodes = null
     ) => {
       if (tags?._schematicCorridorSkipDraw) return;
       // 參數保留以維持位置呼叫相容；對應的縮減綠標邏輯已隨測試圖層移除
@@ -5700,7 +5714,18 @@
             if (name) {
               tooltipContent += `<strong>路線名稱:</strong> ${name}<br>`;
             }
-            const interiorCoords = coords.length > 2 ? coords.slice(1, -1) : [];
+            const nodeList = Array.isArray(segmentNodes) ? segmentNodes : null;
+            const interiorCoords = (() => {
+              if (coords.length <= 2) return [];
+              if (!nodeList || nodeList.length !== coords.length) {
+                return useSchematicVisualStyle ? [] : coords.slice(1, -1);
+              }
+              const out = [];
+              for (let i = 1; i < coords.length - 1; i++) {
+                if (isLayoutPolylineTurnVertex(nodeList[i])) out.push(coords[i]);
+              }
+              return out;
+            })();
             const fmt = (p) => {
               if (!p) return '';
               const gx = Number(p[0]);
@@ -5710,15 +5735,16 @@
             };
             tooltipContent += `<strong>這一個路段的轉折點數:</strong> ${interiorCoords.length}`;
             if (coords.length >= 2) {
-              tooltipContent += `<br><strong>起點座標:</strong> ${fmt(coords[0])}<br><strong>終點座標:</strong> ${fmt(coords[coords.length - 1])}`;
-            }
-            // ⑨ 預覽階段：附上兩端點 snap 後的秩正規化網格座標，供與「開始執行」後比對。
-            if (normalizePreviewGridSnap && coords.length >= 2) {
-              const s = coords[0];
-              const e = coords[coords.length - 1];
-              const [sgx, sgy] = normalizePreviewGridSnap(Number(s[0]), Number(s[1]));
-              const [egx, egy] = normalizePreviewGridSnap(Number(e[0]), Number(e[1]));
-              tooltipContent += `<br><strong>起點網格座標 (gx, gy):</strong> (${sgx}, ${sgy})<br><strong>終點網格座標 (gx, gy):</strong> (${egx}, ${egy})`;
+              // ⑨ 預覽：經緯度空間下以 snap 後格座標作為起／終點（與執行後一致）；執行後 coords 已是格座標。
+              if (normalizePreviewGridSnap) {
+                const s = coords[0];
+                const e = coords[coords.length - 1];
+                const [sgx, sgy] = normalizePreviewGridSnap(Number(s[0]), Number(s[1]));
+                const [egx, egy] = normalizePreviewGridSnap(Number(e[0]), Number(e[1]));
+                tooltipContent += `<br><strong>起點座標:</strong> (${sgx}, ${sgy})<br><strong>終點座標:</strong> (${egx}, ${egy})`;
+              } else {
+                tooltipContent += `<br><strong>起點座標:</strong> ${fmt(coords[0])}<br><strong>終點座標:</strong> ${fmt(coords[coords.length - 1])}`;
+              }
             }
             if (interiorCoords.length > 0) {
               tooltipContent += `<br><strong>轉折點座標（依序）:</strong> ${interiorCoords.map((p) => fmt(p)).join('；')}`;
@@ -6703,7 +6729,8 @@
             routeFeatId,
             exportRowIdx,
             svgOvr,
-            layoutPathEdgeKeySet?.has(key0) === true
+            layoutPathEdgeKeySet?.has(key0) === true,
+            props.nodes
           );
         } else if (geom.type === 'MultiLineString') {
           geom.coordinates.forEach((coords, pi) => {
@@ -6725,7 +6752,8 @@
               routeFeatId,
               exportRowIdx,
               svgOvr,
-              layoutPathEdgeKeySet?.has(keyPi) === true
+              layoutPathEdgeKeySet?.has(keyPi) === true,
+              props.nodes
             );
           });
         }
