@@ -453,6 +453,23 @@
     return { fill: '#555555', stroke: '#000000', r: 6, strokeW: 2 };
   }
 
+  /** 示意圖佈局：讀取目前 d3 zoom 倍率（點半徑須 ÷ k 以保持螢幕大小）。 */
+  function currentSvgZoomK(svgNode) {
+    try {
+      return d3.zoomTransform(svgNode).k || 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  /** 示意圖佈局：依 data-r0 與 zoom 計算 SVG 半徑；hover 時略放大。 */
+  function schematicDotSvgRadius(r0, k, hover = false) {
+    const base = Number(r0);
+    if (!Number.isFinite(base) || base <= 0) return null;
+    const kk = Number(k) || 1;
+    return (base + (hover ? 2 : 0)) / kk;
+  }
+
   const emit = defineEmits(['active-layer-change']);
 
   /** taipei_f／taipei_g：與邊緣欄／列最大權重標籤同源，供權重比例格寬／列高用 */
@@ -9001,12 +9018,18 @@
         strokeWidth = 1;
       }
 
+      const schematicR0 = useSchematicVisualStyle ? radius : null;
+      const drawRadius =
+        useSchematicVisualStyle && schematicR0 != null
+          ? (schematicDotSvgRadius(schematicR0, currentSvgZoomK(svg.node()), false) ?? radius)
+          : radius;
+
       const circleElement = zoomGroup
         .append('circle')
         .attr('cx', plotRemapSvgX(xScale(drawX)))
         .attr('cy', plotRemapSvgY(yScale(drawY)))
-        .attr('r', radius)
-        .attr('data-r0', useSchematicVisualStyle ? radius : null)
+        .attr('r', drawRadius)
+        .attr('data-r0', useSchematicVisualStyle ? schematicR0 : null)
         .attr('fill', fillColor)
         .attr('stroke', strokeColor)
         .attr('stroke-width', strokeWidth)
@@ -9127,16 +9150,21 @@
       // 添加 hover 效果
       circleElement
         .on('mouseover', function (event) {
-          if (mapLonLatEndpoints) {
+          const sel = d3.select(this);
+          if (useSchematicVisualStyle) {
+            const r0 = +sel.attr('data-r0');
+            const hr = schematicDotSvgRadius(r0, currentSvgZoomK(svg.node()), true);
+            if (hr != null) sel.attr('r', hr).attr('stroke-width', 2);
+          } else if (mapLonLatEndpoints) {
             const hov = mapTabApproxHoverSvgForEndpoint(endpointNormForHover);
-            d3.select(this)
+            sel
               .attr('r', hov.r)
               .attr('stroke-width', hov.strokeW)
               .attr('fill', hov.fill)
               .attr('stroke', hov.stroke);
           } else {
             const highlightRadius = isConnect ? 4 : 3;
-            d3.select(this).attr('r', highlightRadius).attr('stroke-width', 2);
+            sel.attr('r', highlightRadius).attr('stroke-width', 2);
           }
 
           // 顯示 tooltip（包含座標和標籤）
@@ -9328,14 +9356,19 @@
           mapHover.move(event);
         })
         .on('mouseout', function () {
-          if (mapLonLatEndpoints) {
-            d3.select(this)
+          const sel = d3.select(this);
+          if (useSchematicVisualStyle) {
+            const r0 = +sel.attr('data-r0');
+            const rr = schematicDotSvgRadius(r0, currentSvgZoomK(svg.node()), false);
+            if (rr != null) sel.attr('r', rr).attr('stroke-width', strokeWidth);
+          } else if (mapLonLatEndpoints) {
+            sel
               .attr('r', radius)
               .attr('stroke-width', strokeWidth)
               .attr('fill', fillColor)
               .attr('stroke', strokeColor);
           } else {
-            d3.select(this).attr('r', radius).attr('stroke-width', 1);
+            sel.attr('r', radius).attr('stroke-width', 1);
           }
 
           mapHover.hide();
