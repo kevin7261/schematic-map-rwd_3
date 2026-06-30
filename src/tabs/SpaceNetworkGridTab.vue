@@ -708,6 +708,17 @@
     return `schematic-container-space-network-grid-${layerId}${suf}`;
   };
 
+  /** 各 Upper 檢視（space-network-grid／space-layout-grid-viewer 等）各自 tooltip，避免互相 remove 導致 hover 失效 */
+  const getMapTooltipCssClass = () => {
+    const raw = typeof props.containerIdSuffix === 'string' ? props.containerIdSuffix.trim() : '';
+    const safe = /^[a-zA-Z0-9_-]+$/.test(raw) ? raw : 'main';
+    return `d3js-map-tooltip-instance-${safe}`;
+  };
+
+  const removeMapTooltipForThisViewer = () => {
+    d3.select('body').selectAll(`.${getMapTooltipCssClass()}`).remove();
+  };
+
   // ==================== 📊 示意圖繪製相關狀態 (Schematic Drawing State) ====================
 
   /** 📊 網格數據狀態 (Grid Data State) */
@@ -784,7 +795,7 @@
     // 立即清除 SVG 內容和 tooltip，避免重疊
     const oldContainerId = getContainerId();
     d3.select(`#${oldContainerId}`).selectAll('svg').remove();
-    d3.select('body').selectAll('.d3js-map-tooltip').remove();
+    removeMapTooltipForThisViewer();
     // 若離開 Leaflet 畫線圖層，銷毀地圖實例避免殘留 DOM
     destroyLeafletDrawMap();
 
@@ -2729,7 +2740,7 @@
 
     // 清除之前的圖表和 tooltip
     d3.select(`#${containerId}`).selectAll('svg').remove();
-    d3.select('body').selectAll('.d3js-map-tooltip').remove();
+    removeMapTooltipForThisViewer();
 
     // 🎯 強制設置容器背景為白色（清除任何可能的殘留樣式）
     const container = document.getElementById(containerId);
@@ -2782,10 +2793,11 @@
     const zoomGroup = svg.append('g').attr('class', 'zoom-group');
 
     // 創建 tooltip 元素（用於顯示 hover 信息）
+    const mapTooltipCssClass = getMapTooltipCssClass();
     const tooltip = d3
       .select('body')
       .append('div')
-      .attr('class', 'd3js-map-tooltip')
+      .attr('class', `d3js-map-tooltip ${mapTooltipCssClass}`)
       .style('position', 'absolute')
       .style('padding', '8px 12px')
       .style('background-color', uniformGridRouteFamilyTab ? '#ffffff' : 'rgba(0, 0, 0, 0.8)')

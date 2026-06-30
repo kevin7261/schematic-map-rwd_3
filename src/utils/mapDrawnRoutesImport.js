@@ -684,10 +684,16 @@ export function enrichExportRowStationsFromPool(row, pool) {
       best = r;
     }
   }
-  if (!best || bestN <= curLen) return row;
+  if (!best || bestN < curLen) return row;
   const out = JSON.parse(JSON.stringify(row));
   if (!out.segment || typeof out.segment !== 'object') out.segment = {};
-  out.segment.stations = JSON.parse(JSON.stringify(best.segment.stations));
+  if (bestN > curLen) {
+    out.segment.stations = JSON.parse(JSON.stringify(best.segment.stations));
+    return out;
+  }
+  mergeMidStationsHoverFields(out.segment.stations, best.segment.stations);
+  mergeEndpointHoverFields(out.segment.start, best.segment.start);
+  mergeEndpointHoverFields(out.segment.end, best.segment.end);
   return out;
 }
 
@@ -738,6 +744,67 @@ export function mergeSegmentStationsFromPriorExportRows(newRows, priorRows) {
   return newRows;
 }
 
+function mergeEndpointHoverFields(cur, old) {
+  if (!cur || !old) return;
+  for (const key of ['station_name', 'type', 'connect_number']) {
+    const curVal = cur[key];
+    if (
+      (curVal == null || String(curVal).trim() === '') &&
+      old[key] != null &&
+      String(old[key]).trim() !== ''
+    ) {
+      cur[key] = old[key];
+    }
+  }
+  const curRnl = cur.route_name_list;
+  const oldRnl = old.route_name_list;
+  if ((!Array.isArray(curRnl) || curRnl.length === 0) && Array.isArray(oldRnl) && oldRnl.length > 0) {
+    cur.route_name_list = [...oldRnl];
+  }
+  if (old.tags && typeof old.tags === 'object') {
+    const keepX = cur.x_grid;
+    const keepY = cur.y_grid;
+    cur.tags = { ...old.tags, ...(cur.tags || {}) };
+    if (keepX != null) {
+      cur.tags.x_grid = keepX;
+      cur.x_grid = keepX;
+    }
+    if (keepY != null) {
+      cur.tags.y_grid = keepY;
+      cur.y_grid = keepY;
+    }
+  }
+}
+
+function mergeMidStationsHoverFields(curSt, oldSt) {
+  if (!Array.isArray(curSt) || !Array.isArray(oldSt)) return;
+  const oldById = new Map();
+  for (const s of oldSt) {
+    const id = String(s?.station_id ?? s?.tags?.station_id ?? '').trim();
+    if (id) oldById.set(id, s);
+  }
+  for (let i = 0; i < curSt.length; i++) {
+    const cur = curSt[i];
+    if (!cur || typeof cur !== 'object') continue;
+    const id = String(cur.station_id ?? cur.tags?.station_id ?? '').trim();
+    const old = (id && oldById.get(id)) || oldSt[i] || null;
+    if (!old) continue;
+    mergeEndpointHoverFields(cur, old);
+    if (cur.node_type == null && old.node_type != null) cur.node_type = old.node_type;
+  }
+}
+
+function findPriorExportRowForHoverMerge(row, mapByFull, mapByEp) {
+  const oldFromFull = mapByFull.get(exportRowStationEndpointsKey(row));
+  if (oldFromFull) return oldFromFull;
+  const ep = exportRowEndpointsKeyWithoutRoute(row);
+  const rev = exportRowEndpointsKeyReversed(ep);
+  return pickRicherExportRowForStationMerge(
+    ep ? mapByEp.get(ep) : null,
+    rev ? mapByEp.get(rev) : null,
+  );
+}
+
 /**
  * 僅從舊匯出列補齊站名，不覆蓋座標或替換整個 segment.stations。
  * 用於避免將已過期的舊格座標（如向中心聚集前的位置）注入新匯出列。
@@ -754,31 +821,20 @@ export function mergeStationNamesOnlyFromPriorExportRows(newRows, priorRows) {
   }
   for (const row of newRows) {
     if (!row?.segment) continue;
-    const old =
-      mapByFull.get(exportRowStationEndpointsKey(row)) ||
-      mapByEp.get(exportRowEndpointsKeyWithoutRoute(row));
+    const old = findPriorExportRowForHoverMerge(row, mapByFull, mapByEp);
     if (!old?.segment) continue;
-    const curSt = row.segment.stations;
-    const oldSt = old.segment.stations;
-    if (Array.isArray(curSt) && Array.isArray(oldSt)) {
-      const nameById = new Map();
-      for (const s of oldSt) {
-        if (s?.station_id && s.station_name) nameById.set(s.station_id, s.station_name);
-      }
-      for (const s of curSt) {
-        if (s && s.station_id && !s.station_name && nameById.has(s.station_id)) {
-          s.station_name = nameById.get(s.station_id);
-        }
-      }
-    }
-    if (!row.segment.start?.station_name && old.segment.start?.station_name) {
-      row.segment.start.station_name = old.segment.start.station_name;
-    }
-    if (!row.segment.end?.station_name && old.segment.end?.station_name) {
-      row.segment.end.station_name = old.segment.end.station_name;
-    }
+    mergeMidStationsHoverFields(row.segment.stations, old.segment.stations);
+    mergeEndpointHoverFields(row.segment.start, old.segment.start);
+    mergeEndpointHoverFields(row.segment.end, old.segment.end);
   }
   return newRows;
+}
+
+/**
+ * 自舊匯出列補齊 hover 用欄位（站名、route_name_list、tags 等），不覆蓋 x_grid／y_grid、不增刪中段站。
+ */
+export function mergeStationHoverMetadataFromPriorExportRows(newRows, priorRows) {
+  return mergeStationNamesOnlyFromPriorExportRows(newRows, priorRows);
 }
 
 /**
