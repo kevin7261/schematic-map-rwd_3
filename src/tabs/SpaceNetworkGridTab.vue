@@ -163,6 +163,8 @@
     layoutVhDrawRouteAnimSnapshotHasMotion,
     buildPlotRemapFnsFromAnimRemap,
   } from '@/utils/layers/layout_network_grid_from_vh_draw/layoutVhDrawRouteWeightAnim.js';
+  import { computeQuadtreePartitionFromGeojson } from '@/utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
+  import { valueToNearestIndex } from '@/utils/taipeiTest4/c3ToD3CoordNormalize.js';
 
   /**
    * 均勻網格族路線 hover：本層 dataJson 若曾由路網重算，segment.stations 可能被清空；
@@ -2717,6 +2719,21 @@
     const isSchematicLayout = activeTabLayer?.isRouteSchematicLayer === true;
     const isRmaLayoutNetworkGrid = isRmaLayoutNetworkGridFromVhDrawLayerId(layerTab);
     const useSchematicVisualStyle = isSchematicLayout || isRmaLayoutNetworkGrid;
+    // ⑨ 正規化「預覽階段」：骨架仍是經緯度，尚未按「開始執行」。hover 時即時算出該點／端點
+    //   會 snap 到的「秩正規化網格座標」(gx,gy)＝[經度排名, 緯度排名]，與 snap 同一組 partition.xs/ys，
+    //   供與「開始執行」後（props.x_grid／y_grid）的整數格座標比對。執行後 quadtreePartition 被清成
+    //   null → 此函式為 null，不再附加（改由 x_grid 顯示）。
+    const normalizePreviewGridSnap = (() => {
+      if (layerTab !== 'schematic_rma_normalize') return null;
+      const part = activeTabLayer?.quadtreePartition;
+      const xs = part?.xs;
+      const ys = part?.ys;
+      if (!Array.isArray(xs) || !Array.isArray(ys) || xs.length === 0 || ys.length === 0) return null;
+      return (lon, lat) => [
+        valueToNearestIndex(Number(lon), xs),
+        valueToNearestIndex(Number(lat), ys),
+      ];
+    })();
     /** 示意圖佈局：中段黑點 node_type=line 須繪製（非 bend 幾何轉折）。 */
     const isDrawableMidStation = (nodeProps) => {
       if (!nodeProps || typeof nodeProps !== 'object') return false;
@@ -5694,6 +5711,14 @@
             tooltipContent += `<strong>這一個路段的轉折點數:</strong> ${interiorCoords.length}`;
             if (coords.length >= 2) {
               tooltipContent += `<br><strong>起點座標:</strong> ${fmt(coords[0])}<br><strong>終點座標:</strong> ${fmt(coords[coords.length - 1])}`;
+            }
+            // ⑨ 預覽階段：附上兩端點 snap 後的秩正規化網格座標，供與「開始執行」後比對。
+            if (normalizePreviewGridSnap && coords.length >= 2) {
+              const s = coords[0];
+              const e = coords[coords.length - 1];
+              const [sgx, sgy] = normalizePreviewGridSnap(Number(s[0]), Number(s[1]));
+              const [egx, egy] = normalizePreviewGridSnap(Number(e[0]), Number(e[1]));
+              tooltipContent += `<br><strong>起點網格座標 (gx, gy):</strong> (${sgx}, ${sgy})<br><strong>終點網格座標 (gx, gy):</strong> (${egx}, ${egy})`;
             }
             if (interiorCoords.length > 0) {
               tooltipContent += `<br><strong>轉折點座標（依序）:</strong> ${interiorCoords.map((p) => fmt(p)).join('；')}`;
@@ -9280,6 +9305,12 @@
             : minSpacingTooltipBlock(gridGx, gridGy);
           let tooltipParts = [coordinateHtml + spacingBlock];
 
+          // ⑨ 預覽階段：附上此點 snap 後的秩正規化網格座標，供與「開始執行」後比對。
+          if (normalizePreviewGridSnap) {
+            const [pgx, pgy] = normalizePreviewGridSnap(Number(x), Number(y));
+            tooltipParts.push(`<strong>網格座標 (gx, gy):</strong> (${pgx}, ${pgy})`);
+          }
+
           if (mapLonLatEndpoints && isSpaceLayoutUniformGridViewerLayerId(layerTab)) {
             const layoutLyr = dataStore.findLayerById(layerTab);
             const gc = uniformGridCellFromLayoutMeta(
@@ -11200,6 +11231,20 @@
     // snap 用的同一組 xs/ys，與骨架同空間）。執行後 layer.quadtreePartition 會被清掉，只在預覽階段顯示。
     if (layerTab === 'schematic_rma_normalize') {
       const nmLayer = dataStore.findLayerById(layerTab);
+      // 「一定要顯示」：若骨架已載入（geojsonData 在）但尚未執行（無 spaceNetworkGridJsonData）卻缺
+      // 預覽切割（如重整／還原 session 後沒人重算），就地補算一次並快取（秩正規化，格線必小、不會超限）。
+      if (
+        !nmLayer?.quadtreePartition &&
+        nmLayer?.geojsonData?.features?.length &&
+        !nmLayer?.spaceNetworkGridJsonData
+      ) {
+        try {
+          nmLayer.quadtreePartition = computeQuadtreePartitionFromGeojson(nmLayer.geojsonData) || null;
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('⑨ 四分樹切割就地補算失敗', e);
+        }
+      }
       const part = nmLayer?.quadtreePartition;
       if (part && Array.isArray(part.xs) && Array.isArray(part.ys) && part.xs.length && part.ys.length) {
         const MAX_LINES = 4000; // 防呆：格線過多時不畫（避免凍住）

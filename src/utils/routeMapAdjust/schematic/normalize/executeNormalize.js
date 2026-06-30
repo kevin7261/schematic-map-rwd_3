@@ -1,9 +1,9 @@
 /**
  * ⑨ 示意圖佈局（正規化）— 一鍵執行三步
  *
- * Step 1 — 座標正規化（四分樹）
- *   buildConnectSkeleton 去除黑站 → buildSnapLonLatFromC3Segments 建四分樹
- *   → 整數格 d3（與 c3 同結構，供 reinsertBlackStations 直接用）
+ * Step 1 — 座標正規化（秩正規化 rank/ordinal）
+ *   buildConnectSkeleton 去除黑站 → buildSnapLonLatFromC3Segments 以彩色點經/緯度排名為欄/列
+ *   （每格至多一彩色點，不算黑點）→ 整數格 d3（與 c3 同結構，供 reinsertBlackStations 直接用）
  *   → analyzeCoordNormalizeTopology 比對 c3 vs d3 偵測鄰線錯邊
  *
  * Step 2 — 鄰線錯邊修正（有錯邊才執行；改後做交叉計數，若新增交叉則 revert）
@@ -313,12 +313,13 @@ function adjustSkeletonPointsOnRouteOrCrossing(skeletonFlat) {
   }
 }
 
-// ── 四分樹切割預覽（載入骨架時計算，供「開始執行」前顯示） ──────────────────────
+// ── 正規化網格預覽（載入骨架時計算，供「開始執行」前顯示） ──────────────────────
 
 /**
- * 自骨架 geojson 計算四分樹切割結果（與 Step 1 同一條：去黑站→骨架→四分樹→**最小葉格均勻網格**），
- * 回傳實際 snap 用的均勻網格線 xs/ys（經緯度座標，與骨架同空間，可直接用渲染 xScale/yScale 畫出）。
- * 不執行正規化、不改任何資料；純供「載入骨架後、按開始執行前」預覽切割。
+ * 自骨架 geojson 計算正規化網格線（與 Step 1 同一條：去黑站→骨架→**秩正規化**），
+ * 回傳實際 snap 用的網格線 xs/ys＝所有相異彩色點的經/緯度（經緯度座標，與骨架同空間，
+ * 可直接用渲染 xScale/yScale 畫出；條數≈彩色點數，必小、不會超過預覽上限）。
+ * 不執行正規化、不改任何資料；純供「載入骨架後、按開始執行前」預覽網格。
  * @returns {{ xs:number[], ys:number[], bounds:{minLon:number,maxLon:number,minLat:number,maxLat:number} } | null}
  */
 export function computeQuadtreePartitionFromGeojson(geojson) {
@@ -378,9 +379,10 @@ export function executeNormalizeRma() {
     return false;
   }
 
-  // ── Step 1-b：四分樹正規化 → d3（整數格，與 c3 同結構） ─────────────────────
-  // 四分樹以「所有彩色點 🔴connect／🔵terminal／🟡cross／🟣purple」切格（不含黑點），
-  // 讓藍/黃/紫點也被分隔，避免不同路線被 snap 擠到同一格行/列而重疊（如迴龍分支）。
+  // ── Step 1-b：秩正規化 → d3（整數格，與 c3 同結構） ─────────────────────────
+  // 以「所有彩色點 🔴/🔵/🟡/🟣/🤎/🩷/🩶」（不含黑點）之經/緯度排名為欄/列：
+  // 欄＝經度排名、列＝緯度排名。數學保證單射＝每格至多一彩色點（兩相異點不可能同欄又同列），
+  // 故任兩條路線的彩色節點都不會被擠到同一格；格數＝相異彩色座標數量級。
   const snapResult = buildSnapLonLatFromC3Segments(c3Flat, { allColorSplitNodes: true });
   if (!snapResult) {
     console.warn('executeNormalizeRma：四分樹建立失敗。');

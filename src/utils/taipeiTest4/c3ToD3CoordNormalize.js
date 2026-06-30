@@ -180,10 +180,22 @@ function valueToStripIndex(val, sorted) {
   return Math.min(lo, n - 2);
 }
 
-function valueToUniformStripIndex(val, origin, step, count) {
-  if (!Number.isFinite(step) || step <= 0) return 0;
-  const idx = Math.floor((num(val) - origin) / step + QT_EPS);
-  return Math.max(0, Math.min(idx, Math.max(0, count - 1)));
+/** val 最接近 sorted 中哪個值 → 回傳該值之排名索引 0…n-1（秩正規化用）。 */
+export function valueToNearestIndex(val, sorted) {
+  const n = sorted.length;
+  if (n <= 1) return 0;
+  if (val <= sorted[0]) return 0;
+  if (val >= sorted[n - 1]) return n - 1;
+  let lo = 0;
+  let hi = n - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid] < val) lo = mid + 1;
+    else hi = mid;
+  }
+  // lo＝第一個 ≥ val 的索引；與前一個比較取較近者
+  if (lo > 0 && val - sorted[lo - 1] <= sorted[lo] - val) return lo - 1;
+  return lo;
 }
 
 /** 歐式距離最小的一對相異點（距離 > 0） */
@@ -369,28 +381,19 @@ export function buildSnapLonLatFromC3Segments(c3FlatSegments, opts = {}) {
   let sortedY;
   let snapLonLat;
   if (opts.allColorSplitNodes === true) {
-    // #9：以四分樹「**最小葉格**」為均勻整數格單位，把每個點切到該格 → 新整數座標。
-    // 最小葉格＝能分開最近一對彩色點之解析度，故相異彩色點多會落到不同格；保留原始相對幾何
-    //（等比例縮放）。殘留之落線/交叉再由後續「骨架後矯正」位移到鄰格處理。
-    let minW = Infinity;
-    let minH = Infinity;
-    for (const L of leaves) {
-      const w = L.xmax - L.xmin;
-      const h = L.ymax - L.ymin;
-      if (w > QT_EPS) minW = Math.min(minW, w);
-      if (h > QT_EPS) minH = Math.min(minH, h);
-    }
-    if (!Number.isFinite(minW) || minW <= 0) minW = Math.max(qxmax - qxmin, 1e-9);
-    if (!Number.isFinite(minH) || minH <= 0) minH = Math.max(qymax - qymin, 1e-9);
-    const ox = qxmin;
-    const oy = qymin;
-    const cols = Math.max(1, Math.round((qxmax - qxmin) / minW));
-    const rows = Math.max(1, Math.round((qymax - qymin) / minH));
-    sortedX = Array.from({ length: cols + 1 }, (_, i) => ox + i * minW);
-    sortedY = Array.from({ length: rows + 1 }, (_, i) => oy + i * minH);
+    // #9：秩正規化（rank / ordinal）。欄＝該點經度在「所有相異彩色點經度」中的排名，
+    // 列＝緯度排名（🖤黑點不參與，最後沿邊內插放回）。
+    // ✅ 數學保證單射：兩相異彩色點不可能同欄又同列（同欄⟺同經度、同列⟺同緯度，兩者皆成立即同一點），
+    //    故**每格至多一彩色點**；格數＝相異彩色座標數量級（≈ 彩色點數），預覽格線必小、必畫得出。
+    // ⚠️ 代價：等距排名，犧牲真實地理比例；殘留之落線/交叉再由後續「骨架後矯正」位移處理。
+    // （上方四分樹 qtRoot/leaves 仍建好供 result 回傳與 false 路徑使用，此路徑不再依賴最小葉格。）
+    sortedX = uniqueSortedBoundaries(uniqueReds.map((p) => p[0]));
+    sortedY = uniqueSortedBoundaries(uniqueReds.map((p) => p[1]));
+    if (sortedX.length === 0) sortedX = [qxmin];
+    if (sortedY.length === 0) sortedY = [qymin];
     snapLonLat = (lon, lat) => [
-      valueToUniformStripIndex(lon, ox, minW, cols),
-      valueToUniformStripIndex(lat, oy, minH, rows),
+      valueToNearestIndex(num(lon), sortedX),
+      valueToNearestIndex(num(lat), sortedY),
     ];
   } else {
     const xs = new Set();
