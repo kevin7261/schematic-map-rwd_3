@@ -8,6 +8,8 @@
     isExecuting: { type: Boolean, required: true },
     /** {@link useLayoutNetworkGridFromVhDrawControlTab} */
     api: { type: Object, required: true },
+    /** 管線四階段圖層：改由 Control 頂部「匯入／匯出 JSON（斷點存檔）」 */
+    hideLegacyJsonIo: { type: Boolean, default: false },
   });
 </script>
 
@@ -230,12 +232,13 @@
       <LayoutVhDrawBlackDotRatioTables :layer="layer" />
     </div>
 
-    <!-- RMA 路網網格／路網網格_2：自「路線正規化」群組任一路網層匯入 -->
+    <!-- RMA 路網網格／路網網格_2：自「路線正規化」群組任一路網層匯入（同工作階段記憶體） -->
     <div v-if="api.isRmaLayer(layer)" class="pb-3 mb-3 border-bottom">
       <div class="my-title-xs-gray pb-2">匯入路網（路線正規化群組）</div>
       <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
         自「路線正規化」群組任一有路網之圖層匯入本層（黑點站沿線放回）。匯入後沿用所選來源，
-        切換分頁不會被預設來源覆寫。無路網之來源按鈕為停用。
+        切換分頁不會被預設來源覆寫。無路網之來源按鈕為停用。跨工作階段存檔請用 Control 頂部「匯出／匯入
+        JSON（斷點存檔）」。
       </div>
       <button
         v-for="src in api.routeNormalizationImportSources"
@@ -249,7 +252,7 @@
       </button>
     </div>
 
-    <div v-else class="pb-3 mb-3 border-bottom">
+    <div v-else-if="!hideLegacyJsonIo" class="pb-3 mb-3 border-bottom">
       <div class="my-title-xs-gray pb-2">匯入路網</div>
       <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
         自上游「站點與路線往中心聚集」記憶體中的路網，或本機 JSON 檔，寫入
@@ -283,7 +286,7 @@
     </div>
 
     <div class="pb-3 mb-3 border-bottom">
-      <template v-if="!api.isRmaLayer(layer)">
+      <template v-if="!api.isRmaLayer(layer) && !hideLegacyJsonIo">
         <div class="my-title-xs-gray pb-2">還原 VH 繪製（本機 JSON）</div>
         <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
           與「站點與路線（先直後橫）·dataJson 繪製」之<strong>選擇 JSON 檔讀入</strong>相同：寫入

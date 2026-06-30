@@ -24,4 +24,4 @@ export {
   executeRouteAdjustMerrick,
   executeRouteAdjustSat,
 } from './execute.js';
-export { ROUTE_NORMALIZATION_IMPORT_SOURCES } from './routeNormalizationImportSources.js';
+export { ROUTE_NORMALIZATION_IMPORT_SOURCES, ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES } from './routeNormalizationImportSources.js';

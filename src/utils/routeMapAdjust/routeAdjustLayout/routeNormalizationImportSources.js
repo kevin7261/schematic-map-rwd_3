@@ -13,6 +13,7 @@ import {
   ROUTE_ADJUST_MERRICK_LAYER_ID,
   ROUTE_ADJUST_SAT_LAYER_ID,
   ROUTE_ADJUST_UPSTREAM_LAYER_ID,
+  ROUTE_ADJUST_LAYOUT_LAYER_IDS,
 } from './layerIds.js';
 
 /** 與 json_grid_coord_normalized/layerIds 同值；字面量避免 circular import */
@@ -33,3 +34,8 @@ export const ROUTE_NORMALIZATION_IMPORT_SOURCES = Object.freeze([
   { layerId: SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID, label: '站點與路線往中心聚集（先橫後直）' },
   { layerId: SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID, label: '站點與路線往中心聚集（先直後橫）' },
 ]);
+
+/** 往中心聚集兩層：自站點與路線調整①～⑧匯入之來源清單。 */
+export const ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES = Object.freeze(
+  ROUTE_NORMALIZATION_IMPORT_SOURCES.filter((s) => ROUTE_ADJUST_LAYOUT_LAYER_IDS.includes(s.layerId))
+);

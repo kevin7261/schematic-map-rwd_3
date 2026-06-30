@@ -48,12 +48,6 @@
   } from '@/utils/routeMapAdjust/schematic/milp/readMilpResult.js';
   import { auditMilpRoutePairRotation } from '@/utils/routeMapAdjust/schematic/auditMilpRoutePair.js';
   import {
-    buildSchematicInputGeoJsonForDownload,
-    enrichFlatSegmentsStationNames,
-    enrichGeoJsonStationNamesFromMeta,
-    enrichExportRowsStationNames,
-  } from '@/utils/routeMapAdjust/schematic/exportStationNames.js';
-  import {
     reinsertBlackStations,
     flatSegmentsAlreadyHaveReinsertedBlackStations,
   } from '@/utils/layers/schematic_layout/assemble.js';
@@ -99,6 +93,7 @@
   import {
     ROUTE_ADJUST_UPSTREAM_LAYER_ID,
     resolveRouteAdjustLayoutInput,
+    ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES,
   } from '@/utils/routeMapAdjust/routeAdjustLayout/index.js';
   import { computeStationDataFromRoutes } from '@/utils/dataExecute/computeStationDataFromRoutes.js';
   import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
@@ -107,6 +102,10 @@
   import { useLayoutNetworkGridFromVhDrawControlTab } from '@/utils/layers/layout_network_grid_from_vh_draw/useLayoutNetworkGridFromVhDrawControlTab.js';
   import OrthogonalVhDrawControlTabSection from '@/utils/layers/orthogonal_toward_center_vh_draw/ControlTabSection.vue';
   import LayoutNetworkGridFromVhDrawControlTabSection from '@/utils/layers/layout_network_grid_from_vh_draw/ControlTabSection.vue';
+  import {
+    usePipelineLayerSnapshotControlTab,
+    PIPELINE_LAYER_SNAPSHOT_INPUT_ID,
+  } from '@/utils/pipeline/usePipelineLayerSnapshotControlTab.js';
 
   /**
    * 網格合併和縮減工具函數引入
@@ -4080,27 +4079,7 @@
     loadMilpJsonRaw(JSON.parse(JSON.stringify(segs)));
   };
 
-  /** MILP結果正規化（RMA）：匯入下載的 MILP 結果 JSON 檔（寫入 schematic_rma_milp_read）。 */
-  const onLoadMilpJsonFileRma = async (event) => {
-    const file = event?.target?.files?.[0];
-    if (event?.target) event.target.value = '';
-    if (!file) return;
-    try {
-      let parsed = JSON.parse(await file.text());
-      if (!Array.isArray(parsed)) {
-        parsed = parsed?.fullFlat || parsed?.spaceNetworkGridJsonData || parsed?.flatSegs || null;
-      }
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        window.alert('JSON 格式不符（需為路段陣列，或含 fullFlat／spaceNetworkGridJsonData）。');
-        return;
-      }
-      loadMilpJsonRawRma(parsed); // 只顯示原始；正規化要按「座標正規化」
-    } catch (e) {
-      window.alert('匯入失敗：' + (e?.message || e));
-    }
-  };
-
-  /** MILP結果正規化（RMA）：自「示意圖佈局①②③（RMA）」其一匯入其排版結果（寫入 schematic_rma_milp_read）。 */
+  /** 路線正規化（RMA）：自「示意圖佈局①～⑨（RMA）」其一匯入其排版結果。 */
   const importLayoutResultIntoMilpReadRma = (sourceLayerId) => {
     const src = dataStore.findLayerById(sourceLayerId);
     if (!src) return;
@@ -4110,6 +4089,47 @@
       return;
     }
     loadMilpJsonRawRma(JSON.parse(JSON.stringify(segs)));
+  };
+
+  const RMA_TOWARD_CENTER_LAYER_IDS = ['schematic_rma_toward_center_hv', 'schematic_rma_toward_center_vh'];
+
+  /**
+   * RMA 往中心聚集（先橫後直／先直後橫）：自站點與路線調整①～⑧匯入排版結果。
+   * 抽離黑點 → 只存 connect 骨架；黑點 sections 存 schematicBlackSections。
+   */
+  const importRouteAdjustIntoRmaTowardCenter = (targetLayer, sourceLayerId) => {
+    const lyr = targetLayer || currentLayer.value;
+    if (!lyr || !RMA_TOWARD_CENTER_LAYER_IDS.includes(lyr.layerId)) return;
+    const src = dataStore.findLayerById(sourceLayerId);
+    const srcData = src?.spaceNetworkGridJsonData;
+    if (!Array.isArray(srcData) || !srcData.length) {
+      const label =
+        ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES.find((s) => s.layerId === sourceLayerId)?.label ||
+        src?.layerName ||
+        sourceLayerId;
+      window.alert(`「${label}」尚無排版結果，請先執行該站點與路線調整。`);
+      return;
+    }
+    const full = normalizeSpaceNetworkDataToFlatSegments(JSON.parse(JSON.stringify(srcData)));
+    const { skeleton, sections } = milpReadFlatToSkeleton(full);
+    lyr.schematicBlackSections = sections;
+    applyConnectStraightenSegmentsToLayer(lyr, skeleton);
+    lyr.seededFromSig = cheapSegSig(srcData);
+    lyr.lineOrthoTowardCrossFrozenCenter = null;
+    lyr.lineOrthoTowardCrossHighlightTableAxis = null;
+    dataStore.saveLayerState(lyr.layerId, {
+      ...jsonGridFromCoordNormalizedPersistPayload(lyr),
+      schematicBlackSections: lyr.schematicBlackSections,
+      seededFromSig: lyr.seededFromSig,
+      lineOrthoTowardCrossFrozenCenter: null,
+      lineOrthoTowardCrossHighlightTableAxis: null,
+    });
+    dataStore.requestSpaceNetworkGridFullRedraw();
+  };
+
+  const routeAdjustTowardCenterSourceHasData = (sourceLayerId) => {
+    const src = dataStore.findLayerById(sourceLayerId);
+    return !!(src && Array.isArray(src.spaceNetworkGridJsonData) && src.spaceNetworkGridJsonData.length);
   };
 
   /** 路線正規化（RMA）：座標正規化前，以紅/黃/藍為邊界重算粉紅點，不需者改棕色（獨立按鈕）。 */
@@ -6482,6 +6502,8 @@
       'schematic_toward_center_hv',
     ],
   });
+
+  const pipelineLayerSnapshotApi = usePipelineLayerSnapshotControlTab({ dataStore });
 
   /**
    * 把路段寫回 coord_normalized_red_blue_connect 層（spaceNetworkGridJsonData + 衍生 + dataJson）。
@@ -9971,143 +9993,6 @@
   };
 
   /**
-   * 通用 JSON 下載：把任意 payload 以縮排 JSON 觸發瀏覽器下載。
-   * @param {*} payload
-   * @param {string} filename
-   */
-  const triggerJsonDownload = (payload, filename) => {
-    if (payload == null) return;
-    const json = JSON.stringify(payload, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  /**
-   * 「路線圖轉換骨架」(route_map_adjust)：下載骨架 GeoJSON。
-   * 與 loadRouteAdjustIntoSchematic 餵給示意圖佈局的輸入完全同格式（示意圖計算即讀此格式）。
-   */
-  const downloadRouteMapAdjustSkeletonJson = () => {
-    const adj = dataStore.findLayerById('route_map_adjust');
-    const sk = adj?.routeMapAdjustSkeleton;
-    const edges = Array.isArray(sk?.edges) ? sk.edges : [];
-    if (!edges.length) {
-      window.alert('「路線圖轉換骨架」尚未建立骨架，請先按「變成骨架」。');
-      return;
-    }
-    const fc = routeMapAdjustSkeletonToGeoJson(
-      sk,
-      Array.isArray(adj.routeMapAdjustLines) ? adj.routeMapAdjustLines : [],
-      Array.isArray(adj.routeMapAdjustBlackDots) ? adj.routeMapAdjustBlackDots : [],
-      adj.routeMapAdjustStationMeta || null
-    );
-    triggerJsonDownload(fc, 'route_map_adjust_skeleton.json');
-  };
-
-  /**
-   * 「路線圖轉換骨架2」(route_map_adjust_2)：下載骨架 GeoJSON。
-   * 與 loadRouteAdjustIntoSchematic 餵給示意圖佈局的輸入完全同格式（示意圖計算即讀此格式）。
-   */
-  const downloadRouteMapAdjust2SkeletonJson = () => {
-    const adj = dataStore.findLayerById('route_map_adjust_2');
-    const sk = adj?.routeMapAdjustSkeleton;
-    const edges = Array.isArray(sk?.edges) ? sk.edges : [];
-    if (!edges.length) {
-      window.alert('「路線圖轉換骨架2」尚未建立骨架，請先按「變成骨架」。');
-      return;
-    }
-    const fc = routeMapAdjustSkeletonToGeoJson(
-      sk,
-      Array.isArray(adj.routeMapAdjustLines) ? adj.routeMapAdjustLines : [],
-      Array.isArray(adj.routeMapAdjustBlackDots) ? adj.routeMapAdjustBlackDots : [],
-      adj.routeMapAdjustStationMeta || null
-    );
-    triggerJsonDownload(fc, 'route_map_adjust_2_skeleton.json');
-  };
-
-  /**
-   * 「路線圖轉換直線骨架」(route_map_adjust_straight)：下載骨架 GeoJSON。
-   * 與 loadRouteAdjustStraightIntoSchematic 餵給示意圖佈局的輸入完全同格式。
-   */
-  const downloadRouteMapAdjustStraightSkeletonJson = () => {
-    const adj = dataStore.findLayerById('route_map_adjust_straight');
-    const sk = adj?.routeMapAdjustSkeleton;
-    const edges = Array.isArray(sk?.edges) ? sk.edges : [];
-    if (!edges.length) {
-      window.alert('「路線圖轉換直線骨架」尚未建立骨架，請先按「變成骨架」。');
-      return;
-    }
-    const lines = Array.isArray(adj.routeMapAdjustStraightenedLines)
-      ? adj.routeMapAdjustStraightenedLines
-      : Array.isArray(adj.routeMapAdjustLines)
-        ? adj.routeMapAdjustLines
-        : [];
-    const blackDots = Array.isArray(adj.routeMapAdjustStraightenedBlackDots)
-      ? adj.routeMapAdjustStraightenedBlackDots
-      : Array.isArray(adj.routeMapAdjustBlackDots)
-        ? adj.routeMapAdjustBlackDots
-        : [];
-    const stationMeta =
-      adj.routeMapAdjustStraightenedStationMeta || adj.routeMapAdjustStationMeta || null;
-    const stationCoords = collectStraightSkeletonStationCoords(
-      adj.routeMapAdjustLines,
-      adj.routeMapAdjustBlackDots,
-      blackDots,
-      stationMeta
-    );
-    const fc = routeMapAdjustSkeletonToGeoJson(sk, lines, blackDots, stationMeta, stationCoords);
-    triggerJsonDownload(fc, 'route_map_adjust_straight_skeleton.json');
-  };
-
-  /**
-   * 「示意圖佈局」(schematic_rma_*)：下載目前載入的輸入骨架 GeoJSON。
-   * 優先自路線圖調整骨架重產（含站名）；否則補齊 layer.geojsonData 內 Point 站名。
-   */
-  const downloadRouteSchematicInputJson = (layer) => {
-    const rebuilt = buildSchematicInputGeoJsonForDownload(dataStore);
-    let fc;
-    if (rebuilt) {
-      let stationCoords = null;
-      if (rebuilt.source === 'straight' && rebuilt.straightLayer) {
-        const adj = rebuilt.straightLayer;
-        stationCoords = collectStraightSkeletonStationCoords(
-          adj.routeMapAdjustLines,
-          adj.routeMapAdjustBlackDots,
-          rebuilt.blackDots,
-          rebuilt.stationMeta
-        );
-      }
-      fc = routeMapAdjustSkeletonToGeoJson(
-        rebuilt.sk,
-        rebuilt.lines,
-        rebuilt.blackDots,
-        rebuilt.stationMeta,
-        stationCoords
-      );
-    } else if (layer?.geojsonData?.features?.length) {
-      fc = JSON.parse(JSON.stringify(layer.geojsonData));
-      const meta =
-        dataStore.findLayerById('route_map_adjust_straight')
-          ?.routeMapAdjustStraightenedStationMeta ||
-        dataStore.findLayerById('route_map_adjust')?.routeMapAdjustStationMeta ||
-        null;
-      enrichGeoJsonStationNamesFromMeta(fc, meta);
-    } else {
-      window.alert(
-        '此圖層尚未載入輸入骨架，請先「從路線圖轉換骨架載入」或「從路線圖轉換直線骨架載入」。'
-      );
-      return;
-    }
-    triggerJsonDownload(fc, `${layer.layerId}_input.json`);
-  };
-
-  /**
    * 「示意圖佈局」(schematic_rma_*)：是否已有直線化（八方向佈局）後的結果可下載。
    */
   const routeSchematicHasResult = (layer) =>
@@ -10144,47 +10029,6 @@
     } finally {
       milpRoutePairAuditing.value = false;
     }
-  };
-
-  /**
-   * 「示意圖佈局」(schematic_rma_*)：下載**直線化後的結果** GeoJSON。
-   * 把佈局結果（spaceNetworkGridJsonData）以與骨架輸入相同的 GeoJSON FeatureCollection
-   * 格式輸出（經 export 列 → minimalLineStringFeatureCollectionFromRouteExportRows），
-   * 與「下載 JSON（輸入骨架）」同格式、可再次載入同一管線。
-   */
-  const downloadRouteSchematicResultJson = (layer) => {
-    if (!routeSchematicHasResult(layer)) {
-      window.alert('此圖層尚無佈局結果，請先按「開始執行」計算示意圖佈局。');
-      return;
-    }
-    let rows = Array.isArray(layer.processedJsonData) ? layer.processedJsonData : null;
-    if (!rows || !rows.length) {
-      try {
-        const flat = normalizeSpaceNetworkDataToFlatSegments(
-          JSON.parse(JSON.stringify(layer.spaceNetworkGridJsonData))
-        );
-        enrichFlatSegmentsStationNames(flat, {
-          stationData: layer.spaceNetworkGridJsonData_StationData,
-        });
-        rows = flatSegmentsToGeojsonStyleExportRows(flat);
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('下載示意圖佈局結果 JSON：產生匯出列失敗', e);
-        rows = null;
-      }
-    }
-    if (!rows || !rows.length) {
-      window.alert('無法由佈局結果產生匯出資料。');
-      return;
-    }
-    enrichExportRowsStationNames(rows, {
-      stationData: layer.spaceNetworkGridJsonData_StationData,
-    });
-    const fc = minimalLineStringFeatureCollectionFromRouteExportRows(rows, {
-      stationPoints: 'all',
-      routeLine: 'full',
-    });
-    triggerJsonDownload(fc, `${layer.layerId}_result.json`);
   };
 
 </script>
@@ -10242,6 +10086,33 @@
         :key="layer.layerId"
         v-show="activeLayerTab === layer.layerId"
       >
+        <!-- 管線四階段：匯入／匯出 JSON 斷點存檔 -->
+        <div
+          v-if="pipelineLayerSnapshotApi.isPipelineSnapshotLayer(layer)"
+          class="pb-3 mb-3 border-bottom"
+        >
+          <div class="my-title-xs-gray pb-2">匯入／匯出 JSON（斷點存檔）</div>
+          <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
+            檔名格式：群組名＋圖層名＋城市名。匯入後可直接從此步驟繼續，無需從頭執行。
+          </div>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            :disabled="!pipelineLayerSnapshotApi.pipelineLayerCanExport(layer)"
+            @click="pipelineLayerSnapshotApi.exportPipelineLayerSnapshot(layer)"
+          >
+            匯出 JSON
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+            :disabled="isExecuting"
+            @click="pipelineLayerSnapshotApi.pickPipelineLayerSnapshotImport(layer)"
+          >
+            匯入 JSON
+          </button>
+        </div>
+
         <!-- 🗺️ 示意圖佈局（從路線圖調整）：載入 + 執行（僅①②③演算法層） -->
         <div
           v-if="layer.isRouteSchematicLayer && ['schematic_rma_stroke', 'schematic_rma_hillclimb', 'schematic_rma_milp', 'schematic_rma_force', 'schematic_rma_wangchi', 'schematic_rma_bast', 'schematic_rma_merrick', 'schematic_rma_sat', 'schematic_rma_normalize'].includes(layer.layerId)"
@@ -10290,24 +10161,6 @@
           >
             座標正規化 → 鄰線錯邊修正（若須）→ 刪空欄列
           </div>
-          <button
-            type="button"
-            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
-            :disabled="!layer.geojsonData || !layer.geojsonData.features || !layer.geojsonData.features.length"
-            title="下載目前載入的輸入骨架 GeoJSON（與路線圖轉換骨架／直線骨架同格式，即示意圖計算所讀之格式）"
-            @click="downloadRouteSchematicInputJson(layer)"
-          >
-            下載 JSON（輸入骨架）
-          </button>
-          <button
-            type="button"
-            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
-            :disabled="!routeSchematicHasResult(layer)"
-            title="下載直線化（八方向佈局）後的結果 GeoJSON（與輸入骨架同格式、可再次載入）"
-            @click="downloadRouteSchematicResultJson(layer)"
-          >
-            下載 JSON（直線化結果）
-          </button>
           <button
             v-if="layer.layerId === 'schematic_rma_milp'"
             type="button"
@@ -10648,15 +10501,6 @@
               <span>{{ rmaSkeletonStats.crossNodes }}</span>
             </div>
           </template>
-          <button
-            type="button"
-            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-3"
-            :disabled="!rmaHasSkeleton"
-            title="下載骨架 GeoJSON（與示意圖佈局輸入同格式，即示意圖計算所讀之格式）"
-            @click="downloadRouteMapAdjustSkeletonJson"
-          >
-            下載 JSON（骨架）
-          </button>
 
           <!-- 🏷️ 顯示車站名開關 -->
           <div class="d-flex align-items-center justify-content-between mb-3">
@@ -10929,15 +10773,6 @@
               <span>{{ rma2SkeletonStats.crossNodes }}</span>
             </div>
           </template>
-          <button
-            type="button"
-            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-3"
-            :disabled="!rma2HasSkeleton"
-            title="下載骨架 GeoJSON（與示意圖佈局輸入同格式，即示意圖計算所讀之格式）"
-            @click="downloadRouteMapAdjust2SkeletonJson"
-          >
-            下載 JSON（骨架）
-          </button>
 
           <!-- 🏷️ 顯示車站名開關 -->
           <div class="d-flex align-items-center justify-content-between mb-3">
@@ -11209,15 +11044,6 @@
               <span>{{ rmasSkeletonStats.crossNodes }}</span>
             </div>
           </template>
-          <button
-            type="button"
-            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-3"
-            :disabled="!rmasHasSkeleton"
-            title="下載直線骨架 GeoJSON（與示意圖佈局輸入同格式，即示意圖計算所讀之格式）"
-            @click="downloadRouteMapAdjustStraightSkeletonJson"
-          >
-            下載 JSON（骨架）
-          </button>
 
           <!-- 🏷️ 顯示車站名開關 -->
           <div class="d-flex align-items-center justify-content-between mb-3">
@@ -12117,6 +11943,7 @@
           :layer="layer"
           :is-executing="isExecuting"
           :api="layoutNetworkGridFromVhDrawControlTabApi"
+          :hide-legacy-json-io="pipelineLayerSnapshotApi.isPipelineSnapshotLayer(layer)"
         />
         <OrthogonalVhDrawControlTabSection
           :layer="layer"
@@ -12124,6 +11951,28 @@
           :api="orthogonalVhDrawControlTabApi"
         />
 
+
+        <!-- RMA 往中心聚集：自站點與路線調整①～⑧匯入 -->
+        <div
+          v-if="RMA_TOWARD_CENTER_LAYER_IDS.includes(layer.layerId)"
+          class="pb-3 mb-3 border-bottom"
+        >
+          <div class="my-title-xs-gray pb-2">從站點與路線調整（①～⑧）匯入排版結果</div>
+          <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
+            自上方八種「站點與路線調整」任一有結果之圖層匯入本層（抽離黑點，只存 connect
+            骨架供往中心聚集運算）。跨工作階段存檔請用頂部「匯出／匯入 JSON（斷點存檔）」。
+          </div>
+          <button
+            v-for="src in ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES"
+            :key="'rma-tc-import-' + layer.layerId + '-' + src.layerId"
+            type="button"
+            class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
+            :disabled="isExecuting || !routeAdjustTowardCenterSourceHasData(src.layerId)"
+            @click="importRouteAdjustIntoRmaTowardCenter(layer, src.layerId)"
+          >
+            從 {{ src.label }}
+          </button>
+        </div>
 
         <!-- 往中心聚集（列→欄 或 欄→列）：各列／欄 HV 線段（表格：站名＋座標） -->
         <div
@@ -12242,6 +12091,7 @@
                 斜鄰段改橫／直（僅批次首輪一次），再反覆縮進至「一整輪隊列皆無可改善」為止並於下方顯示彙總
               </button>
               <button
+                v-if="!pipelineLayerSnapshotApi.isPipelineSnapshotLayer(layer)"
                 type="button"
                 class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer btn-outline-primary mb-2"
                 :disabled="
@@ -12649,18 +12499,6 @@
           >
             {{ isExecuting ? '計算中…' : '座標正規化' }}
           </button>
-          <div class="my-title-xs-gray pb-2">匯入 JSON（下載的 MILP 結果）</div>
-          <label
-            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-0"
-          >
-            匯入 JSON 檔
-            <input
-              type="file"
-              accept=".json,application/json"
-              class="d-none"
-              @change="onLoadMilpJsonFileRma($event)"
-            />
-          </label>
           <div class="my-title-xs-gray pt-2 pb-1">從示意圖佈局（RMA）匯入排版結果</div>
           <button
             type="button"
@@ -12726,7 +12564,7 @@
             從⑨（正規化）匯入
           </button>
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
-            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP（RMA）結果。後續步驟（站點與路線調整 ①–⑧、往中心聚集 先橫後直／先直後橫）在下方各圖層。
+            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP（RMA）結果。跨工作階段存檔請用上方「匯出／匯入 JSON（斷點存檔）」。
           </div>
         </div>
 
@@ -12754,15 +12592,6 @@
             @click="executeLayerFunction"
           >
             {{ isExecuting ? '計算中…' : '開始執行' }}
-          </button>
-          <button
-            type="button"
-            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
-            :disabled="!routeSchematicHasResult(layer)"
-            title="下載本圖層佈局結果 JSON"
-            @click="downloadRouteSchematicResultJson(layer)"
-          >
-            下載 JSON（佈局結果）
           </button>
           <div
             v-if="layer.layerId === 'schematic_rma_route_adjust_milp' && layer.dashboardData?.rotationStructureCheck?.layoutDone"
@@ -12830,9 +12659,13 @@
           </div>
         </div>
 
-        <!-- 示意圖佈局（#1/#2/#3 與 MILP結果正規化）：下載目前 JSON 結果 -->
+        <!-- 示意圖佈局（OSM 管線 #1/#2/#3 與 MILP結果正規化）：下載目前 JSON 結果 -->
         <div
-          v-if="layer.layerId && layer.layerId.startsWith('schematic_')"
+          v-if="
+            layer.layerId &&
+            layer.layerId.startsWith('schematic_') &&
+            !pipelineLayerSnapshotApi.isPipelineSnapshotLayer(layer)
+          "
           class="pb-3 mb-3 border-bottom"
         >
           <button
@@ -15138,6 +14971,13 @@
       <div class="my-title-xs-gray text-center">沒有開啟的圖層</div>
     </div>
 
+    <input
+      :id="PIPELINE_LAYER_SNAPSHOT_INPUT_ID"
+      type="file"
+      class="d-none"
+      accept=".json,application/json"
+      @change="pipelineLayerSnapshotApi.onPipelineLayerSnapshotInputChange"
+    />
     <input
       id="orthogonal-vh-draw-local-json-input"
       type="file"
