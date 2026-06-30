@@ -718,17 +718,64 @@ export function mergeSegmentStationsFromPriorExportRows(newRows, priorRows) {
       continue;
     const curLen = Array.isArray(row.segment.stations) ? row.segment.stations.length : 0;
     const oldFromFull = mapOldFull.get(exportRowStationEndpointsKey(row));
-    const ep = exportRowEndpointsKeyWithoutRoute(row);
-    const rev = exportRowEndpointsKeyReversed(ep);
-    const oldFromEp = pickRicherExportRowForStationMerge(
-      ep ? mapOldEp.get(ep) : null,
-      rev ? mapOldEp.get(rev) : null,
-    );
-    const old = pickRicherExportRowForStationMerge(oldFromFull, oldFromEp);
+    let old;
+    if (oldFromFull) {
+      old = oldFromFull;
+    } else {
+      const ep = exportRowEndpointsKeyWithoutRoute(row);
+      const rev = exportRowEndpointsKeyReversed(ep);
+      old = pickRicherExportRowForStationMerge(
+        ep ? mapOldEp.get(ep) : null,
+        rev ? mapOldEp.get(rev) : null,
+      );
+    }
     const oldSt = old?.segment?.stations;
     const oldLen = Array.isArray(oldSt) ? oldSt.length : 0;
     if (oldLen > curLen) {
       row.segment.stations = JSON.parse(JSON.stringify(oldSt));
+    }
+  }
+  return newRows;
+}
+
+/**
+ * 僅從舊匯出列補齊站名，不覆蓋座標或替換整個 segment.stations。
+ * 用於避免將已過期的舊格座標（如向中心聚集前的位置）注入新匯出列。
+ */
+export function mergeStationNamesOnlyFromPriorExportRows(newRows, priorRows) {
+  if (!Array.isArray(newRows) || !Array.isArray(priorRows) || priorRows.length === 0) return newRows;
+  const mapByFull = new Map();
+  const mapByEp = new Map();
+  for (const r of priorRows) {
+    const kf = exportRowStationEndpointsKey(r);
+    if (kf) mapByFull.set(kf, r);
+    const ke = exportRowEndpointsKeyWithoutRoute(r);
+    if (ke) mapByEp.set(ke, r);
+  }
+  for (const row of newRows) {
+    if (!row?.segment) continue;
+    const old =
+      mapByFull.get(exportRowStationEndpointsKey(row)) ||
+      mapByEp.get(exportRowEndpointsKeyWithoutRoute(row));
+    if (!old?.segment) continue;
+    const curSt = row.segment.stations;
+    const oldSt = old.segment.stations;
+    if (Array.isArray(curSt) && Array.isArray(oldSt)) {
+      const nameById = new Map();
+      for (const s of oldSt) {
+        if (s?.station_id && s.station_name) nameById.set(s.station_id, s.station_name);
+      }
+      for (const s of curSt) {
+        if (s && s.station_id && !s.station_name && nameById.has(s.station_id)) {
+          s.station_name = nameById.get(s.station_id);
+        }
+      }
+    }
+    if (!row.segment.start?.station_name && old.segment.start?.station_name) {
+      row.segment.start.station_name = old.segment.start.station_name;
+    }
+    if (!row.segment.end?.station_name && old.segment.end?.station_name) {
+      row.segment.end.station_name = old.segment.end.station_name;
     }
   }
   return newRows;

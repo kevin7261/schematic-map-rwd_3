@@ -17,7 +17,20 @@ function readXY(p) {
 
 function nodeWithGrid(node, x, y, fallbackType) {
   const n = node ? JSON.parse(JSON.stringify(node)) : { node_type: fallbackType || 'line' };
-  n.tags = { ...(n.tags || {}), x_grid: x, y_grid: y };
+  const t = n.tags || {};
+  const node_kind = t.node_kind ?? n.node_kind;
+  const node_class_color = t.node_class_color ?? n.node_class_color;
+  const node_class_r = t.node_class_r ?? n.node_class_r;
+  n.x_grid = x;
+  n.y_grid = y;
+  n.tags = {
+    ...t,
+    ...(node_kind != null ? { node_kind } : {}),
+    ...(node_class_color != null ? { node_class_color } : {}),
+    ...(node_class_r != null ? { node_class_r } : {}),
+    x_grid: x,
+    y_grid: y,
+  };
   return n;
 }
 
@@ -33,6 +46,19 @@ function pointAtArc(poly, cum, total, t) {
     }
   }
   return poly[poly.length - 1].slice();
+}
+
+/**
+ * 是否已執行過 reinsertBlackStations（以 _forceDrawBlackDot 標記為準）。
+ * 不可用 points.length > 2 判斷：骨架的 bend 角點也會使點數 > 2。
+ */
+export function flatSegmentsAlreadyHaveReinsertedBlackStations(segments) {
+  if (!Array.isArray(segments)) return false;
+  return segments.some(
+    (s) =>
+      Array.isArray(s?.nodes) &&
+      s.nodes.some((n) => n && typeof n === 'object' && n.tags?._forceDrawBlackDot === true)
+  );
 }
 
 /**
@@ -68,7 +94,10 @@ export function reinsertBlackStations(optimizedSkeleton, sections) {
     for (let j = 0; j < K; j++) {
       const t = (j + 1) / (K + 1);
       const xy = pointAtArc(skPts, cum, total, t);
-      items.push({ s: t * total, xy, node: nodeWithGrid(black[j], xy[0], xy[1], 'line') });
+      const node = nodeWithGrid(black[j], xy[0], xy[1], 'line');
+      if (!node.tags) node.tags = {};
+      node.tags._forceDrawBlackDot = true;
+      items.push({ s: t * total, xy, node });
     }
     items.sort((a, b) => a.s - b.s);
 
@@ -89,6 +118,10 @@ export function reinsertBlackStations(optimizedSkeleton, sections) {
       properties_start: sk.properties_start,
       properties_end: sk.properties_end,
       way_properties: sk.way_properties,
+      color: sk.color,
+      route_colors: sk.route_colors,
+      _schematicCorridorSkipDraw: sk._schematicCorridorSkipDraw,
+      _schematicCorridorRoutes: sk._schematicCorridorRoutes,
     });
   }
   syncOrthoFlatSegmentEndpoints(full);
@@ -105,6 +138,24 @@ export function writeSchematicResultToLayer(layerId, fullFlat, meta = {}) {
   if (!layer) return { ok: false, message: '找不到圖層 ' + layerId };
   if (!Array.isArray(fullFlat) || fullFlat.length === 0) {
     return { ok: false, message: '無結果路段可寫入' };
+  }
+
+  for (const seg of fullFlat) {
+    if (seg && seg.color == null) seg.color = seg.way_properties?.tags?.color || undefined;
+    if (seg && seg.route_colors == null) {
+      const rc = seg.way_properties?.tags?.route_colors;
+      if (rc) seg.route_colors = rc;
+    }
+    if (seg?.route_colors != null) {
+      if (!seg.way_properties) seg.way_properties = { tags: {} };
+      if (!seg.way_properties.tags) seg.way_properties.tags = {};
+      seg.way_properties.tags.route_colors = seg.route_colors;
+    }
+    if (seg?._schematicCorridorSkipDraw) {
+      if (!seg.way_properties) seg.way_properties = { tags: {} };
+      if (!seg.way_properties.tags) seg.way_properties.tags = {};
+      seg.way_properties.tags._schematicCorridorSkipDraw = true;
+    }
   }
 
   layer.spaceNetworkGridJsonData = fullFlat;

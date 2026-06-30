@@ -8,6 +8,7 @@
 import {
   mapDrawnExportRowsFromJsonDrawRoot,
   mergeSegmentStationsFromPriorExportRows,
+  mergeStationNamesOnlyFromPriorExportRows,
   minimalLineStringFeatureCollectionFromRouteExportRows,
 } from '../../mapDrawnRoutesImport.js';
 import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
@@ -39,7 +40,10 @@ import {
 } from './layerIds.js';
 import { buildVhDrawStationRowsForLayoutMap } from './layoutVhDrawFineIntegerGrid.js';
 import { buildLayoutVhDrawCopyBlackDotTrafficDataTableRows } from './layoutTrafficWeightsSync.js';
-import { reinsertBlackStations } from '@/utils/layers/schematic_layout/assemble.js';
+import {
+  reinsertBlackStations,
+  flatSegmentsAlreadyHaveReinsertedBlackStations,
+} from '@/utils/layers/schematic_layout/assemble.js';
 
 /**
  * 路網網格（RMA）：自 RMA「站點與路線往中心聚集」層（先直後橫／先橫後直；只存 connect 骨架，
@@ -76,8 +80,9 @@ export function syncRmaLayoutNetworkGridFromTowardCenterVh(
   const sections = Array.isArray(src.schematicBlackSections) ? src.schematicBlackSections : [];
   const skelCopy = JSON.parse(JSON.stringify(skel));
   // 黑點站平均沿線放回（與 RMA「connect 拉直」種子相同邏輯）。
-  // 來源若已含黑點（往中心層執行完已把黑點放回顯示）則不可再放回一次，否則黑點翻倍。
-  const alreadyFull = skelCopy.some((s) => Array.isArray(s?.points) && s.points.length > 2);
+  // 來源若已含黑點（_forceDrawBlackDot）則不可再放回一次，否則黑點翻倍。
+  // 不可用 points.length > 2：骨架 bend 也會使點數 > 2。
+  const alreadyFull = flatSegmentsAlreadyHaveReinsertedBlackStations(skelCopy);
   const full =
     !alreadyFull && sections.length === skelCopy.length
       ? reinsertBlackStations(skelCopy, sections)
@@ -85,13 +90,13 @@ export function syncRmaLayoutNetworkGridFromTowardCenterVh(
   let rows = [];
   try {
     rows = flatSegmentsToGeojsonStyleExportRows(full);
+    if (Array.isArray(rows) && rows.length && src?.processedJsonData?.length) {
+      rows = mergeStationNamesOnlyFromPriorExportRows(rows, src.processedJsonData);
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('syncRmaLayoutNetworkGridFromTowardCenterVh：自路網匯出列失敗', e);
     rows = [];
-  }
-  if (Array.isArray(rows) && rows.length && src?.processedJsonData?.length) {
-    rows = mergeSegmentStationsFromPriorExportRows(rows, src.processedJsonData);
   }
   layout.spaceNetworkGridJsonData = JSON.parse(JSON.stringify(full));
   const computed = computeStationDataFromRoutes(full);
@@ -99,16 +104,21 @@ export function syncRmaLayoutNetworkGridFromTowardCenterVh(
   layout.spaceNetworkGridJsonData_ConnectData = computed.connectData;
   layout.spaceNetworkGridJsonData_StationData = computed.stationData;
   layout.showStationPlacement = false;
-  if (Array.isArray(src?.processedJsonData) && src.processedJsonData.length) {
-    layout.processedJsonData = JSON.parse(JSON.stringify(src.processedJsonData));
+  let processedFromFull;
+  try {
+    processedFromFull = flatSegmentsToGeojsonStyleExportRows(full);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('syncRmaLayoutNetworkGridFromTowardCenterVh：processedJsonData 失敗', e);
+    processedFromFull = null;
+  }
+  if (Array.isArray(src?.processedJsonData) && src.processedJsonData.length && processedFromFull) {
+    layout.processedJsonData = mergeStationNamesOnlyFromPriorExportRows(
+      JSON.parse(JSON.stringify(processedFromFull)),
+      src.processedJsonData
+    );
   } else {
-    try {
-      layout.processedJsonData = flatSegmentsToGeojsonStyleExportRows(full);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('syncRmaLayoutNetworkGridFromTowardCenterVh：processedJsonData 失敗', e);
-      layout.processedJsonData = null;
-    }
+    layout.processedJsonData = processedFromFull;
   }
   layout.jsonData = null;
   layout.dataJson = Array.isArray(rows) && rows.length ? JSON.parse(JSON.stringify(rows)) : null;

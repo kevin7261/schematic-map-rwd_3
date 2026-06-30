@@ -7,6 +7,7 @@
 import {
   mapDrawnExportRowsFromJsonDrawRoot,
   mergeSegmentStationsFromPriorExportRows,
+  mergeStationNamesOnlyFromPriorExportRows,
 } from '@/utils/mapDrawnRoutesImport.js';
 import { LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID } from '@/utils/layers/osm_2_geojson_2_json/sessionOsmXml.js';
 import {
@@ -35,19 +36,20 @@ export function buildVhDrawStationRowsForLayoutMap(dataStore, drawLayer) {
   let base = mapDrawnExportRowsFromJsonDrawRoot(drawLayer.jsonData, drawLayer.dataJson);
   if (!Array.isArray(base)) base = [];
   let out = base.length ? JSON.parse(JSON.stringify(base)) : [];
-  out = mergeSegmentStationsFromPriorExportRows(out, drawLayer.processedJsonData);
   if (isRmaLayoutNetworkGridFromVhDrawLayerId(drawLayer.layerId)) {
+    out = mergeStationNamesOnlyFromPriorExportRows(out, drawLayer.processedJsonData);
     const srcId =
       drawLayer.rmaSourceLayerId || SCHEMATIC_RMA_TOWARD_CENTER_VH_SOURCE_LAYER_ID;
     const src = dataStore.findLayerById(srcId);
     if (src) {
-      out = mergeSegmentStationsFromPriorExportRows(out, src.processedJsonData);
-      out = mergeSegmentStationsFromPriorExportRows(
+      out = mergeStationNamesOnlyFromPriorExportRows(out, src.processedJsonData);
+      out = mergeStationNamesOnlyFromPriorExportRows(
         out,
         mapDrawnExportRowsFromJsonDrawRoot(src.jsonData, src.dataJson)
       );
     }
   } else {
+    out = mergeSegmentStationsFromPriorExportRows(out, drawLayer.processedJsonData);
     const chainIds = [
       ...LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS,
       POINT_ORTHOGONAL_LAYER_ID,

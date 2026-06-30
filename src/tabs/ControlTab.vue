@@ -53,7 +53,10 @@
     enrichGeoJsonStationNamesFromMeta,
     enrichExportRowsStationNames,
   } from '@/utils/routeMapAdjust/schematic/exportStationNames.js';
-  import { reinsertBlackStations } from '@/utils/layers/schematic_layout/assemble.js';
+  import {
+    reinsertBlackStations,
+    flatSegmentsAlreadyHaveReinsertedBlackStations,
+  } from '@/utils/layers/schematic_layout/assemble.js';
   import { showSolveOverlay } from '@/utils/layers/schematic_layout/solveOverlay.js';
   import {
     executeJsonGridCoordNormalize,
@@ -2932,8 +2935,8 @@
       // 最後一層：用上游骨架＋黑點 sections metadata，把黑點站**平均沿線放回**，再做 connect 拉直。
       const skel = normalizeSpaceNetworkDataToFlatSegments(JSON.parse(JSON.stringify(srcData)));
       const sections = src.schematicBlackSections || [];
-      // 來源若已含黑點（往中心層執行完已把黑點放回顯示）則不可再放回一次，否則黑點翻倍。
-      const alreadyFull = skel.some((s) => Array.isArray(s?.points) && s.points.length > 2);
+      // 來源若已含黑點（_forceDrawBlackDot）則不可再放回一次，否則黑點翻倍。
+      const alreadyFull = flatSegmentsAlreadyHaveReinsertedBlackStations(skel);
       const full =
         !alreadyFull && sections.length === skel.length ? reinsertBlackStations(skel, sections) : skel;
       applyConnectStraightenSegmentsToLayer(lyr, full);
@@ -6704,8 +6707,8 @@
     if (!sk || !sk.length || !sections.length) return;
     const skFlat = normalizeSpaceNetworkDataToFlatSegments(JSON.parse(JSON.stringify(sk)));
     if (sections.length !== skFlat.length) return;
-    // 已含黑點（任一段 >2 點）則代表已是完整路網，勿再放回一次。
-    if (skFlat.some((s) => Array.isArray(s?.points) && s.points.length > 2)) return;
+    // 已含黑點（_forceDrawBlackDot）則代表已是完整路網，勿再放回一次。
+    if (flatSegmentsAlreadyHaveReinsertedBlackStations(skFlat)) return;
     const fullFlat = reinsertBlackStations(skFlat, sections);
     applyConnectStraightenSegmentsToLayer(lyr, fullFlat);
   };

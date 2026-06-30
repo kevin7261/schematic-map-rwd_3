@@ -226,6 +226,8 @@ function nodeWithGrid(node, x, y, fallbackType) {
   const node_kind = t.node_kind ?? n.node_kind;
   const node_class_color = t.node_class_color ?? n.node_class_color;
   const node_class_r = t.node_class_r ?? n.node_class_r;
+  n.x_grid = x;
+  n.y_grid = y;
   n.tags = {
     ...t,
     ...(node_kind != null ? { node_kind } : {}),

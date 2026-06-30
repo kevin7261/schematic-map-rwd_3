@@ -135,6 +135,8 @@ export function buildConnectSkeleton(baseFlat) {
       properties_start: clone(seg?.properties_start),
       properties_end: clone(seg?.properties_end),
       way_properties: clone(seg?.way_properties),
+      color: seg?.color,
+      route_colors: seg?.route_colors,
     });
     sections.push({ blackNodes: blacks });
   };
