@@ -2227,8 +2227,18 @@ export const routeMapAdjustSkeletonToGeoJson = (
   };
   const nodeRadius = () => 4;
   const features = [];
-  // 🖤 黑點站：優先用呼叫端傳入的 blackDots（直線骨架為拉直後重新分配之位置）；否則用骨架重算的 blacks。
-  const blackFeatures = Array.isArray(blackDots) && blackDots.length ? blackDots : blacks;
+  const pushBlackOnEdge = (edgeIdx, path, lat, lng, pos) => {
+    const coord = [lng, lat];
+    const arr = blackOnEdge[edgeIdx];
+    if (arr.some((b) => b.coord[0] === coord[0] && b.coord[1] === coord[1])) return;
+    arr.push({ pos, coord });
+  };
+  // 🖤 黑點站：骨架 blacks（degree-2 直通，含共軌串接段上的站）＋ 選擇路線圖 blackDots（<2 線中段站）聯集。
+  //   ⚠️ 不可只用 blackDots：後者不含 ≥2 線共軌站；骨架 blacks 才是「共線變骨頭、上面點變黑」的機制。
+  const blackFeatures = dedupePoints([
+    ...(Array.isArray(blacks) ? blacks : []),
+    ...(Array.isArray(blackDots) ? blackDots : []),
+  ]);
   // 每個黑點指派到「投影最近」的骨架邊，記其沿邊弧長位置——稍後插進該 way 的頂點，
   // 使示意圖佈局讀 way 幾何轉 flat 時黑點即為中段頂點（不會在轉換時遺失而於佈局後消失）。
   const blackOnEdge = edges.map(() => []);
@@ -2247,7 +2257,7 @@ export const routeMapAdjustSkeletonToGeoJson = (
         bestPos = pr.pos;
       }
     });
-    if (bestE >= 0) blackOnEdge[bestE].push({ pos: bestPos, coord: [b[1], b[0]] });
+    if (bestE >= 0) pushBlackOnEdge(bestE, edges[bestE].path, b[0], b[1], bestPos);
   });
   edges.forEach((e, i) => {
     const path = Array.isArray(e.path) ? e.path : [];

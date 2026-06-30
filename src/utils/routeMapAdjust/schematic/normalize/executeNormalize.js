@@ -27,6 +27,10 @@ const LAYER_ID = 'schematic_rma_normalize';
 
 const num = (v) => Number(v);
 const coordKey = (lon, lat) => `${num(lon).toFixed(6)},${num(lat).toFixed(6)}`;
+/** way 頂點 ↔ Point 容差（度；≈2m），骨架 way 與 Point 常因投影略有偏差。 */
+const POINT_MATCH_TOL = 2e-5;
+/** 黑點投影到 way 的最大垂距（度）。 */
+const ON_WAY_TOL = 2.5e-5;
 
 /** 黑點站家族（路線中段站；snap 後沿邊均分插回，不當佈局頂點）。 */
 const BLACK_DOT_KINDS = new Set(['black', 'gray', 'right_angle_pink', 'brown']);
@@ -40,6 +44,70 @@ function isBlackDotProps(props) {
     if (c === '#000000') return true;
   }
   return false;
+}
+
+/** 中段真實車站（黑點或具站名之轉乘站）：抽離後沿邊均分插回，不可當幾何轉折。 */
+function isMidRouteStationProps(props) {
+  if (!props) return false;
+  if (isBlackDotProps(props)) return true;
+  const t = props?.tags || {};
+  const nm = String(t.station_name ?? props.station_name ?? '').trim();
+  if (nm) return true;
+  return false;
+}
+
+function blackDotKey(props, lon, lat) {
+  const t = props?.tags || {};
+  const sid = String(t.station_id ?? props?.station_id ?? '').trim();
+  if (sid) return `id:${sid}`;
+  const nm = String(t.station_name ?? props?.station_name ?? '').trim();
+  if (nm) return `nm:${nm}`;
+  return coordKey(lon, lat);
+}
+
+/** 點 (lon,lat) 投影到折線 coords；回傳 { pos, perp } 或 null（pos=沿線弧長）。 */
+function projectOnWayLonLat(lon, lat, coords) {
+  let best = null;
+  let cum = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [ax, ay] = coords[i];
+    const [bx, by] = coords[i + 1];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const segLen = Math.hypot(dx, dy);
+    const len2 = dx * dx + dy * dy;
+    let t = len2 ? ((lon - ax) * dx + (lat - ay) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const cx = ax + t * dx;
+    const cy = ay + t * dy;
+    const perp = Math.hypot(lon - cx, lat - cy);
+    if (!best || perp < best.perp) best = { pos: cum + segLen * t, perp };
+    cum += segLen;
+  }
+  return best;
+}
+
+function dedupeConsecutivePts(pts) {
+  const out = [];
+  for (const p of pts) {
+    const last = out[out.length - 1];
+    if (!last || last[0] !== p[0] || last[1] !== p[1]) out.push(p);
+  }
+  return out;
+}
+
+/** snap 後共線之中段頂點可消去 → 骨架直線段只留端點（車站由黑點均分插回）。 */
+function simplifyCollinearKeepPts(pts, eps = 1e-6) {
+  if (!pts || pts.length <= 2) return pts;
+  const [x0, y0] = pts[0];
+  const [x1, y1] = pts[pts.length - 1];
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [x, y] = pts[i];
+    if (Math.abs(dx * (y - y0) - dy * (x - x0)) > eps) return pts;
+  }
+  return [pts[0], pts[pts.length - 1]];
 }
 
 /**
@@ -60,23 +128,42 @@ function buildGridSnapFromGeojson(geojson) {
   return buildSnapLonLatFromC3Segments(baseFlat, { allColorSplitNodes: true });
 }
 
-/** geojson Point features → coordKey → node properties（供端點站名／黑點分類查找）。 */
-function buildPointPropsMap(geojson) {
-  const m = new Map();
+/** geojson Point features → 精確 map + 全點列表（供容差匹配／沿 way 掃描黑點）。 */
+function buildPointIndex(geojson) {
+  const byKey = new Map();
+  const all = [];
   for (const f of geojson.features || []) {
     if (f?.geometry?.type !== 'Point') continue;
     const [lon, lat] = f.geometry.coordinates || [];
     if (lon == null || lat == null) continue;
-    m.set(coordKey(lon, lat), f.properties || {});
+    const props = f.properties || {};
+    byKey.set(coordKey(lon, lat), props);
+    all.push({ lon, lat, props });
   }
-  return m;
+  return { byKey, all };
+}
+
+function lookupPointProps(lon, lat, byKey, all) {
+  const exact = byKey.get(coordKey(lon, lat));
+  if (exact) return exact;
+  let best = null;
+  let bd = POINT_MATCH_TOL;
+  for (const p of all) {
+    const d = Math.hypot(p.lon - lon, p.lat - lat);
+    if (d <= bd) {
+      bd = d;
+      best = p.props;
+    }
+  }
+  return best;
 }
 
 /**
  * 每條 geojson LineString way → 一條 snap 後 flat segment（1:1，不重切、不合併）。
  *   端點＋幾何轉折頂點 snap 到藍色網格；中段黑點站抽離 → 沿 snap 後邊依弧長均分插回。
  */
-function snapGeojsonWaysToFlat(geojson, snap, ptProps) {
+function snapGeojsonWaysToFlat(geojson, snap, ptIndex) {
+  const { byKey: ptProps, all: pointAll } = ptIndex;
   const skeleton = [];
   const sections = [];
   for (const f of geojson.features || []) {
@@ -84,27 +171,59 @@ function snapGeojsonWaysToFlat(geojson, snap, ptProps) {
     const coords = f.geometry.coordinates;
     if (!Array.isArray(coords) || coords.length < 2) continue;
     const tags = f.properties?.tags || {};
-
-    const keepPts = []; // 保留為佈局頂點（端點＋轉折）：snap 後格座標
-    const blackNodes = []; // 中段黑點站（依序）：snap 後沿邊均分插回
     const last = coords.length - 1;
-    for (let i = 0; i < coords.length; i++) {
+
+    const usedBlack = new Set();
+    const blackEntries = []; // { pos, props }
+    const interiorKeep = []; // snap 後幾何轉折（非黑點）
+
+    for (let i = 1; i < last; i++) {
       const [lon, lat] = coords[i];
-      const isEnd = i === 0 || i === last;
-      const props = ptProps.get(coordKey(lon, lat));
-      if (!isEnd && props && isBlackDotProps(props)) {
-        blackNodes.push(JSON.parse(JSON.stringify(props)));
+      const props = lookupPointProps(lon, lat, ptProps, pointAll);
+      if (props && isMidRouteStationProps(props)) {
+        const bk = blackDotKey(props, lon, lat);
+        if (!usedBlack.has(bk)) {
+          usedBlack.add(bk);
+          const pr = projectOnWayLonLat(lon, lat, coords);
+          blackEntries.push({ pos: pr ? pr.pos : i, props: JSON.parse(JSON.stringify(props)) });
+        }
       } else {
-        const [gx, gy] = snap.snapLonLat(lon, lat);
-        keepPts.push([gx, gy]);
+        interiorKeep.push(snap.snapLonLat(lon, lat));
       }
     }
+
+    // way 頂點與 Point 座標不完全重合時：沿 way 掃描尚未配對的黑點 Point。
+    for (const p of pointAll) {
+      if (!isMidRouteStationProps(p.props)) continue;
+      const bk = blackDotKey(p.props, p.lon, p.lat);
+      if (usedBlack.has(bk)) continue;
+      const pr = projectOnWayLonLat(p.lon, p.lat, coords);
+      if (!pr || pr.perp > ON_WAY_TOL) continue;
+      const totalLen = (() => {
+        let s = 0;
+        for (let k = 0; k < last; k++) {
+          const [ax, ay] = coords[k];
+          const [bx, by] = coords[k + 1];
+          s += Math.hypot(bx - ax, by - ay);
+        }
+        return s;
+      })();
+      if (pr.pos <= totalLen * 1e-9 || pr.pos >= totalLen * (1 - 1e-9)) continue;
+      usedBlack.add(bk);
+      blackEntries.push({ pos: pr.pos, props: JSON.parse(JSON.stringify(p.props)) });
+    }
+
+    blackEntries.sort((a, b) => a.pos - b.pos);
+    const blackNodes = blackEntries.map((e) => e.props);
+
+    const startGxy = snap.snapLonLat(coords[0][0], coords[0][1]);
+    const endGxy = snap.snapLonLat(coords[last][0], coords[last][1]);
+    let keepPts = dedupeConsecutivePts([startGxy, ...interiorKeep, endGxy]);
+    keepPts = simplifyCollinearKeepPts(keepPts);
     if (keepPts.length < 2) continue;
 
-    const startGxy = keepPts[0];
-    const endGxy = keepPts[keepPts.length - 1];
-    const startProps = ptProps.get(coordKey(coords[0][0], coords[0][1]));
-    const endProps = ptProps.get(coordKey(coords[last][0], coords[last][1]));
+    const startProps = lookupPointProps(coords[0][0], coords[0][1], ptProps, pointAll);
+    const endProps = lookupPointProps(coords[last][0], coords[last][1], ptProps, pointAll);
     const mkEnd = (props, gx, gy) => {
       const base = props ? JSON.parse(JSON.stringify(props)) : {};
       const t = base.tags || {};
@@ -121,9 +240,13 @@ function snapGeojsonWaysToFlat(geojson, snap, ptProps) {
       route_name: tags.route_name ?? tags.route_id ?? '',
       name: tags.route_name ?? tags.route_id ?? '',
       points: keepPts,
-      nodes: [mkEnd(startProps, startGxy[0], startGxy[1]), mkEnd(endProps, endGxy[0], endGxy[1])],
-      properties_start: { x_grid: startGxy[0], y_grid: startGxy[1], tags: { x_grid: startGxy[0], y_grid: startGxy[1] } },
-      properties_end: { x_grid: endGxy[0], y_grid: endGxy[1], tags: { x_grid: endGxy[0], y_grid: endGxy[1] } },
+      nodes: [mkEnd(startProps, keepPts[0][0], keepPts[0][1]), mkEnd(endProps, keepPts[keepPts.length - 1][0], keepPts[keepPts.length - 1][1])],
+      properties_start: { x_grid: keepPts[0][0], y_grid: keepPts[0][1], tags: { x_grid: keepPts[0][0], y_grid: keepPts[0][1] } },
+      properties_end: {
+        x_grid: keepPts[keepPts.length - 1][0],
+        y_grid: keepPts[keepPts.length - 1][1],
+        tags: { x_grid: keepPts[keepPts.length - 1][0], y_grid: keepPts[keepPts.length - 1][1] },
+      },
       way_properties: { tags: { ...tags } },
       color: tags.color,
       route_colors: tags.route_colors,
@@ -170,8 +293,8 @@ export function executeNormalizeRma() {
     console.warn('executeNormalizeRma：藍色網格 snap 建立失敗。');
     return false;
   }
-  const ptProps = buildPointPropsMap(geojson);
-  const fullFlat = snapGeojsonWaysToFlat(geojson, snap, ptProps);
+  const ptIndex = buildPointIndex(geojson);
+  const fullFlat = snapGeojsonWaysToFlat(geojson, snap, ptIndex);
   if (!Array.isArray(fullFlat) || fullFlat.length === 0) {
     console.warn('executeNormalizeRma：無 way 可正規化。');
     return false;
