@@ -6,6 +6,7 @@
  *    僅透過 dataStore 讀取「選擇路線圖」圖層的資料欄位，深拷貝一份到本圖層，之後可獨立調整。
  */
 import { ref, computed } from 'vue';
+import { setControlLoadFeedback } from '@/utils/control/controlLoadFeedback.js';
 import {
   computeRouteMapAdjustStations,
   computeRouteMapAdjustRouteStations,
@@ -55,7 +56,11 @@ export function useRouteMapAdjust2(dataStore) {
     if (!dst) return;
     const lines = Array.isArray(src?.selectRouteMapLines) ? src.selectRouteMapLines : [];
     if (!lines.length) {
-      window.alert('「選擇路線圖」目前沒有路線，請先在「選擇路線圖」載入城市路線。');
+      setControlLoadFeedback(
+        ROUTE_MAP_ADJUST_2_LAYER_ID,
+        '「選擇路線圖」目前沒有路線，請先在「選擇路線圖」載入城市路線。',
+        'danger'
+      );
       return;
     }
     isLoading.value = true;
@@ -80,6 +85,11 @@ export function useRouteMapAdjust2(dataStore) {
         ? `從選擇路線圖載入：${src.selectRouteMapSource}`
         : '從選擇路線圖載入';
       dataStore.requestRouteMapAdjust2Fit();
+      setControlLoadFeedback(
+        ROUTE_MAP_ADJUST_2_LAYER_ID,
+        `已載入 ${clonedLines.length} 條路線（自「選擇路線圖」複製）。`,
+        'success'
+      );
     } finally {
       isLoading.value = false;
     }

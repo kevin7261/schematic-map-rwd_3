@@ -3,6 +3,7 @@
  * 由原 ControlTab.vue 抽出，行為不變。
  */
 import { nextTick, reactive } from 'vue';
+import { setControlLoadFeedback } from '@/utils/control/controlLoadFeedback.js';
 import {
   LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID,
   LAYOUT_NETWORK_GRID_FROM_VH_DRAW_LAYER_ID_COPY,
@@ -107,12 +108,16 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
   const importRmaLayoutNetworkGridFrom = async (lyr, sourceLayerId) => {
     if (!isRmaLayer(lyr)) return;
     const src = dataStore.findLayerById(sourceLayerId);
+    const label =
+      ROUTE_NORMALIZATION_IMPORT_SOURCES.find((s) => s.layerId === sourceLayerId)?.label ||
+      src?.layerName ||
+      sourceLayerId;
     if (!src || !Array.isArray(src.spaceNetworkGridJsonData) || !src.spaceNetworkGridJsonData.length) {
-      const label =
-        ROUTE_NORMALIZATION_IMPORT_SOURCES.find((s) => s.layerId === sourceLayerId)?.label ||
-        src?.layerName ||
-        sourceLayerId;
-      window.alert(`「${label}」尚無路網；請先完成該層運算或匯入。`);
+      setControlLoadFeedback(
+        lyr.layerId,
+        `「${label}」尚無路網；請先完成該層運算或匯入。`,
+        'danger'
+      );
       return;
     }
     refreshRmaLayoutNetworkGridFromVhIfVisible(
@@ -123,6 +128,7 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
     );
     await nextTick();
     dataStore.requestSpaceNetworkGridFullRedraw();
+    setControlLoadFeedback(lyr.layerId, `已自「${label}」匯入路網。`, 'success');
   };
 
   const routeNormSourceHasData = (sourceLayerId) => {
@@ -186,7 +192,7 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
       dataStore.requestSpaceNetworkGridFullRedraw();
     } catch (err) {
       console.error(err);
-      window.alert('載入 CSV 失敗：' + err.message);
+      setControlLoadFeedback(lyr.layerId, '載入 CSV 失敗：' + err.message, 'danger');
     }
   };
 

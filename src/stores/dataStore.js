@@ -137,7 +137,10 @@ import { executeMerrick as executeMerrickRma } from '../utils/routeMapAdjust/sch
 import { executeSat as executeSatRma } from '../utils/routeMapAdjust/schematic/sat/executeSat.js';
 import { executeNormalizeRma } from '../utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
 import { executeReadMilpResult as executeReadMilpResultRma } from '../utils/routeMapAdjust/schematic/milp/readMilpResult.js';
-import { makeRouteAdjustLayoutLayer } from '../utils/routeMapAdjust/routeAdjustLayout/layerDef.js';
+import {
+  makeRouteAdjustLayoutLayer,
+  makeRmaDetailAdjustLayer,
+} from '../utils/routeMapAdjust/routeAdjustLayout/layerDef.js';
 import {
   executeRouteAdjustStroke,
   executeRouteAdjustHillClimb,
@@ -157,6 +160,7 @@ import {
   ROUTE_ADJUST_BAST_LAYER_ID,
   ROUTE_ADJUST_MERRICK_LAYER_ID,
   ROUTE_ADJUST_SAT_LAYER_ID,
+  SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
 } from '../utils/routeMapAdjust/routeAdjustLayout/layerIds.js';
 import { assignOsm2LayerViewerFields } from '../utils/layers/osm_2_geojson_2_json/layerMerge.js';
 import {
@@ -971,8 +975,13 @@ export const useDataStore = defineStore(
             colorName: 'bluegrey',
             executeFunction: executeRouteAdjustSat,
           }),
+          makeRmaDetailAdjustLayer({
+            layerId: SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
+            layerName: '站點與路線細部調整',
+            colorName: 'lime',
+          }),
           {
-            /** 站點與路線往中心聚集（RMA·先橫後直）：自「MILP結果正規化（RMA）」抓資料，演算法同 OSM 版。 */
+            /** 站點與路線往中心聚集（RMA·先橫後直）：自「站點與路線細部調整」抓資料，演算法同 OSM 版。 */
             layerId: 'schematic_rma_toward_center_hv',
             layerName: '站點與路線往中心聚集（先橫後直）',
             visible: false,

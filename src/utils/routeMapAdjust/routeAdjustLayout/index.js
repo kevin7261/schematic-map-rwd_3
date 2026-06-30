@@ -11,7 +11,9 @@ export {
   ROUTE_ADJUST_BAST_LAYER_ID,
   ROUTE_ADJUST_MERRICK_LAYER_ID,
   ROUTE_ADJUST_SAT_LAYER_ID,
+  SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
 } from './layerIds.js';
+export { makeRmaDetailAdjustLayer } from './layerDef.js';
 export { resolveRouteAdjustLayoutInput } from './input.js';
 export { runRouteAdjustLiveLayout } from './runLiveLayout.js';
 export {

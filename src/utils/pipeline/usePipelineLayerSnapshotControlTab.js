@@ -2,6 +2,7 @@
  * Control 分頁：管線四階段圖層「匯入／匯出 JSON」。
  */
 import { ref } from 'vue';
+import { setControlLoadFeedback } from '@/utils/control/controlLoadFeedback.js';
 import {
   applyPipelineLayerSnapshot,
   buildPipelineLayerSnapshot,
@@ -35,9 +36,13 @@ export function usePipelineLayerSnapshotControlTab({ dataStore, onAfterImport })
   };
 
   const exportPipelineLayerSnapshot = (layer) => {
-    if (!layer) return;
+    if (!layer?.layerId) return;
     if (!pipelineLayerHasExportableData(layer)) {
-      window.alert('此圖層尚無可匯出資料。請先完成對應步驟或載入城市路線。');
+      setControlLoadFeedback(
+        layer.layerId,
+        '此圖層尚無可匯出資料。請先完成對應步驟或載入城市路線。',
+        'danger'
+      );
       return;
     }
     try {
@@ -48,10 +53,11 @@ export function usePipelineLayerSnapshotControlTab({ dataStore, onAfterImport })
         snapshot.cityName || resolvePipelineCityName(dataStore)
       );
       triggerPipelineJsonDownload(snapshot, filename);
+      setControlLoadFeedback(layer.layerId, `已匯出「${filename}」。`, 'success');
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('匯出管線快照失敗', e);
-      window.alert('匯出失敗（詳見控制台）。');
+      setControlLoadFeedback(layer.layerId, '匯出失敗（詳見控制台）。', 'danger');
     }
   };
 
@@ -63,7 +69,7 @@ export function usePipelineLayerSnapshotControlTab({ dataStore, onAfterImport })
     if (!file || !layerId) return;
     const layer = dataStore.findLayerById(layerId);
     if (!layer) {
-      window.alert('找不到目標圖層。');
+      setControlLoadFeedback(layerId, '找不到目標圖層。', 'danger');
       return;
     }
     try {
@@ -71,18 +77,22 @@ export function usePipelineLayerSnapshotControlTab({ dataStore, onAfterImport })
       const parsed = JSON.parse(text);
       const check = parsePipelineLayerSnapshotFile(parsed, layerId);
       if (!check.ok) {
-        window.alert(check.message || '無法匯入。');
+        setControlLoadFeedback(layerId, check.message || '無法匯入。', 'danger');
         return;
       }
       applyPipelineLayerSnapshot(layer, check.snapshot, dataStore);
       if (typeof onAfterImport === 'function') {
         await onAfterImport(layer);
       }
-      window.alert(`已匯入「${check.snapshot.layerName || layer.layerName}」快照。`);
+      setControlLoadFeedback(
+        layerId,
+        `已匯入「${check.snapshot.layerName || layer.layerName}」快照。`,
+        'success'
+      );
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('匯入管線快照失敗', e);
-      window.alert('匯入失敗：' + (e?.message || String(e)));
+      setControlLoadFeedback(layerId, '匯入失敗：' + (e?.message || String(e)), 'danger');
     }
   };
 

@@ -3,6 +3,7 @@
  * 由原 ControlTab.vue 抽出，行為不變。
  */
 import { nextTick, onUnmounted, reactive, ref } from 'vue';
+import { setControlLoadFeedback } from '@/utils/control/controlLoadFeedback.js';
 import { buildTaipeiB3ExecuteLayerFieldsFromGeojson } from '@/utils/taipeiTest4/buildTaipeiA3StyleLayerFieldsFromGeojson.js';
 import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest3/flatSegmentsToGeojsonStyleExportRows.js';
 import { reinsertBlackStations } from '@/utils/layers/schematic_layout/assemble.js';
@@ -56,7 +57,11 @@ export function useOrthogonalVhDrawControlTab({
   stopJsonGridFromCoordVertexAuto,
   stopRbConnectAuto,
 }) {
-  const pickOrthogonalVhDrawLocalJsonClick = () => {
+  const jsonImportFeedbackLayerId = ref(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
+
+  const pickOrthogonalVhDrawLocalJsonClick = (feedbackLayerId) => {
+    jsonImportFeedbackLayerId.value =
+      feedbackLayerId || LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID;
     document.getElementById(VH_DRAW_LOCAL_JSON_INPUT_ID)?.click();
   };
 
@@ -123,12 +128,15 @@ export function useOrthogonalVhDrawControlTab({
    * 確保兩者與「下載 JSON → 匯入 JSON」完全等價（含黑點）。
    * @returns {boolean} 是否成功
    */
-  const applyOrthogonalVhDrawFromExportRows = async (rows, label) => {
+  const applyOrthogonalVhDrawFromExportRows = async (rows, label, feedbackLayerId) => {
+    const fbId = feedbackLayerId || LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID;
     const lyr = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
     if (!lyr) return false;
     if (!Array.isArray(rows) || rows.length === 0) {
-      window.alert(
-        'JSON 須為地圖路段匯出陣列（routeName／segment／routeCoordinates），或含 dataJson／mapDrawnRoutes 之物件。'
+      setControlLoadFeedback(
+        fbId,
+        'JSON 須為地圖路段匯出陣列（routeName／segment／routeCoordinates），或含 dataJson／mapDrawnRoutes 之物件。',
+        'danger'
       );
       return false;
     }
@@ -141,7 +149,7 @@ export function useOrthogonalVhDrawControlTab({
       const derived = buildTaipeiB3ExecuteLayerFieldsFromGeojson(fc, {});
       const sn = derived?.spaceNetworkGridJsonData;
       if (!Array.isArray(sn) || sn.length === 0) {
-        window.alert('無法由該來源建立路網（spaceNetworkGridJsonData 為空）。');
+        setControlLoadFeedback(fbId, '無法由該來源建立路網（spaceNetworkGridJsonData 為空）。', 'danger');
         lyr.isLoading = false;
         return false;
       }
@@ -158,7 +166,7 @@ export function useOrthogonalVhDrawControlTab({
       return true;
     } catch (err) {
       console.error(err);
-      window.alert('匯入失敗（詳見控制台）。');
+      setControlLoadFeedback(fbId, '匯入失敗（詳見控制台）。', 'danger');
       lyr.isLoading = false;
       dataStore.saveLayerState(lyr.layerId, { isLoading: false });
       return false;
@@ -167,20 +175,23 @@ export function useOrthogonalVhDrawControlTab({
 
   /** 與「選擇 JSON 檔讀入…」相同：寫入 `orthogonal_toward_center_vh_draw`（含 dataJson／路網），可由路網網格層按鈕觸發。 */
   const applyOrthogonalVhDrawFromImportedJsonFile = async (file) => {
+    const fbId = jsonImportFeedbackLayerId.value || LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID;
     if (!file) return;
     let parsed;
     try {
       parsed = JSON.parse(await file.text());
     } catch (err) {
       console.error(err);
-      window.alert('讀取或解析 JSON 失敗（詳見控制台）。');
+      setControlLoadFeedback(fbId, '讀取或解析 JSON 失敗（詳見控制台）。', 'danger');
       return;
     }
     const rows = extractMapDrawnRoutesRowsFromParsedJson(parsed);
-    const ok = await applyOrthogonalVhDrawFromExportRows(rows, file.name);
+    const ok = await applyOrthogonalVhDrawFromExportRows(rows, file.name, fbId);
     if (ok) {
-      window.alert(
-        `已讀入「${file.name}」至 VH 繪製層。之後開啟該圖層將沿用此檔（不再自動鏡像 VH）。`
+      setControlLoadFeedback(
+        fbId,
+        `已讀入「${file.name}」至 VH 繪製層。之後開啟該圖層將沿用此檔（不再自動鏡像 VH）。`,
+        'success'
       );
     }
   };
@@ -268,7 +279,8 @@ export function useOrthogonalVhDrawControlTab({
    * OSM 那組若記憶體為空，會就地執行與「開啟圖層」相同之鏡像填充再讀。
    * @param {string|string[]} sourceLayerIds
    */
-  const applyOrthogonalVhDrawFromConvergeCenterLayer = async (sourceLayerIds) => {
+  const applyOrthogonalVhDrawFromConvergeCenterLayer = async (sourceLayerIds, feedbackLayerId) => {
+    const fbId = feedbackLayerId || LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID;
     const lyr = dataStore.findLayerById(LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID);
     if (!lyr) return;
     const candidates = (Array.isArray(sourceLayerIds) ? sourceLayerIds : [sourceLayerIds]).filter(
@@ -309,21 +321,25 @@ export function useOrthogonalVhDrawControlTab({
       if (dots > 0) break;
     }
     if (!src || !rows || rows.length === 0) {
-      window.alert(
-        `「站點與路線往中心聚集」尚無路網可匯入（已試：${tried.join('、') || '無'}）；請先開啟並產生該圖層資料。`
+      setControlLoadFeedback(
+        fbId,
+        `「站點與路線往中心聚集」尚無路網可匯入（已試：${tried.join('、') || '無'}）；請先開啟並產生該圖層資料。`,
+        'danger'
       );
       return;
     }
     const srcLabel = src.layerName || src.layerId;
     if (blackDotCount < 0) blackDotCount = 0;
     // 與「下載 JSON → 選擇 JSON 檔讀入」完全相同之核心（含黑點之 sn＋rows 回填合併）。
-    const ok = await applyOrthogonalVhDrawFromExportRows(rows, srcLabel);
+    const ok = await applyOrthogonalVhDrawFromExportRows(rows, srcLabel, fbId);
     if (ok) {
-      window.alert(
+      setControlLoadFeedback(
+        fbId,
         `已自「${srcLabel}」匯入 ${rows.length} 段路網（中段黑點 ${blackDotCount} 顆）至 VH 繪製層。` +
           (blackDotCount === 0
             ? '\n⚠ 來源本身沒有中段黑點（可能是示意圖骨架層；黑點要到「connect 拉直」才放回）。'
-            : '')
+            : ''),
+        blackDotCount === 0 ? 'muted' : 'success'
       );
     }
   };

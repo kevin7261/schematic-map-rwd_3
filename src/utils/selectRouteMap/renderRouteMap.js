@@ -11,6 +11,16 @@ import 'leaflet/dist/leaflet.css';
 import { watch } from 'vue';
 import { computeRouteMapStations } from './routeStations.js';
 import { SELECT_ROUTE_MAP_LAYER_ID } from './cityCatalog.js';
+import {
+  bindLeafletHoverOrControlPanel,
+  clearPipelineMapHover,
+} from '@/utils/control/pipelineMapHoverDisplay.js';
+import {
+  pipelineLineTooltipHtml as lineTooltipHtml,
+  buildPipelineRoutesAtCoord,
+  pipelineStationTooltipHtml,
+  leafletRouteMapStationDisplay,
+} from '@/utils/control/pipelineMapHoverHtml.js';
 
 /**
  * 在指定 DOM 容器上掛載「選擇路線圖」的 Leaflet 地圖。
@@ -65,53 +75,23 @@ export function mountRouteMap(el, dataStore) {
       (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]
     );
   const llKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
-  const rowHtml = (k, v) =>
-    v == null || v === '' ? '' : `<div><span style="color:#888">${esc(k)}</span> ${esc(v)}</div>`;
 
-  const lineTooltipHtml = (ln) =>
-    `<div style="font-size:12px;line-height:1.5">` +
-    rowHtml('route_name', ln.routeName) +
-    rowHtml('route_id', ln.routeId) +
-    rowHtml('route_company', ln.routeCompany) +
-    rowHtml('railway', ln.railway) +
-    rowHtml('osm_id', ln.osmId) +
-    rowHtml('color', ln.color) +
-    `</div>`;
 
-  const typeLabel = (t) =>
-    t === 'terminal' ? '端點 terminal' : t === 'connect' ? '交點 intersection' : '一般 normal';
+  const buildRoutesAtCoord = () =>
+    buildPipelineRoutesAtCoord(layer.selectRouteMapLines, (lat, lng) => llKey(lat, lng));
 
-  const buildRoutesAtCoord = () => {
-    const m = new Map();
-    for (const ln of layer.selectRouteMapLines || []) {
-      if (!ln || !Array.isArray(ln.latlngs)) continue;
-      for (const c of ln.latlngs) {
-        const k = llKey(c[0], c[1]);
-        let set = m.get(k);
-        if (!set) {
-          set = new Set();
-          m.set(k, set);
-        }
-        if (ln.routeName) set.add(ln.routeName);
-      }
-    }
-    return m;
-  };
-  const stationTooltipHtml = (latlng, type, routesAtCoord) => {
+  const stationTooltipHtml = (latlng, type, routesAtCoord, fillColor) => {
     const k = llKey(latlng[0], latlng[1]);
     const meta = (layer.selectRouteMapStationMeta && layer.selectRouteMapStationMeta[k]) || {};
-    const routes = [...(routesAtCoord.get(k) || [])];
-    return (
-      `<div style="font-size:12px;line-height:1.5">` +
-      rowHtml('station_name', meta.name) +
-      rowHtml('station_id', meta.id) +
-      rowHtml('osm_id', meta.osmId) +
-      rowHtml('type', typeLabel(type)) +
-      (routes.length
-        ? `<div><span style="color:#888">route_name_list</span> ${esc(routes.join('、'))}</div>`
-        : '') +
-      `</div>`
-    );
+    const routes = routesAtCoord.get(k) || [];
+    const disp = leafletRouteMapStationDisplay(type, fillColor);
+    return pipelineStationTooltipHtml({
+      meta,
+      typeLabel: disp.typeLabel,
+      stationDotColor: disp.color,
+      stationColorReason: disp.reason,
+      routes,
+    });
   };
 
   const renderFinished = () => {
@@ -125,7 +105,7 @@ export function mountRouteMap(el, dataStore) {
         opacity: 0.9,
         interactive: true,
       });
-      pl.bindTooltip(lineTooltipHtml(ln), { sticky: true });
+      bindLeafletHoverOrControlPanel(pl, SELECT_ROUTE_MAP_LAYER_ID, dataStore, lineTooltipHtml(ln));
       // hover：線加粗
       pl.on('mouseover', () => pl.setStyle({ weight: baseWeight + 4 }));
       pl.on('mouseout', () => pl.setStyle({ weight: baseWeight }));
@@ -167,7 +147,12 @@ export function mountRouteMap(el, dataStore) {
         interactive: true,
         pane: 'srmDots', // 圓點置於最上層 pane，永遠不被站名遮住
       });
-      m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
+      bindLeafletHoverOrControlPanel(
+        m,
+        SELECT_ROUTE_MAP_LAYER_ID,
+        dataStore,
+        stationTooltipHtml(latlng, type, routesAtCoord, fillColor)
+      );
       // hover：圓點放大
       m.on('mouseover', () => m.setRadius(radius + 3));
       m.on('mouseout', () => m.setRadius(radius));
@@ -253,6 +238,7 @@ export function mountRouteMap(el, dataStore) {
       }
     },
     destroy: () => {
+      clearPipelineMapHover(SELECT_ROUTE_MAP_LAYER_ID);
       try {
         stopLinesWatch();
       } catch (e) {

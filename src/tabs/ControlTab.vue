@@ -94,6 +94,7 @@
     ROUTE_ADJUST_UPSTREAM_LAYER_ID,
     resolveRouteAdjustLayoutInput,
     ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES,
+    SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
   } from '@/utils/routeMapAdjust/routeAdjustLayout/index.js';
   import { computeStationDataFromRoutes } from '@/utils/dataExecute/computeStationDataFromRoutes.js';
   import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
@@ -102,10 +103,18 @@
   import { useLayoutNetworkGridFromVhDrawControlTab } from '@/utils/layers/layout_network_grid_from_vh_draw/useLayoutNetworkGridFromVhDrawControlTab.js';
   import OrthogonalVhDrawControlTabSection from '@/utils/layers/orthogonal_toward_center_vh_draw/ControlTabSection.vue';
   import LayoutNetworkGridFromVhDrawControlTabSection from '@/utils/layers/layout_network_grid_from_vh_draw/ControlTabSection.vue';
+  import ControlLoadFeedback from '@/components/ControlLoadFeedback.vue';
+  import { setControlLoadFeedback } from '@/utils/control/controlLoadFeedback.js';
   import {
     usePipelineLayerSnapshotControlTab,
     PIPELINE_LAYER_SNAPSHOT_INPUT_ID,
   } from '@/utils/pipeline/usePipelineLayerSnapshotControlTab.js';
+  import { findPipelineGroupName } from '@/utils/pipeline/pipelineLayerSnapshot.js';
+  import {
+    pipelineMapHoverFeedback,
+    pipelineMapHoverActiveLayerId,
+    clearPipelineMapHover,
+  } from '@/utils/control/pipelineMapHoverFeedback.js';
 
   /**
    * 網格合併和縮減工具函數引入
@@ -392,13 +401,32 @@
     () => currentLayer.value && isTaipeiTestGOrHWeightLayerTab(currentLayer.value.layerId)
   );
 
+  /** 目前圖層是否屬管線四階段（路線圖處理／示意圖佈局／路線正規化／路網網格） */
+  const isCurrentLayerPipelineGroup = computed(() => {
+    const L = currentLayer.value;
+    return !!(L?.layerId && findPipelineGroupName(dataStore, L.layerId));
+  });
+
+  /** 管線圖層地圖 hover 資訊（僅 hover 期間有內容；以地圖 hover 的圖層為準，非 Control 分頁選取） */
+  const pipelineMapHoverHtml = computed(() => {
+    const id = pipelineMapHoverActiveLayerId.value;
+    if (!id) return '';
+    return pipelineMapHoverFeedback[id]?.html || '';
+  });
+
+  watch(activeLayerTab, (_newId, oldId) => {
+    if (oldId) clearPipelineMapHover(oldId);
+  });
+
   /**
    * 空間網路「路線權重數字」開關：有 spaceNetworkGridJsonData 或 K3／L3 專用複本，且非 taipei_f／g（該類另有專區顯示權重）。
+   * 管線四階段圖層不含（其 Control 為管線專用操作，非 taipei_k4 空間網路圖 K3/K4 診斷專區）。
    * 與 Upper 之 space-network-grid、space-network-grid-k3 之路線權重數字連動（l3 分頁為依版面動態網格預覽，不繪權重）。
    */
   const hasSpaceNetworkStandaloneRouteWeightToggle = computed(() => {
     const L = currentLayer.value;
     if (!L) return false;
+    if (isCurrentLayerPipelineGroup.value) return false;
     const hasSn =
       Array.isArray(L.spaceNetworkGridJsonData) && L.spaceNetworkGridJsonData.length > 0;
     const hasSnK3 =
@@ -2882,8 +2910,9 @@
     schematic_toward_center_hv: 'schematic_milp_read',
     schematic_toward_center_vh: 'schematic_toward_center_hv',
     schematic_milp_straighten: 'schematic_toward_center_vh',
-    // 路線圖調整（RMA）示意圖管線：MILP結果正規化（RMA）→ 先橫後直 → 先直後橫
-    schematic_rma_toward_center_hv: 'schematic_rma_milp_read',
+    // 路線圖調整（RMA）示意圖管線：MILP結果正規化 → 細部調整 → 先橫後直 → 先直後橫
+    schematic_rma_detail_adjust: 'schematic_rma_milp_read',
+    schematic_rma_toward_center_hv: 'schematic_rma_detail_adjust',
     schematic_rma_toward_center_vh: 'schematic_rma_toward_center_hv',
   };
   /** 路網內容廉價簽章：段數:總點數:座標雜湊（供「上游是否變更」判斷）。 */
@@ -2921,11 +2950,15 @@
     if (has && lyr.seededFromSig === sig) return; // 上游未變、已有資料 → 保留本層（含已操作結果）
 
     if (layerId === 'schematic_toward_center_hv' || layerId === 'schematic_rma_toward_center_hv') {
-      // 上游＝MILP結果正規化（含黑點）：抽離黑點 → 只存骨架；黑點 sections 存 metadata 隨鏈傳遞。
+      // 上游＝細部調整或 MILP結果正規化（含黑點）：抽離黑點 → 只存骨架；黑點 sections 存 metadata 隨鏈傳遞。
       const full = normalizeSpaceNetworkDataToFlatSegments(JSON.parse(JSON.stringify(srcData)));
       const { skeleton, sections } = milpReadFlatToSkeleton(full);
       lyr.schematicBlackSections = sections;
       applyConnectStraightenSegmentsToLayer(lyr, skeleton);
+    } else if (layerId === 'schematic_rma_detail_adjust') {
+      // 細部調整：保留完整路網（含黑點），自路線正規化鏡像。
+      applyConnectStraightenSegmentsToLayer(lyr, JSON.parse(JSON.stringify(srcData)));
+      lyr.schematicBlackSections = null;
     } else if (layerId === 'schematic_toward_center_vh' || layerId === 'schematic_rma_toward_center_vh') {
       // 上游＝先橫後直（已是骨架）：複製骨架；沿用其黑點 sections metadata。
       lyr.schematicBlackSections = src.schematicBlackSections || [];
@@ -3484,7 +3517,6 @@
     drawCountries: srmCountries,
     drawCities: srmCities,
     isTracingRefMap: srmTracing,
-    drawLoadMsg: srmLoadMsg,
     loadSelectedCity: srmLoadSelectedCity,
     quickLoadCity: srmQuickLoad,
     clearRouteMap: srmClear,
@@ -3576,7 +3608,11 @@
     const sk = adj?.routeMapAdjustSkeleton;
     const edges = Array.isArray(sk?.edges) ? sk.edges : [];
     if (!edges.length) {
-      window.alert('「路線圖轉換骨架」尚未建立骨架，請先到「路線圖轉換骨架」按「變成骨架」。');
+      setControlLoadFeedback(
+        layer.layerId,
+        '「路線圖轉換骨架」尚未建立骨架，請先到「路線圖轉換骨架」按「變成骨架」。',
+        'danger'
+      );
       return;
     }
     const fc = routeMapAdjustSkeletonToGeoJson(
@@ -3590,7 +3626,11 @@
     if (!layer.visible) layer.visible = true;
     maybeShowQuadtreePartitionForNormalize(layer); // ⑨：載入骨架即先顯示四分樹切割
     dataStore.setRouteSchematicActiveLayer(layer.layerId); // 獨立顯示：畫此圖層的骨架
-    window.alert(`已載入骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`);
+    setControlLoadFeedback(
+      layer.layerId,
+      `已載入骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`,
+      'success'
+    );
   };
 
   /** 📥「示意圖佈局」：把「路線圖轉換骨架2」的**骨架**轉成 geojson 寫入此圖層之 geojsonData（含粉紅/灰點分類）。 */
@@ -3600,7 +3640,11 @@
     const sk = adj?.routeMapAdjustSkeleton;
     const edges = Array.isArray(sk?.edges) ? sk.edges : [];
     if (!edges.length) {
-      window.alert('「路線圖轉換骨架2」尚未建立骨架，請先到「路線圖轉換骨架2」按「變成骨架」。');
+      setControlLoadFeedback(
+        layer.layerId,
+        '「路線圖轉換骨架2」尚未建立骨架，請先到「路線圖轉換骨架2」按「變成骨架」。',
+        'danger'
+      );
       return;
     }
     const fc = routeMapAdjustSkeletonToGeoJson(
@@ -3614,8 +3658,10 @@
     if (!layer.visible) layer.visible = true;
     maybeShowQuadtreePartitionForNormalize(layer); // ⑨：載入骨架即先顯示四分樹切割
     dataStore.setRouteSchematicActiveLayer(layer.layerId);
-    window.alert(
-      `已載入骨架2：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`
+    setControlLoadFeedback(
+      layer.layerId,
+      `已載入骨架2：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`,
+      'success'
     );
   };
 
@@ -3638,7 +3684,11 @@
     const sk = adj?.routeMapAdjustSkeleton;
     const edges = Array.isArray(sk?.edges) ? sk.edges : [];
     if (!edges.length) {
-      window.alert('「路線圖轉換直線骨架」尚未建立骨架，請先到「路線圖轉換直線骨架」按「變成骨架」。');
+      setControlLoadFeedback(
+        layer.layerId,
+        '「路線圖轉換直線骨架」尚未建立骨架，請先到「路線圖轉換直線骨架」按「變成骨架」。',
+        'danger'
+      );
       return;
     }
     const lines = Array.isArray(adj.routeMapAdjustStraightenedLines)
@@ -3665,8 +3715,10 @@
     if (!layer.visible) layer.visible = true;
     maybeShowQuadtreePartitionForNormalize(layer); // ⑨：載入骨架即先顯示四分樹切割
     dataStore.setRouteSchematicActiveLayer(layer.layerId);
-    window.alert(
-      `已載入直線骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`
+    setControlLoadFeedback(
+      layer.layerId,
+      `已載入直線骨架：${edges.length} 條邊、${(sk.nodes || []).length} 個節點。可按「開始執行」。`,
+      'success'
     );
   };
 
@@ -3777,33 +3829,38 @@
 
   /** 📂 載入所選城市「預先抓好」的 GeoJSON（data/metro/<洲>/<國>/<市>.geojson）並畫到畫線圖層 */
   const isTracingRefMap = ref(false);
-  const drawLoadMsg = ref('');
+  const LEAFLET_DRAW_LAYER_ID = 'leaflet_josm_draw';
   const loadSelectedCity = async () => {
     const city = metroCatalog.value.find((c) => c.id === selCity.value);
     if (!city || !city.file) {
-      window.alert('請依序選擇 洲 → 國家 → 城市。');
+      setControlLoadFeedback(LEAFLET_DRAW_LAYER_ID, '請依序選擇 洲 → 國家 → 城市。', 'danger');
       return;
     }
     const lyr = leafletDrawLayer.value;
     if (!lyr) return;
     isTracingRefMap.value = true;
-    drawLoadMsg.value = '讀取中…';
+    setControlLoadFeedback(LEAFLET_DRAW_LAYER_ID, '讀取中…', 'muted');
     try {
       const res = await fetch(`${process.env.BASE_URL || '/'}data/metro/${city.file}`);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const fc = await res.json();
       const n = applyMetroFcToDrawLayer(fc, lyr);
       if (!n) {
-        window.alert('此城市資料無有效路線。');
+        setControlLoadFeedback(LEAFLET_DRAW_LAYER_ID, '此城市資料無有效路線。', 'danger');
         return;
       }
       lyr.leafletDrawSource = `${city.city}, ${city.country}・© OpenStreetMap contributors（ODbL）`;
       dataStore.requestLeafletDrawFit();
+      const label = city.cityZh ? `${city.cityZh} ${city.city}` : city.city;
+      setControlLoadFeedback(LEAFLET_DRAW_LAYER_ID, `已載入 ${label}（${n} 條路線）。`, 'success');
     } catch (e) {
-      window.alert('讀取失敗：' + (e && e.message ? e.message : e));
+      setControlLoadFeedback(
+        LEAFLET_DRAW_LAYER_ID,
+        '讀取失敗：' + (e && e.message ? e.message : e),
+        'danger'
+      );
     } finally {
       isTracingRefMap.value = false;
-      drawLoadMsg.value = '';
     }
   };
 
@@ -4049,18 +4106,24 @@
     const file = event?.target?.files?.[0];
     if (event?.target) event.target.value = '';
     if (!file) return;
+    const layerId = 'schematic_milp_read';
     try {
       let parsed = JSON.parse(await file.text());
       if (!Array.isArray(parsed)) {
         parsed = parsed?.fullFlat || parsed?.spaceNetworkGridJsonData || parsed?.flatSegs || null;
       }
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        window.alert('JSON 格式不符（需為路段陣列，或含 fullFlat／spaceNetworkGridJsonData）。');
+        setControlLoadFeedback(
+          layerId,
+          'JSON 格式不符（需為路段陣列，或含 fullFlat／spaceNetworkGridJsonData）。',
+          'danger'
+        );
         return;
       }
       loadMilpJsonRaw(parsed); // 只顯示原始；正規化要按「執行下一步」
+      setControlLoadFeedback(layerId, `已匯入「${file.name}」。`, 'success');
     } catch (e) {
-      window.alert('匯入失敗：' + (e?.message || e));
+      setControlLoadFeedback(layerId, '匯入失敗：' + (e?.message || e), 'danger');
     }
   };
 
@@ -4069,29 +4132,82 @@
    * 走與「匯入 JSON 檔」相同管線（loadMilpJsonRaw）：存為 dataJson、顯示原始；正規化要按「座標正規化」。
    */
   const importLayoutResultIntoMilpRead = (sourceLayerId) => {
+    const layerId = 'schematic_milp_read';
     const src = dataStore.findLayerById(sourceLayerId);
     if (!src) return;
     const segs = Array.isArray(src.spaceNetworkGridJsonData) ? src.spaceNetworkGridJsonData : null;
     if (!segs || segs.length === 0) {
-      window.alert(`圖層「${src.layerName || sourceLayerId}」尚無排版結果，請先執行該佈局。`);
+      setControlLoadFeedback(
+        layerId,
+        `圖層「${src.layerName || sourceLayerId}」尚無排版結果，請先執行該佈局。`,
+        'danger'
+      );
       return;
     }
     loadMilpJsonRaw(JSON.parse(JSON.stringify(segs)));
+    setControlLoadFeedback(
+      layerId,
+      `已自「${src.layerName || sourceLayerId}」匯入排版結果。`,
+      'success'
+    );
   };
 
   /** 路線正規化（RMA）：自「示意圖佈局①～⑨（RMA）」其一匯入其排版結果。 */
   const importLayoutResultIntoMilpReadRma = (sourceLayerId) => {
+    const layerId = 'schematic_rma_milp_read';
     const src = dataStore.findLayerById(sourceLayerId);
     if (!src) return;
     const segs = Array.isArray(src.spaceNetworkGridJsonData) ? src.spaceNetworkGridJsonData : null;
     if (!segs || segs.length === 0) {
-      window.alert(`圖層「${src.layerName || sourceLayerId}」尚無排版結果，請先執行該佈局。`);
+      setControlLoadFeedback(
+        layerId,
+        `圖層「${src.layerName || sourceLayerId}」尚無排版結果，請先執行該佈局。`,
+        'danger'
+      );
       return;
     }
     loadMilpJsonRawRma(JSON.parse(JSON.stringify(segs)));
+    setControlLoadFeedback(
+      layerId,
+      `已自「${src.layerName || sourceLayerId}」匯入排版結果。`,
+      'success'
+    );
   };
 
   const RMA_TOWARD_CENTER_LAYER_IDS = ['schematic_rma_toward_center_hv', 'schematic_rma_toward_center_vh'];
+
+  /**
+   * 站點與路線細部調整：自站點與路線調整①～⑧匯入完整排版結果（保留黑點）。
+   */
+  const importRouteAdjustIntoRmaDetailAdjust = (targetLayer, sourceLayerId) => {
+    const lyr = targetLayer || currentLayer.value;
+    if (!lyr || lyr.layerId !== SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID) return;
+    const src = dataStore.findLayerById(sourceLayerId);
+    const srcData = src?.spaceNetworkGridJsonData;
+    const label =
+      ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES.find((s) => s.layerId === sourceLayerId)?.label ||
+      src?.layerName ||
+      sourceLayerId;
+    if (!Array.isArray(srcData) || !srcData.length) {
+      setControlLoadFeedback(
+        lyr.layerId,
+        `「${label}」尚無排版結果，請先執行該站點與路線調整。`,
+        'danger'
+      );
+      return;
+    }
+    const full = normalizeSpaceNetworkDataToFlatSegments(JSON.parse(JSON.stringify(srcData)));
+    applyConnectStraightenSegmentsToLayer(lyr, full);
+    lyr.schematicBlackSections = null;
+    lyr.seededFromSig = cheapSegSig(srcData);
+    dataStore.saveLayerState(lyr.layerId, {
+      ...jsonGridFromCoordNormalizedPersistPayload(lyr),
+      schematicBlackSections: null,
+      seededFromSig: lyr.seededFromSig,
+    });
+    dataStore.requestSpaceNetworkGridFullRedraw();
+    setControlLoadFeedback(lyr.layerId, `已自「${label}」匯入完整路網。`, 'success');
+  };
 
   /**
    * RMA 往中心聚集（先橫後直／先直後橫）：自站點與路線調整①～⑧匯入排版結果。
@@ -4102,12 +4218,16 @@
     if (!lyr || !RMA_TOWARD_CENTER_LAYER_IDS.includes(lyr.layerId)) return;
     const src = dataStore.findLayerById(sourceLayerId);
     const srcData = src?.spaceNetworkGridJsonData;
+    const label =
+      ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES.find((s) => s.layerId === sourceLayerId)?.label ||
+      src?.layerName ||
+      sourceLayerId;
     if (!Array.isArray(srcData) || !srcData.length) {
-      const label =
-        ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES.find((s) => s.layerId === sourceLayerId)?.label ||
-        src?.layerName ||
-        sourceLayerId;
-      window.alert(`「${label}」尚無排版結果，請先執行該站點與路線調整。`);
+      setControlLoadFeedback(
+        lyr.layerId,
+        `「${label}」尚無排版結果，請先執行該站點與路線調整。`,
+        'danger'
+      );
       return;
     }
     const full = normalizeSpaceNetworkDataToFlatSegments(JSON.parse(JSON.stringify(srcData)));
@@ -4125,6 +4245,7 @@
       lineOrthoTowardCrossHighlightTableAxis: null,
     });
     dataStore.requestSpaceNetworkGridFullRedraw();
+    setControlLoadFeedback(lyr.layerId, `已自「${label}」匯入 connect 骨架。`, 'success');
   };
 
   const routeAdjustTowardCenterSourceHasData = (sourceLayerId) => {
@@ -6488,10 +6609,13 @@
   });
   const layoutNetworkGridFromVhDrawControlTabApi = useLayoutNetworkGridFromVhDrawControlTab({
     dataStore,
-    pickOrthogonalVhDrawLocalJsonClick: () =>
-      orthogonalVhDrawControlTabApi.pickOrthogonalVhDrawLocalJsonClick(),
-    importOrthogonalVhDrawFromConvergeCenter: (sourceLayerIds) =>
-      orthogonalVhDrawControlTabApi.applyOrthogonalVhDrawFromConvergeCenterLayer(sourceLayerIds),
+    pickOrthogonalVhDrawLocalJsonClick: (layerId) =>
+      orthogonalVhDrawControlTabApi.pickOrthogonalVhDrawLocalJsonClick(layerId),
+    importOrthogonalVhDrawFromConvergeCenter: (sourceLayerIds, feedbackLayerId) =>
+      orthogonalVhDrawControlTabApi.applyOrthogonalVhDrawFromConvergeCenterLayer(
+        sourceLayerIds,
+        feedbackLayerId
+      ),
     // 同名兩組：OSM 管線（版面網格資料鏈，優先）＋ 示意圖管線（MILP 那條，備援）。
     convergeCenterVertFirstLayerId: [
       orthogonalVhDrawControlTabApi.LINE_ORTHOGONAL_TOWARD_CENTER_VERT_FIRST_LAYER_ID,
@@ -7125,8 +7249,10 @@
       const parsed = JSON.parse(text);
       const rows = extractMapDrawnRoutesRowsForConnectStraighten(parsed);
       if (!rows?.length) {
-        window.alert(
-          'JSON 須為地圖路段匯出陣列（routeName／segment／routeCoordinates），或含 dataJson／mapDrawnRoutes 之物件。'
+        setControlLoadFeedback(
+          lyr.layerId,
+          'JSON 須為地圖路段匯出陣列（routeName／segment／routeCoordinates），或含 dataJson／mapDrawnRoutes 之物件。',
+          'danger'
         );
         lyr.isLoading = false;
         return;
@@ -7138,7 +7264,11 @@
       const derived = buildTaipeiB3ExecuteLayerFieldsFromGeojson(fc, {});
       const sn = derived?.spaceNetworkGridJsonData;
       if (!Array.isArray(sn) || sn.length === 0) {
-        window.alert('無法由該 JSON 建立路網（spaceNetworkGridJsonData 為空）。');
+        setControlLoadFeedback(
+          lyr.layerId,
+          '無法由該 JSON 建立路網（spaceNetworkGridJsonData 為空）。',
+          'danger'
+        );
         lyr.isLoading = false;
         return;
       }
@@ -7153,11 +7283,17 @@
       await dataStore.saveLayerState(lyr.layerId, jsonGridFromCoordNormalizedPersistPayload(lyr));
       await nextTick();
       dataStore.requestSpaceNetworkGridFullRedraw();
-      window.alert(`已讀入「${file.name}」。之後開啟本層將沿用此檔（不再自動鏡像上游）。`);
+      setControlLoadFeedback(
+        lyr.layerId,
+        `已讀入「${file.name}」。之後開啟本層將沿用此檔（不再自動鏡像上游）。`,
+        'success'
+      );
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
-      window.alert('讀取或解析 JSON 失敗（詳見控制台）。');
+      if (lyr) {
+        setControlLoadFeedback(lyr.layerId, '讀取或解析 JSON 失敗（詳見控制台）。', 'danger');
+      }
       if (lyr) {
         lyr.isLoading = false;
         dataStore.saveLayerState(lyr.layerId, { isLoading: false });
@@ -7177,13 +7313,17 @@
     lyr.highlightedSegmentIndex = null;
     lyr.connectStraightenMovePreview = null;
     if (!seedConnectStraightenFromUpstreamIfEmpty(lyr)) {
-      window.alert('上游「站點與路線往中心聚集（先橫後直）」尚無路網；請先產生該圖層資料。');
+      setControlLoadFeedback(
+        lyr.layerId,
+        '上游「站點與路線往中心聚集（先橫後直）」尚無路網；請先產生該圖層資料。',
+        'danger'
+      );
       return;
     }
     dataStore.saveLayerState(lyr.layerId, jsonGridFromCoordNormalizedPersistPayload(lyr));
     await nextTick();
     dataStore.requestSpaceNetworkGridFullRedraw();
-    window.alert('已重新自上游「往中心聚集（先橫後直）」鏡像最新結果。');
+    setControlLoadFeedback(lyr.layerId, '已重新自上游「往中心聚集（先橫後直）」鏡像最新結果。', 'success');
   };
   // ── end connect_straighten_hv ────────────────────────────────────────────
 
@@ -10079,6 +10219,19 @@
       </ul>
     </div>
 
+    <!-- 管線四階段：地圖 hover 資訊（取代浮動 tooltip，僅 hover 時顯示） -->
+    <div
+      v-if="pipelineMapHoverHtml"
+      class="px-3 pt-2 pb-2 border-bottom my-bgcolor-gray-200"
+    >
+      <div class="my-title-xs-gray pb-1">地圖 hover</div>
+      <div
+        class="my-font-size-xs"
+        style="line-height: 1.5; color: #1a1a1a"
+        v-html="pipelineMapHoverHtml"
+      />
+    </div>
+
     <!-- 📋 圖層操作內容區域 -->
     <div v-if="visibleLayers.length > 0" class="flex-grow-1 overflow-auto p-3 my-bgcolor-white">
       <div
@@ -10111,6 +10264,7 @@
           >
             匯入 JSON
           </button>
+          <ControlLoadFeedback :layer-id="layer.layerId" />
         </div>
 
         <!-- 🗺️ 示意圖佈局（從路線圖調整）：載入 + 執行（僅①②③演算法層） -->
@@ -10143,6 +10297,7 @@
           >
             從路線圖轉換直線骨架載入
           </button>
+          <ControlLoadFeedback :layer-id="layer.layerId" />
           <div v-if="layer.geojsonData && layer.geojsonData.features" class="my-font-size-xs text-muted pb-2">
             已載入輸入：{{ layer.geojsonData.features.length }} 個 features
           </div>
@@ -10343,7 +10498,7 @@
               清除
             </button>
           </div>
-          <div v-if="srmTracing && srmLoadMsg" class="text-muted my-font-size-xs pb-2">{{ srmLoadMsg }}</div>
+          <ControlLoadFeedback layer-id="select_route_map" />
           <div v-if="srmSource" class="text-muted my-font-size-xs pb-3" style="line-height: 1.45">
             資料來源：{{ srmSource }}
             <div v-if="srmOfficialUrl">
@@ -10464,6 +10619,7 @@
               清除
             </button>
           </div>
+          <ControlLoadFeedback layer-id="route_map_adjust" />
           <div v-if="!rmaHasSource" class="text-muted my-font-size-xs pb-2">
             「選擇路線圖」目前尚無路線，請先到「選擇路線圖」載入城市路線。
           </div>
@@ -10736,6 +10892,7 @@
               清除
             </button>
           </div>
+          <ControlLoadFeedback layer-id="route_map_adjust_2" />
           <div v-if="!rma2HasSource" class="text-muted my-font-size-xs pb-2">
             「選擇路線圖」目前尚無路線，請先到「選擇路線圖」載入城市路線。
           </div>
@@ -11007,6 +11164,7 @@
               清除
             </button>
           </div>
+          <ControlLoadFeedback layer-id="route_map_adjust_straight" />
           <div v-if="!rmasHasSource" class="text-muted my-font-size-xs pb-2">
             「選擇路線圖」目前尚無路線，請先到「選擇路線圖」載入城市路線。
           </div>
@@ -11336,7 +11494,7 @@
           >
             {{ isTracingRefMap ? '讀取中…' : '讀取並畫出' }}
           </button>
-          <div v-if="isTracingRefMap && drawLoadMsg" class="text-muted my-font-size-xs pb-2">{{ drawLoadMsg }}</div>
+          <ControlLoadFeedback layer-id="leaflet_josm_draw" />
           <div v-if="leafletDrawSource" class="text-muted my-font-size-xs pb-3" style="line-height: 1.45">
             資料來源：{{ leafletDrawSource }}
           </div>
@@ -11952,6 +12110,29 @@
         />
 
 
+        <!-- 站點與路線細部調整：自站點與路線調整①～⑧匯入 -->
+        <div
+          v-if="layer.layerId === SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID"
+          class="pb-3 mb-3 border-bottom"
+        >
+          <div class="my-title-xs-gray pb-2">從站點與路線調整（①～⑧）匯入排版結果</div>
+          <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
+            自上方八種「站點與路線調整」任一有結果之圖層匯入本層（<strong>保留完整路網含黑點</strong>，供檢視／細部編修）。
+            下游「往中心聚集」會自本層自動鏡像。跨工作階段存檔請用頂部「匯出／匯入 JSON（斷點存檔）」。
+          </div>
+          <button
+            v-for="src in ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES"
+            :key="'rma-detail-import-' + layer.layerId + '-' + src.layerId"
+            type="button"
+            class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
+            :disabled="isExecuting || !routeAdjustTowardCenterSourceHasData(src.layerId)"
+            @click="importRouteAdjustIntoRmaDetailAdjust(layer, src.layerId)"
+          >
+            從 {{ src.label }}
+          </button>
+          <ControlLoadFeedback :layer-id="layer.layerId" />
+        </div>
+
         <!-- RMA 往中心聚集：自站點與路線調整①～⑧匯入 -->
         <div
           v-if="RMA_TOWARD_CENTER_LAYER_IDS.includes(layer.layerId)"
@@ -11972,6 +12153,7 @@
           >
             從 {{ src.label }}
           </button>
+          <ControlLoadFeedback :layer-id="layer.layerId" />
         </div>
 
         <!-- 往中心聚集（列→欄 或 欄→列）：各列／欄 HV 線段（表格：站名＋座標） -->
@@ -12303,6 +12485,7 @@
           <div v-if="resolveConnectStraightenLayer()?.jsonFileName" class="text-muted my-font-size-xs">
             目前來源檔：{{ resolveConnectStraightenLayer()?.jsonFileName }}
           </div>
+          <ControlLoadFeedback :layer-id="CONNECT_STRAIGHTEN_HV_LAYER_ID" />
         </div>
 
         <div v-if="isCurrentLayerGridSchematic" class="pb-3 mb-3 border-bottom">
@@ -12463,6 +12646,7 @@
           >
             從示意圖佈局③（MILP）匯入
           </button>
+          <ControlLoadFeedback layer-id="schematic_milp_read" />
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
             匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP 結果。後續步驟（往中心聚集 先橫後直／先直後橫、connect 拉直）在下方各圖層。
           </div>
@@ -12563,6 +12747,7 @@
           >
             從⑨（正規化）匯入
           </button>
+          <ControlLoadFeedback layer-id="schematic_rma_milp_read" />
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
             匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③ MILP（RMA）結果。跨工作階段存檔請用上方「匯出／匯入 JSON（斷點存檔）」。
           </div>
@@ -14926,7 +15111,7 @@
 
         <!-- 沒有可執行操作的提示（taipei_g／taipei_h 另有底部專區，不顯示此列） -->
         <div
-          v-if="currentLayer && !isTaipeiF && !hasSpaceNetworkStandaloneRouteWeightToggle"
+          v-if="currentLayer && !isTaipeiF && !hasSpaceNetworkStandaloneRouteWeightToggle && !isCurrentLayerPipelineGroup"
           class="pb-3 mb-3"
         >
           <div class="my-title-xs-gray text-center">此圖層沒有可執行的操作</div>

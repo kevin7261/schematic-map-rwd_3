@@ -10,51 +10,41 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { watch } from 'vue';
+import { bindLeafletHoverOrControlPanel } from '@/utils/control/pipelineMapHoverDisplay.js';
+import {
+  tooltipRowHtml as rowHtml,
+  schematicWayColorHtml,
+  parseSchematicNodeRoutes,
+  pipelineStationTooltipHtml,
+  schematicSkeletonNodeDisplay,
+} from '@/utils/control/pipelineMapHoverHtml.js';
 
 const nodeFill = (tags) => tags?.node_class_color || '#555555';
 
-const esc = (s) =>
-  String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
-const rowHtml = (k, v) =>
-  v == null || v === '' ? '' : `<div><span style="color:#888">${esc(k)}</span> ${esc(v)}</div>`;
+// 線 tooltip：route_name/route_id/railway + 路線色（單色或多色 route_colors）
+const wayTooltipHtml = (tags) =>
+  `<div style="font-size:12px;line-height:1.5">` +
+  rowHtml('route_name', tags.route_name) +
+  rowHtml('route_id', tags.route_id) +
+  rowHtml('railway', tags.railway) +
+  schematicWayColorHtml(tags) +
+  `</div>`;
 
-// 線 tooltip：與路線圖 hover 相同樣式（route_name/route_id/railway/color）。
-//   骨架線雖一律黑，hover 仍顯示「真正的路線顏色」（route_color），並附色塊。
-const wayTooltipHtml = (tags) => {
-  const c = tags.route_color || tags.color || '';
-  const swatch = c
-    ? `<span style="display:inline-block;width:10px;height:10px;border:1px solid #ccc;background:${esc(c)};vertical-align:middle;margin-right:4px"></span>`
-    : '';
-  return (
-    `<div style="font-size:12px;line-height:1.5">` +
-    rowHtml('route_name', tags.route_name) +
-    rowHtml('route_id', tags.route_id) +
-    rowHtml('railway', tags.railway) +
-    (c ? `<div><span style="color:#888">color</span> ${swatch}${esc(c)}</div>` : '') +
-    `</div>`
-  );
-};
-
-// 點 tooltip：與路線圖站點 hover 相同樣式（station_name/station_id/type/route_name_list）
+// 點 tooltip：站名 + 各路線色塊
 const nodeTooltipHtml = (props) => {
   const bag = props && typeof props === 'object' ? props : {};
   const tags = bag.tags && typeof bag.tags === 'object' ? bag.tags : {};
   const stationName = bag.station_name ?? tags.station_name ?? tags.name ?? '';
   const stationId = bag.station_id ?? tags.station_id ?? '';
-  const nodeType = tags.node_kind === 'black' ? '一般 normal' : tags.type;
-  const list = Array.isArray(tags.route_name_list)
-    ? tags.route_name_list.filter(Boolean)
-    : [];
-  return (
-    `<div style="font-size:12px;line-height:1.5">` +
-    rowHtml('station_name', stationName) +
-    rowHtml('station_id', stationId) +
-    rowHtml('type', nodeType) +
-    (list.length
-      ? `<div><span style="color:#888">route_name_list</span> ${esc(list.join('、'))}</div>`
-      : '') +
-    `</div>`
-  );
+  const routes = parseSchematicNodeRoutes(tags, bag);
+  const disp = schematicSkeletonNodeDisplay(tags, bag);
+  return pipelineStationTooltipHtml({
+    meta: { name: stationName, id: stationId },
+    typeLabel: disp.typeLabel,
+    stationDotColor: disp.color,
+    stationColorReason: disp.reason,
+    routes,
+  });
 };
 
 export function mountSchematicSkeleton(el, dataStore) {
@@ -127,7 +117,7 @@ export function mountSchematicSkeleton(el, dataStore) {
               })
             );
             pls.forEach((pl) => {
-              pl.bindTooltip(wayTooltipHtml(tags), { sticky: true });
+              bindLeafletHoverOrControlPanel(pl, id, dataStore, wayTooltipHtml(tags));
               pl.on('mouseover', () => pls.forEach((q) => q.setStyle({ weight: baseW + 4 })));
               pl.on('mouseout', () => pls.forEach((q) => q.setStyle({ weight: baseW })));
               pl.addTo(lineGroup);
@@ -139,7 +129,7 @@ export function mountSchematicSkeleton(el, dataStore) {
               opacity: 0.9,
               interactive: true,
             });
-            pl.bindTooltip(wayTooltipHtml(tags), { sticky: true });
+            bindLeafletHoverOrControlPanel(pl, id, dataStore, wayTooltipHtml(tags));
             pl.on('mouseover', () => pl.setStyle({ weight: 8 }));
             pl.on('mouseout', () => pl.setStyle({ weight: 4 }));
             pl.addTo(lineGroup);
@@ -160,7 +150,7 @@ export function mountSchematicSkeleton(el, dataStore) {
           interactive: true,
           pane: 'schDots',
         });
-        m.bindTooltip(nodeTooltipHtml(nodeProps), { sticky: true });
+        bindLeafletHoverOrControlPanel(m, id, dataStore, nodeTooltipHtml(nodeProps));
         m.on('mouseover', () => m.setRadius(r + 3));
         m.on('mouseout', () => m.setRadius(r));
         m.addTo(dotGroup);

@@ -1,5 +1,10 @@
 /** Control 分頁片段：{@link LINE_ORTHOGONAL_VERT_FIRST_MIRROR_DRAW_LAYER_ID}（空間網絡網格群·先直後橫·繪製） */
 <script setup>
+  import {
+    controlLoadFeedback,
+    controlLoadFeedbackClass,
+  } from '@/utils/control/controlLoadFeedback.js';
+
   defineProps({
     layer: { type: Object, required: true },
     isExecuting: { type: Boolean, required: true },
@@ -18,10 +23,18 @@
       type="button"
       class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-blue mb-2"
       :disabled="isExecuting || layer.isLoading"
-      @click="api.pickOrthogonalVhDrawLocalJsonClick"
+      @click="api.pickOrthogonalVhDrawLocalJsonClick(layer.layerId)"
     >
       選擇 JSON 檔讀入…
     </button>
+    <div
+      v-if="controlLoadFeedback[layer.layerId]?.message"
+      class="my-font-size-xs pt-1 pb-2"
+      :class="controlLoadFeedbackClass(controlLoadFeedback[layer.layerId]?.tone)"
+      style="line-height: 1.45; white-space: pre-wrap"
+    >
+      {{ controlLoadFeedback[layer.layerId].message }}
+    </div>
     <button
       type="button"
       class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"

@@ -2,6 +2,7 @@
 <script setup>
   import LayoutVhDrawBlackDotRatioTables from '@/tabs/LayoutVhDrawBlackDotRatioTables.vue';
   import LayoutVhDrawDashSubgridPtHint from '@/tabs/LayoutVhDrawDashSubgridPtHint.vue';
+  import ControlLoadFeedback from '@/components/ControlLoadFeedback.vue';
 
   defineProps({
     layer: { type: Object, required: true },
@@ -250,6 +251,7 @@
       >
         從 {{ src.label }}
       </button>
+      <ControlLoadFeedback :layer-id="layer.layerId" />
     </div>
 
     <div v-else-if="!hideLegacyJsonIo" class="pb-3 mb-3 border-bottom">
@@ -263,7 +265,7 @@
         type="button"
         class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
         :disabled="isExecuting || layer.isLoading"
-        @click="api.importOrthogonalVhDrawFromConvergeCenter(api.convergeCenterVertFirstLayerId)"
+        @click="api.importOrthogonalVhDrawFromConvergeCenter(api.convergeCenterVertFirstLayerId, layer.layerId)"
       >
         從站點與路線往中心聚集（先直後橫）
       </button>
@@ -271,7 +273,7 @@
         type="button"
         class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-green mb-2"
         :disabled="isExecuting || layer.isLoading"
-        @click="api.importOrthogonalVhDrawFromConvergeCenter(api.convergeCenterHorizFirstLayerId)"
+        @click="api.importOrthogonalVhDrawFromConvergeCenter(api.convergeCenterHorizFirstLayerId, layer.layerId)"
       >
         從站點與路線往中心聚集（先橫後直）
       </button>
@@ -279,10 +281,11 @@
         type="button"
         class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-blue mb-2"
         :disabled="isExecuting || layer.isLoading"
-        @click="api.pickOrthogonalVhDrawLocalJsonClick"
+        @click="api.pickOrthogonalVhDrawLocalJsonClick(layer.layerId)"
       >
         匯入
       </button>
+      <ControlLoadFeedback :layer-id="layer.layerId" />
     </div>
 
     <div class="pb-3 mb-3 border-bottom">
@@ -298,10 +301,11 @@
           type="button"
           class="btn rounded-pill border-0 my-font-size-xs text-nowrap w-100 my-cursor-pointer my-btn-blue mb-3"
           :disabled="isExecuting"
-          @click="api.pickOrthogonalVhDrawLocalJsonClick"
+          @click="api.pickOrthogonalVhDrawLocalJsonClick(layer.layerId)"
         >
           選擇 JSON 檔讀入…
         </button>
+        <ControlLoadFeedback :layer-id="layer.layerId" />
       </template>
       <template v-if="api.isMainCopyLayer(layer)">
         <div class="my-title-xs-gray pb-2">路段交通流量（CSV）</div>

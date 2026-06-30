@@ -23,6 +23,8 @@
     routeColorForIndex,
   } from '@/utils/leafletDrawStations.js';
   import { useDataStore } from '@/stores/dataStore.js';
+  import { createPipelineAwareMapTooltip } from '@/utils/control/pipelineMapHoverDisplay.js';
+  import { clearPipelineMapHover } from '@/utils/control/pipelineMapHoverFeedback.js';
   import {
     buildStraightSegments,
     computeFlipAnalysis,
@@ -793,6 +795,7 @@
     }
 
     // 立即清除 SVG 內容和 tooltip，避免重疊
+    if (activeLayerTab.value) clearPipelineMapHover(activeLayerTab.value);
     const oldContainerId = getContainerId();
     d3.select(`#${oldContainerId}`).selectAll('svg').remove();
     removeMapTooltipForThisViewer();
@@ -2810,6 +2813,9 @@
       .style('max-width', uniformGridRouteFamilyTab ? '340px' : '300px')
       .style('box-shadow', uniformGridRouteFamilyTab ? '0 3px 14px rgba(0,0,0,0.35)' : 'none')
       .style('border', uniformGridRouteFamilyTab ? '1px solid rgba(0,0,0,0.12)' : 'none');
+
+    const mapHover = createPipelineAwareMapTooltip(dataStore, layerTab, tooltip);
+    mapHover.hide();
 
     // 檢查是否為 Normalize Segments 格式
     const isNormalizeFormat = mapGeoJsonData.value.type === 'NormalizeSegments';
@@ -5812,14 +5818,10 @@
             routeTooltipHtml = buildLegacyLineTooltip();
           }
 
-          tooltip
-            .html(routeTooltipHtml)
-            .style('opacity', 1)
-            .style('left', event.pageX + 10 + 'px')
-            .style('top', event.pageY - 10 + 'px');
+          mapHover.show(routeTooltipHtml, event);
         })
         .on('mousemove', function (event) {
-          tooltip.style('left', event.pageX + 10 + 'px').style('top', event.pageY - 10 + 'px');
+          mapHover.move(event);
           if (!routeTooltipAppendNearLine) return;
           if ((!minSpacingOverlay && !taipeiCReducedOverlayDraw) || !routeTooltipHtml) return;
           const [gx, gy] = eventToNetworkXY(event);
@@ -5830,7 +5832,7 @@
           const nqy = qy;
           const nearCoordStr = `(${formatPathCoordNumber(nqx)}, ${formatPathCoordNumber(nqy)})`;
           const nearLine = `<br><strong>游標鄰近路徑點:</strong> ${nearCoordStr}${minSpacingTooltipBlock(nqx, nqy)}`;
-          tooltip.html(routeTooltipHtml + nearLine);
+          mapHover.updateHtml(routeTooltipHtml + nearLine);
         })
         .on('mouseout', function () {
           // 恢復路線樣式
@@ -5840,8 +5842,7 @@
             .attr('stroke', baseStroke);
           overlayPaths.forEach((ov) => ov.attr('stroke-width', baseStrokeW).attr('opacity', 0.9));
 
-          // 隱藏 tooltip
-          tooltip.style('opacity', 0);
+          mapHover.hide();
         });
 
       // 繪製 station_weights；示意格層依 showWeightLabels；與 K3 分頁共用 spaceNetworkGridShowRouteWeights
@@ -7056,41 +7057,35 @@
           const typeForTooltip = normalizeRouteSegmentEndpointType(
             props.type ?? tags.type ?? tagMerged.type ?? 'normal'
           );
-          tooltip
-            .html(
-              routeSegmentHead +
-                gridCoordLine +
-                stationEndpointTooltipHtmlFromProps(
-                  propBagForStation,
-                  typeForTooltip,
-                  lonTip,
-                  latTip
-                )
-            )
-            .style('opacity', 1)
-            .style('left', `${event.pageX + 10}px`)
-            .style('top', `${event.pageY - 10}px`);
+          mapHover.show(
+            routeSegmentHead +
+              gridCoordLine +
+              stationEndpointTooltipHtmlFromProps(
+                propBagForStation,
+                typeForTooltip,
+                lonTip,
+                latTip
+              ),
+            event
+          );
           return;
         }
         const props = stationPropBag && typeof stationPropBag === 'object' ? stationPropBag : {};
         const tags = props.tags || {};
         const tagMergedFb = getGeoJsonFeatureTagProps({ properties: props });
-        tooltip
-          .html(
-            routeSegmentHead +
-              gridCoordLine +
-              stationEndpointTooltipHtmlFromProps(
-                props,
-                normalizeRouteSegmentEndpointType(
-                  props.type ?? tags.type ?? tagMergedFb.type ?? 'normal'
-                ),
-                gx,
-                gy
-              )
-          )
-          .style('opacity', 1)
-          .style('left', `${event.pageX + 10}px`)
-          .style('top', `${event.pageY - 10}px`);
+        mapHover.show(
+          routeSegmentHead +
+            gridCoordLine +
+            stationEndpointTooltipHtmlFromProps(
+              props,
+              normalizeRouteSegmentEndpointType(
+                props.type ?? tags.type ?? tagMergedFb.type ?? 'normal'
+              ),
+              gx,
+              gy
+            ),
+          event
+        );
       };
 
       const nearestSegIndexOnGridPolyline = (gridPts, gx, gy) => {
@@ -7499,13 +7494,11 @@
                   showLayoutVHDrawMidStationTooltip(event, sta, gxy[0], gxy[1], row);
                 })
                 .on('mousemove', function (event) {
-                  tooltip
-                    .style('left', `${event.pageX + 10}px`)
-                    .style('top', `${event.pageY - 10}px`);
+                  mapHover.move(event);
                 })
                 .on('mouseout', function () {
                   d3.select(this).attr('r', layoutVhDrawMidBlackDotRadius).attr('stroke-width', 1);
-                  tooltip.style('opacity', 0);
+                  mapHover.hide();
                 });
               paintMidBlackDotName(cx, cy, trafficMidName);
             };
@@ -8035,15 +8028,13 @@
                     showLayoutVHDrawMidStationTooltip(event, staV, gxTip, gyTip, rowP);
                   })
                   .on('mousemove', function (event) {
-                    tooltip
-                      .style('left', `${event.pageX + 10}px`)
-                      .style('top', `${event.pageY - 10}px`);
+                    mapHover.move(event);
                   })
                   .on('mouseout', function () {
                     d3.select(this)
                       .attr('r', layoutVhDrawMidBlackDotRadius)
                       .attr('stroke-width', 1);
-                    tooltip.style('opacity', 0);
+                    mapHover.hide();
                   });
                 paintMidBlackDotName(cx, cy, layoutTrafficStationName(staV));
               };
@@ -9193,11 +9184,7 @@
               lonTip,
               latTip
             );
-            tooltip
-              .html(tooltipContent)
-              .style('opacity', 1)
-              .style('left', event.pageX + 10 + 'px')
-              .style('top', event.pageY - 10 + 'px');
+            mapHover.show(tooltipContent, event);
             return;
           }
 
@@ -9335,15 +9322,10 @@
 
           const tooltipContent = tooltipParts.join('<br>');
 
-          tooltip
-            .html(tooltipContent)
-            .style('opacity', 1)
-            .style('left', event.pageX + 10 + 'px')
-            .style('top', event.pageY - 10 + 'px');
+          mapHover.show(tooltipContent, event);
         })
         .on('mousemove', function (event) {
-          // 更新 tooltip 位置
-          tooltip.style('left', event.pageX + 10 + 'px').style('top', event.pageY - 10 + 'px');
+          mapHover.move(event);
         })
         .on('mouseout', function () {
           if (mapLonLatEndpoints) {
@@ -9356,8 +9338,7 @@
             d3.select(this).attr('r', radius).attr('stroke-width', 1);
           }
 
-          // 隱藏 tooltip
-          tooltip.style('opacity', 0);
+          mapHover.hide();
           clearPinkDpHoverOverlay();
         });
     });
@@ -9696,20 +9677,14 @@
                 .map(([k, v]) => `<strong>${k}:</strong> ${v}`)
                 .join('<br>');
               if (tagsHtml) parts.push(tagsHtml);
-              tooltip
-                .html(parts.join('<br>'))
-                .style('opacity', 1)
-                .style('left', event.pageX + 10 + 'px')
-                .style('top', event.pageY - 10 + 'px');
+              mapHover.show(parts.join('<br>'), event);
             })
               .on('mousemove', function (event) {
-                tooltip
-                  .style('left', event.pageX + 10 + 'px')
-                  .style('top', event.pageY - 10 + 'px');
+                mapHover.move(event);
               })
               .on('mouseout', function () {
                 d3.select(this).attr('r', r).attr('stroke-width', strokeWidth);
-                tooltip.style('opacity', 0);
+                mapHover.hide();
               });
           };
 
@@ -9999,18 +9974,14 @@
             if (sname !== undefined && sname !== '')
               parts.push(`<strong>站點名稱:</strong> ${sname}`);
             parts.push(`<strong>來源:</strong> 路段弧長（與 StationData 座標同源）`);
-            tooltip
-              .html(parts.join('<br>'))
-              .style('opacity', 1)
-              .style('left', event.pageX + 10 + 'px')
-              .style('top', event.pageY - 10 + 'px');
+            mapHover.show(parts.join('<br>'), event);
           })
             .on('mousemove', function (event) {
-              tooltip.style('left', event.pageX + 10 + 'px').style('top', event.pageY - 10 + 'px');
+              mapHover.move(event);
             })
             .on('mouseout', function () {
               d3.select(this).attr('r', radius).attr('stroke-width', strokeWidth);
-              tooltip.style('opacity', 0);
+              mapHover.hide();
             });
         }
       }
@@ -10192,18 +10163,14 @@
                       : ''
               }）`
             );
-            tooltip
-              .html(parts.join('<br>'))
-              .style('opacity', 1)
-              .style('left', event.pageX + 10 + 'px')
-              .style('top', event.pageY - 10 + 'px');
+            mapHover.show(parts.join('<br>'), event);
           })
             .on('mousemove', function (event) {
-              tooltip.style('left', event.pageX + 10 + 'px').style('top', event.pageY - 10 + 'px');
+              mapHover.move(event);
             })
             .on('mouseout', function () {
               d3.select(this).attr('r', radius).attr('stroke-width', strokeWidth);
-              tooltip.style('opacity', 0);
+              mapHover.hide();
             });
         }
       }
@@ -10265,18 +10232,14 @@
             if (sid !== undefined && sid !== '') parts.push(`<strong>站點ID:</strong> ${sid}`);
             if (sname !== undefined && sname !== '') parts.push(`<strong>站名:</strong> ${sname}`);
             parts.push(`<strong>來源:</strong> StationData（d 網格向心正規化）`);
-            tooltip
-              .html(parts.join('<br>'))
-              .style('opacity', 1)
-              .style('left', event.pageX + 10 + 'px')
-              .style('top', event.pageY - 10 + 'px');
+            mapHover.show(parts.join('<br>'), event);
           })
             .on('mousemove', function (event) {
-              tooltip.style('left', event.pageX + 10 + 'px').style('top', event.pageY - 10 + 'px');
+              mapHover.move(event);
             })
             .on('mouseout', function () {
               d3.select(this).attr('r', radius).attr('stroke-width', strokeWidth);
-              tooltip.style('opacity', 0);
+              mapHover.hide();
             });
         }
       }
@@ -12248,6 +12211,7 @@
    * 🚀 組件卸載事件 (Component Unmounted Event)
    */
   onUnmounted(() => {
+    if (activeLayerTab.value) clearPipelineMapHover(activeLayerTab.value);
     if (taipeiFMouseZoomRaf) {
       cancelAnimationFrame(taipeiFMouseZoomRaf);
       taipeiFMouseZoomRaf = 0;

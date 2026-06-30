@@ -24,6 +24,9 @@ export const ROUTE_ADJUST_MERRICK_LAYER_ID = 'schematic_rma_route_adjust_merrick
 /** #8 Fuchs (2022) SAT octilinear */
 export const ROUTE_ADJUST_SAT_LAYER_ID = 'schematic_rma_route_adjust_sat';
 
+/** 站點與路線細部調整：自①～⑧或路線正規化匯入完整路網（含黑點），供往中心聚集上游。 */
+export const SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID = 'schematic_rma_detail_adjust';
+
 /** 八個站點與路線調整佈局圖層（#1–#8） */
 export const ROUTE_ADJUST_LAYOUT_LAYER_IDS = Object.freeze([
   ROUTE_ADJUST_STROKE_LAYER_ID,

@@ -8,6 +8,7 @@
  * 以及目前路線／站點統計與各路線站點清單。
  */
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { setControlLoadFeedback } from '@/utils/control/controlLoadFeedback.js';
 // 🔗 各城市地鐵「官方路線圖」連結（catalog id → url），與管線解耦獨立維護
 import OFFICIAL_MAP from '../metroOfficialMap.json';
 import {
@@ -170,22 +171,23 @@ export function useSelectRouteMapCatalog(dataStore) {
     selCity.value = '';
   });
 
+  const SELECT_ROUTE_MAP_LAYER_ID = 'select_route_map';
+
   /** 📂 載入所選城市「預先抓好」的 GeoJSON 並畫到「選擇路線圖」圖層 */
   const isTracingRefMap = ref(false);
-  const drawLoadMsg = ref('');
   /** 載入指定 city 物件之 GeoJSON 並畫到圖層（三層選單與快選共用） */
   const loadCity = async (city) => {
     const lyr = routeMapLayer.value;
     if (!lyr) return;
     isTracingRefMap.value = true;
-    drawLoadMsg.value = '讀取中…';
+    setControlLoadFeedback(SELECT_ROUTE_MAP_LAYER_ID, '讀取中…', 'muted');
     try {
       const res = await fetch(`${process.env.BASE_URL || '/'}data/metro/${city.file}`);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const fc = await res.json();
       const n = applyMetroFcToLayer(fc, lyr);
       if (!n) {
-        window.alert('此城市資料無有效路線。');
+        setControlLoadFeedback(SELECT_ROUTE_MAP_LAYER_ID, '此城市資料無有效路線。', 'danger');
         return;
       }
       // 保存原始 GeoJSON（FeatureCollection），供 UpperView 之 GeoJSON 檢視分頁顯示
@@ -194,11 +196,16 @@ export function useSelectRouteMapCatalog(dataStore) {
       // 🔗 該城市地鐵「官方路線圖」連結（存於 metroOfficialMap.json，依 catalog id 查）
       lyr.selectRouteMapOfficialUrl = OFFICIAL_MAP[city.id] || '';
       dataStore.requestSelectRouteMapFit();
+      const label = city.cityZh ? `${city.cityZh} ${city.city}` : city.city;
+      setControlLoadFeedback(SELECT_ROUTE_MAP_LAYER_ID, `已載入 ${label}（${n} 條路線）。`, 'success');
     } catch (e) {
-      window.alert('讀取失敗：' + (e && e.message ? e.message : e));
+      setControlLoadFeedback(
+        SELECT_ROUTE_MAP_LAYER_ID,
+        '讀取失敗：' + (e && e.message ? e.message : e),
+        'danger'
+      );
     } finally {
       isTracingRefMap.value = false;
-      drawLoadMsg.value = '';
     }
   };
 
@@ -206,7 +213,7 @@ export function useSelectRouteMapCatalog(dataStore) {
   const loadSelectedCity = async () => {
     const city = metroCatalog.value.find((c) => c.id === selCity.value);
     if (!city || !city.file) {
-      window.alert('請依序選擇 洲 → 國家 → 城市。');
+      setControlLoadFeedback(SELECT_ROUTE_MAP_LAYER_ID, '請依序選擇 洲 → 國家 → 城市。', 'danger');
       return;
     }
     await loadCity(city);
@@ -312,7 +319,7 @@ export function useSelectRouteMapCatalog(dataStore) {
     drawCountries,
     drawCities,
     isTracingRefMap,
-    drawLoadMsg,
+    selectRouteMapLayerId: SELECT_ROUTE_MAP_LAYER_ID,
     loadSelectedCity,
     quickLoadCity,
     clearRouteMap,

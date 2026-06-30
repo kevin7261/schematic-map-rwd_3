@@ -13,7 +13,16 @@ import {
   computeRouteMapAdjustLoopRoutes,
 } from './routeStations.js';
 import { ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID } from './loadFromSelectRouteMapStraight.js';
-
+import { bindLeafletHoverOrControlPanel } from '@/utils/control/pipelineMapHoverDisplay.js';
+import {
+  escHtml as esc,
+  pipelineLineTooltipHtml as lineTooltipHtml,
+  buildPipelineRoutesAtCoord,
+  pipelineStationTooltipHtml,
+  tooltipRowHtml as rowHtml,
+  leafletRouteMapStationDisplay,
+  skeletonAdjustNodeDisplay,
+} from '@/utils/control/pipelineMapHoverHtml.js';
 
 /**
  * 在指定 DOM 容器上掛載「路線圖轉換直線骨架」的 Leaflet 地圖。
@@ -78,68 +87,27 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
   const stationGroup = L.layerGroup().addTo(map);
   const nameGroup = L.layerGroup().addTo(map); // 🏷️ 車站名常駐標籤（由開關控制）
 
-  const esc = (s) =>
-    String(s == null ? '' : s).replace(
-      /[&<>]/g,
-      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]
-    );
   const llKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
-  const rowHtml = (k, v) =>
-    v == null || v === '' ? '' : `<div><span style="color:#888">${esc(k)}</span> ${esc(v)}</div>`;
 
-  const lineTooltipHtml = (ln) =>
-    `<div style="font-size:12px;line-height:1.5">` +
-    rowHtml('route_name', ln.routeName) +
-    rowHtml('route_id', ln.routeId) +
-    rowHtml('route_company', ln.routeCompany) +
-    rowHtml('railway', ln.railway) +
-    rowHtml('osm_id', ln.osmId) +
-    rowHtml('color', ln.color) +
-    `</div>`;
 
-  const typeLabel = (t) =>
-    t === 'terminal'
-      ? '端點 terminal'
-      : t === 'connect'
-        ? '交點 intersection'
-        : t === 'cross'
-          ? '交叉 cross'
-          : '一般 normal';
+  const buildRoutesAtCoord = () =>
+    buildPipelineRoutesAtCoord(layer.routeMapAdjustLines, (lat, lng) => llKey(lat, lng));
 
-  const buildRoutesAtCoord = () => {
-    const m = new Map();
-    for (const ln of layer.routeMapAdjustLines || []) {
-      if (!ln || !Array.isArray(ln.latlngs)) continue;
-      for (const c of ln.latlngs) {
-        const k = llKey(c[0], c[1]);
-        let set = m.get(k);
-        if (!set) {
-          set = new Set();
-          m.set(k, set);
-        }
-        if (ln.routeName) set.add(ln.routeName);
-      }
-    }
-    return m;
-  };
-  const stationTooltipHtml = (latlng, type, routesAtCoord) => {
+  const stationTooltipHtml = (latlng, type, routesAtCoord, fillColor) => {
     const k = llKey(latlng[0], latlng[1]);
     const metaSrc =
       (hasSkeleton() && layer.routeMapAdjustStraightenedStationMeta) ||
       layer.routeMapAdjustStationMeta;
     const meta = (metaSrc && metaSrc[k]) || {};
-    const routes = [...(routesAtCoord.get(k) || [])];
-    return (
-      `<div style="font-size:12px;line-height:1.5">` +
-      rowHtml('station_name', meta.name) +
-      rowHtml('station_id', meta.id) +
-      rowHtml('osm_id', meta.osmId) +
-      rowHtml('type', typeLabel(type)) +
-      (routes.length
-        ? `<div><span style="color:#888">route_name_list</span> ${esc(routes.join('、'))}</div>`
-        : '') +
-      `</div>`
-    );
+    const routes = routesAtCoord.get(k) || [];
+    const disp = leafletRouteMapStationDisplay(type, fillColor);
+    return pipelineStationTooltipHtml({
+      meta,
+      typeLabel: disp.typeLabel,
+      stationDotColor: disp.color,
+      stationColorReason: disp.reason,
+      routes,
+    });
   };
 
   const renderFinished = () => {
@@ -153,7 +121,12 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         opacity: 0.9,
         interactive: true,
       });
-      pl.bindTooltip(lineTooltipHtml(ln), { sticky: true });
+      bindLeafletHoverOrControlPanel(
+        pl,
+        ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID,
+        dataStore,
+        lineTooltipHtml(ln)
+      );
       // hover：線加粗
       pl.on('mouseover', () => pl.setStyle({ weight: baseWeight + 4 }));
       pl.on('mouseout', () => pl.setStyle({ weight: baseWeight }));
@@ -191,7 +164,12 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         interactive: true,
         pane: 'srmasDots', // 圓點置於最上層 pane，永遠不被線/站名遮住
       });
-      m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
+      bindLeafletHoverOrControlPanel(
+        m,
+        ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID,
+        dataStore,
+        stationTooltipHtml(latlng, type, routesAtCoord, fillColor)
+      );
       // hover：圓點放大
       m.on('mouseover', () => m.setRadius(radius + 3));
       m.on('mouseout', () => m.setRadius(radius));
@@ -246,7 +224,12 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         interactive: true,
         pane: 'srmasUnder', // 墊在路線底下，上面才畫路線原來的顏色
       });
-      pl.bindTooltip(sharedTooltipHtml(edge), { sticky: true });
+      bindLeafletHoverOrControlPanel(
+        pl,
+        ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID,
+        dataStore,
+        sharedTooltipHtml(edge)
+      );
       pl.addTo(sharedGroup);
     }
   };
@@ -458,33 +441,28 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
       `</div>`
     );
   };
-  // 骨架節點 tooltip：與原本站點 hover 相同樣式（station_name/id/osm_id/type/route_name_list）
-  const skeletonNodeTooltip = (n) => {
-    const k = llKey(n.latlng[0], n.latlng[1]);
-    const meta =
-      (layer.routeMapAdjustStraightenedStationMeta || layer.routeMapAdjustStationMeta || {})[k] ||
-      {};
-    const routes = Array.isArray(n.routes) ? n.routes : [];
-    const names = routes.map((r) => r.routeName).filter(Boolean);
-    const type = n.isPurple
-      ? '切斷轉折點'
-      : n.isCross
-        ? '交叉生成節點'
-        : routes.length >= 2
-          ? '交點 intersection'
-          : '端點/節點';
-    return (
-      `<div style="font-size:12px;line-height:1.5">` +
-      rowHtml('station_name', meta.name) +
-      rowHtml('station_id', meta.id) +
-      rowHtml('osm_id', meta.osmId) +
-      rowHtml('type', type) +
-      (names.length
-        ? `<div><span style="color:#888">route_name_list</span> ${esc(names.join('、'))}</div>`
-        : '') +
-      `</div>`
-    );
-  };
+  const buildSkeletonNodeTooltip =
+    (terminalKeys, connectKeys) => (n) => {
+      const k = llKey(n.latlng[0], n.latlng[1]);
+      const meta =
+        (layer.routeMapAdjustStraightenedStationMeta || layer.routeMapAdjustStationMeta || {})[
+          k
+        ] || {};
+      const routes = Array.isArray(n.routes)
+        ? n.routes.map((r) => ({
+            routeName: r.routeName || r.routeId || '(未命名)',
+            color: r.color || '',
+          }))
+        : [];
+      const disp = skeletonAdjustNodeDisplay(n, terminalKeys, connectKeys, llKey);
+      return pipelineStationTooltipHtml({
+        meta,
+        typeLabel: disp.typeLabel,
+        stationDotColor: disp.color,
+        stationColorReason: disp.reason,
+        routes,
+      });
+    };
   const originalAnchorKeys = () => {
     const metaKeys = Object.keys(layer.routeMapAdjustStationMeta || {}).map((k) =>
       k.split(',').map(Number)
@@ -506,6 +484,7 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
     const origAnchors = originalAnchorKeys();
     const terminalKeys = origAnchors.terminalKeys;
     const connectKeys = origAnchors.connectKeys;
+    const skeletonNodeTooltip = buildSkeletonNodeTooltip(terminalKeys, connectKeys);
     for (const e of sk.edges || []) {
       const path = Array.isArray(e.path) ? e.path : [];
       if (path.length < 2) continue;
@@ -531,7 +510,12 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
           opacity: 0.9,
           interactive: true,
         });
-        pl.bindTooltip(skeletonEdgeTooltip(e), { sticky: true });
+        bindLeafletHoverOrControlPanel(
+          pl,
+          ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID,
+          dataStore,
+          skeletonEdgeTooltip(e)
+        );
         pl.on('mouseover', () => pl.setStyle({ weight: baseWeight + 4 }));
         pl.on('mouseout', () => pl.setStyle({ weight: baseWeight }));
         pl.addTo(skeletonGroup);
@@ -551,7 +535,12 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
           })
         );
         pls.forEach((pl) => {
-          pl.bindTooltip(skeletonEdgeTooltip(e), { sticky: true });
+          bindLeafletHoverOrControlPanel(
+          pl,
+          ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID,
+          dataStore,
+          skeletonEdgeTooltip(e)
+        );
           pl.on('mouseover', () => pls.forEach((q) => q.setStyle({ weight: baseWeight + 4 })));
           pl.on('mouseout', () => pls.forEach((q) => q.setStyle({ weight: baseWeight })));
           pl.addTo(skeletonGroup);
@@ -575,7 +564,12 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         interactive: true,
         pane: 'srmasDots',
       });
-      m.bindTooltip(stationTooltipHtml(p, 'black', routesAtCoord), { sticky: true });
+      bindLeafletHoverOrControlPanel(
+        m,
+        ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID,
+        dataStore,
+        stationTooltipHtml(p, 'black', routesAtCoord, '#000000')
+      );
       m.on('mouseover', () => m.setRadius(r + 3));
       m.on('mouseout', () => m.setRadius(r));
       m.addTo(skeletonGroup);
@@ -600,7 +594,12 @@ export function mountRouteMapAdjustStraight(el, dataStore) {
         interactive: true,
         pane: 'srmasDots',
       });
-      m.bindTooltip(skeletonNodeTooltip(n), { sticky: true });
+      bindLeafletHoverOrControlPanel(
+        m,
+        ROUTE_MAP_ADJUST_STRAIGHT_LAYER_ID,
+        dataStore,
+        skeletonNodeTooltip(n)
+      );
       m.on('mouseover', () => m.setRadius(baseR + 3));
       m.on('mouseout', () => m.setRadius(baseR));
       m.addTo(skeletonGroup);
