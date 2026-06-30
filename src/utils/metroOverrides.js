@@ -46,17 +46,22 @@ export const METRO_OVERRIDES = {
   },
 
   // 🇯🇵 東京：只保留兩家地鐵公司（東京メトロ＋都營）；直通/私鐵段由 pipeline 內建剔除
+  // 🇯🇵 東京：只要地下鐵（東京メトロ＋都營）。日暮里・舎人ライナー雖屬東京都交通局，但為新交通系統(AGT)
+  //    非地下鐵 → dropByName 剔除（同大阪南港ポートタウン線之處理）。
   'japan-tokyo': {
     keepOperators: '東京メトロ|東京地下鉄|Tokyo Metro|東京都交通局',
+    dropByName: '日暮里・舎人|日暮里-舎人|舎人ライナー|Nippori.?Toneri',
   },
   'japan-tokyo-metro': {
     keepOperators: '東京メトロ|東京地下鉄|Tokyo Metro|東京都交通局',
+    dropByName: '日暮里・舎人|日暮里-舎人|舎人ライナー|Nippori.?Toneri',
   },
   // 東京（兩家地鐵公司）＋ JR 山手線 ＋ JR 中央線（強制納入此二 JR 線，繞過直通/JR 過濾）
   'japan-tokyo-yamanote-chuo': {
     keepOperators: '東京メトロ|東京地下鉄|Tokyo Metro|東京都交通局',
     includeRail: '山手線|Yamanote|中央線|中央・総武|Chūō|Chuo',
     dedupeByName: ['山手|Yamanote', '中央線快速|中央線（', '中央・総武'],
+    dropByName: '日暮里・舎人|日暮里-舎人|舎人ライナー|Nippori.?Toneri',
   },
   // 🇯🇵 大阪：只要地下鐵（Osaka Metro）。keepOperators 剔除大阪單軌(大阪モノレール)與近鐵直通段；
   //    dropByName 再剔除南港ポートタウン線(新交通/AGT，雖屬 Osaka Metro 但非地下鐵)與任何單軌。

@@ -23,7 +23,11 @@ function routeNameOf(seg) {
 
 function collectRouteColors(seg, into) {
   if (!seg) return;
-  const add = (c) => { if (c) into.add(String(c).trim()); };
+  // 排除多色共軌哨兵 '#000000'，避免把黑色當成某線真實色（顏色必須正確）。
+  const add = (c) => {
+    const v = c ? String(c).trim() : '';
+    if (v && v.toLowerCase() !== MULTI_CORRIDOR_SENTINEL) into.add(v);
+  };
   add(seg.way_properties?.tags?.route_color);
   add(seg.way_properties?.tags?.color);
   add(seg.color);
@@ -42,25 +46,34 @@ function applyRouteColorsToSeg(seg, colors) {
 }
 
 const AXIS_EPS = 1e-6;
-const ROUTE_PALETTE = ['#7B1FA2', '#1976D2', '#388E3C', '#F57C00', '#C2185B', '#5D4037'];
+// 共軌段哨兵色：多色共軌的 primary seg 之 color 會被設成 '#000000'（代表「多色，改用 route_colors 交錯畫」）。
+//   收集各路線真實色時須排除此哨兵，避免把黑色誤當某線的真實色。
+const MULTI_CORRIDOR_SENTINEL = '#000000';
 
 function collectCorridorColors(fullFlat, sis) {
+  // 共軌段交錯虛線的顏色 = 沿此走廊各「不同 route」之**真實路線色**的聯集（依 route 名排序，順序穩定）。
+  //   ⚠️ 一律使用真實路線色：即使兩線同色或某線缺色，也**不可**改用調色盤假色（顏色必須正確）。
   const byRoute = new Map();
   for (const si of sis) {
     const seg = fullFlat[si];
     const rn = routeNameOf(seg);
     if (!rn || byRoute.has(rn)) continue;
-    const c = seg?.way_properties?.tags?.route_color || seg?.way_properties?.tags?.color || seg?.color;
-    if (c) byRoute.set(rn, String(c).trim());
-  }
-  const colors = new Set(byRoute.values());
-  if (colors.size < 2 && byRoute.size >= 2) {
-    let i = 0;
-    for (const rn of byRoute.keys()) {
-      colors.add(ROUTE_PALETTE[i++ % ROUTE_PALETTE.length]);
-      void rn;
+    const t = seg?.way_properties?.tags || {};
+    // route_color = 該段所屬單一路線的真實色（上游已寫入）；color/seg.color 可能為多色共軌哨兵，排除之。
+    let c = '';
+    for (const cand of [t.route_color, t.color, seg?.color]) {
+      const v = cand ? String(cand).trim() : '';
+      if (v && v.toLowerCase() !== MULTI_CORRIDOR_SENTINEL) {
+        c = v;
+        break;
+      }
     }
+    if (c) byRoute.set(rn, c);
   }
+  // 依 route 名排序 → 交錯虛線的顏色順序在各階段一致。
+  const ordered = [...byRoute.entries()].sort((a, b) => a[0].localeCompare(b[0])).map((e) => e[1]);
+  const colors = new Set(ordered);
+  // 完全收不到任何單線色時，退而從 route_colors／各色欄位掃出既有色（仍為真實色，非假色）。
   if (colors.size === 0) for (const si of sis) collectRouteColors(fullFlat[si], colors);
   return colors;
 }
