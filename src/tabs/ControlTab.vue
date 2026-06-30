@@ -31,6 +31,7 @@
   import { useRouteMapAdjustStraight } from '@/utils/routeMapAdjust/loadFromSelectRouteMapStraight.js';
   import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
   import { computeQuadtreePartitionFromGeojson } from '@/utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
+  import { resetSchematicLayoutBeforeSkeletonReload } from '@/utils/routeMapAdjust/schematic/resetBeforeSkeletonReload.js';
   import { collectStraightSkeletonStationCoords } from '@/utils/routeMapAdjust/straightenLinesAtRedBlue.js';
   import {
     LAYER_ID as OSM_2_GEOJSON_2_JSON_LAYER_ID,
@@ -3615,6 +3616,7 @@
       );
       return;
     }
+    resetSchematicLayoutBeforeSkeletonReload(layer);
     const fc = routeMapAdjustSkeletonToGeoJson(
       sk,
       Array.isArray(adj.routeMapAdjustLines) ? adj.routeMapAdjustLines : [],
@@ -3647,6 +3649,7 @@
       );
       return;
     }
+    resetSchematicLayoutBeforeSkeletonReload(layer);
     const fc = routeMapAdjustSkeletonToGeoJson(
       sk,
       Array.isArray(adj.routeMapAdjustLines) ? adj.routeMapAdjustLines : [],
@@ -3709,6 +3712,7 @@
       blackDots,
       stationMeta
     );
+    resetSchematicLayoutBeforeSkeletonReload(layer);
     const fc = routeMapAdjustSkeletonToGeoJson(sk, lines, blackDots, stationMeta, stationCoords);
     layer.geojsonData = fc;
     layer.isLoaded = true;
