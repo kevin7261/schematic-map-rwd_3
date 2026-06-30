@@ -183,26 +183,38 @@ function simplify(pts, tol) {
 }
 
 function makeStationSnapper(stations, meters) {
-  const clusters = [];
+  // 依「站名」分群：僅同名 stop 在 meters 內才吸附到同一代表座標。不同名車站即使
+  // 相鄰（如東京銀座線「京橋」與淺草線「宝町」< 250m）也各自獨立 → 不可亂合併。
+  // stations: [{ coord:[lat,lng], name }]。
+  const byName = new Map();
   for (const s of stations) {
+    const nm = (s.name || '').trim();
+    let clusters = byName.get(nm);
+    if (!clusters) {
+      clusters = [];
+      byName.set(nm, clusters);
+    }
+    const p = s.coord;
     let best = null;
     let bd = Infinity;
     for (const c of clusters) {
-      const d = metersBetween(s, [c.lat, c.lng]);
+      const d = metersBetween(p, [c.lat, c.lng]);
       if (d < bd) {
         bd = d;
         best = c;
       }
     }
     if (best && bd <= meters) {
-      best.lat = (best.lat * best.n + s[0]) / (best.n + 1);
-      best.lng = (best.lng * best.n + s[1]) / (best.n + 1);
+      best.lat = (best.lat * best.n + p[0]) / (best.n + 1);
+      best.lng = (best.lng * best.n + p[1]) / (best.n + 1);
       best.n += 1;
     } else {
-      clusters.push({ lat: s[0], lng: s[1], n: 1 });
+      clusters.push({ lat: p[0], lng: p[1], n: 1 });
     }
   }
-  return (p) => {
+  return (p, name) => {
+    const clusters = byName.get((name || '').trim());
+    if (!clusters || !clusters.length) return [round6(p[0]), round6(p[1])];
     let best = null;
     let bd = Infinity;
     for (const c of clusters) {
@@ -543,8 +555,9 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   }
 
   const allStops = [];
-  for (const p of picked) if (p.stops) for (const st of p.stops) allStops.push(st.coord);
-  const snap = allStops.length ? makeStationSnapper(allStops, 250) : null;
+  for (const p of picked) if (p.stops) for (const st of p.stops) allStops.push({ coord: st.coord, name: st.name });
+  // noNameMerge 城市（如紐約）：同名不同站亦不可合併 → meters=0（僅完全重合的座標吸附）。
+  const snap = allStops.length ? makeStationSnapper(allStops, opts.noNameMerge ? 0 : 250) : null;
 
   const built = [];
   for (const p of picked) {
@@ -566,7 +579,7 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
           stops = proj.map((x) => x.st);
         }
       }
-      canon = stops.map((st) => ({ c: snap(st.coord), id: st.id, name: st.name, ref: st.ref }));
+      canon = stops.map((st) => ({ c: snap(st.coord, st.name), id: st.id, name: st.name, ref: st.ref }));
       latlngs = dedupeConsecutive(canon.map((s2) => s2.c));
       if (p.closed) latlngs = closeRing(latlngs); // 環線：把末站接回首站，補上收尾弧
     } else if (p.geom) {
