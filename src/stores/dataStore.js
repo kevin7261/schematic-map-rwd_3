@@ -3704,6 +3704,10 @@ export const useDataStore = defineStore(
       layer.isLoaded = false;
       layer.isLoading = false;
 
+      if (layerId === 'ai_test_layer') {
+        layer.hvOptimizeLastResult = null;
+      }
+
       // 如果圖層是可見的，重新載入
       if (layer.visible && (layer.jsonLoader || layer.geojsonLoader)) {
         try {

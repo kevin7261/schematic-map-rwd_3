@@ -123,6 +123,10 @@
     pipelineMapHoverActiveLayerId,
     clearPipelineMapHover,
   } from '@/utils/control/pipelineMapHoverFeedback.js';
+  import {
+    runHvOptimizeForLayer,
+    applyHvOptimizePreviewForLayer,
+  } from '@/utils/uniformGridHvOptimizeExecute.js';
 
   /**
    * 網格合併和縮減工具函數引入
@@ -1703,7 +1707,50 @@
   /** AI測試：重新隨機產生均勻網格交叉點、三角化與捷運風格路線 */
   const regenerateAiTestLayer = async (layer) => {
     if (!layer || layer.layerId !== 'ai_test_layer') return;
+    const storeLayer = dataStore.findLayerById('ai_test_layer');
+    if (storeLayer) storeLayer.hvOptimizeLastResult = null;
     await dataStore.reloadLayer(layer.layerId);
+  };
+
+  /** AI測試：HV 最佳化執行中旗標（避免重複點擊） */
+  const hvOptimizeRunning = ref(false);
+  const hvOptimizeApplying = ref(false);
+
+  /** AI測試：計算 HV 最佳化預覽（虛線箭頭） */
+  const optimizeAiTestLayerHv = async (layer) => {
+    if (!layer || layer.layerId !== 'ai_test_layer' || hvOptimizeRunning.value) return;
+    const storeLayer = dataStore.findLayerById('ai_test_layer') || layer;
+    if (!storeLayer.isLoaded || !storeLayer.processedJsonData?.routes?.length) {
+      if (typeof window !== 'undefined' && window.alert) {
+        window.alert('請先開啟圖層並按「隨機產生」，產生路線後再執行 HV 最佳化。');
+      }
+      return;
+    }
+    hvOptimizeRunning.value = true;
+    try {
+      const result = await runHvOptimizeForLayer(storeLayer);
+      if (!result.ok && typeof window !== 'undefined' && window.alert) {
+        window.alert(result.message);
+      }
+    } finally {
+      hvOptimizeRunning.value = false;
+    }
+  };
+
+  /** AI測試：套用 HV 最佳化預覽（真正移動路線，虛線消失） */
+  const applyAiTestLayerHv = async (layer) => {
+    if (!layer || layer.layerId !== 'ai_test_layer' || hvOptimizeApplying.value) return;
+    const storeLayer = dataStore.findLayerById('ai_test_layer') || layer;
+    if (!storeLayer.hvOptimizeLastResult?.changeCount) return;
+    hvOptimizeApplying.value = true;
+    try {
+      const result = await applyHvOptimizePreviewForLayer(storeLayer);
+      if (!result.ok && typeof window !== 'undefined' && window.alert) {
+        window.alert(result.message);
+      }
+    } finally {
+      hvOptimizeApplying.value = false;
+    }
   };
 
   const taipeiFHighlightMatchesCurrentLayer = (h) =>
@@ -13385,6 +13432,80 @@
           </button>
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
             重新隨機產生交叉點、三角化與捷運風格路線。
+          </div>
+
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
+            :disabled="hvOptimizeRunning || !layer.isLoaded"
+            @click="optimizeAiTestLayerHv(layer)"
+          >
+            {{ hvOptimizeRunning ? '最佳化中…' : 'HV 最佳化（水平/垂直）' }}
+          </button>
+          <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
+            一鍵依內建 prompt 規則計算（拓撲不變）→ 虛線預覽 →「執行」套用。不需 API Key。
+          </div>
+          <div
+            v-if="layer.hvOptimizeLastResult"
+            class="mt-2 my-font-size-xs"
+            style="line-height: 1.45"
+          >
+            <div class="text-muted pb-1">
+              HV 邊 {{ layer.hvOptimizeLastResult.hvStatsAfter.hvEdges }}/{{
+                layer.hvOptimizeLastResult.hvStatsAfter.edgeCount
+              }}（{{
+                Math.round((layer.hvOptimizeLastResult.hvStatsBefore.hvRatio ?? 0) * 100)
+              }}% → {{
+                Math.round((layer.hvOptimizeLastResult.hvStatsAfter.hvRatio ?? 0) * 100)
+              }}%）
+            </div>
+            <div v-if="layer.hvOptimizeLastResult.changeCount" class="text-success">
+              <div class="pb-1">
+                建議移動 {{ layer.hvOptimizeLastResult.changeCount }} 點（虛線預覽）：
+              </div>
+              <div
+                v-for="c in layer.hvOptimizeLastResult.changes"
+                :key="`hv-opt-${c.id}`"
+                class="text-muted pb-1 d-flex flex-wrap align-items-center"
+              >
+                <span>
+                  {{ c.kindLabel }} id={{ c.id }}：({{ c.from.x }},{{ c.from.y }}) → ({{
+                    c.to.x
+                  }},{{ c.to.y }})
+                </span>
+                <span class="ms-2 d-inline-flex align-items-center flex-wrap gap-1">
+                  路線
+                  <span
+                    v-for="(color, ci) in c.routeColors"
+                    :key="`hv-opt-${c.id}-color-${ci}`"
+                    class="d-inline-flex align-items-center"
+                    :title="color"
+                  >
+                    <span
+                      :style="{
+                        display: 'inline-block',
+                        width: '10px',
+                        height: '10px',
+                        background: color,
+                        borderRadius: '2px',
+                        border: '1px solid rgba(0,0,0,0.15)',
+                      }"
+                    ></span>
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div v-else class="text-muted">建議移動：無（已達目前可安全移動的最佳狀態）</div>
+
+            <button
+              v-if="layer.hvOptimizeLastResult.changeCount"
+              type="button"
+              class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
+              :disabled="hvOptimizeApplying || hvOptimizeRunning"
+              @click="applyAiTestLayerHv(layer)"
+            >
+              {{ hvOptimizeApplying ? '套用中…' : '執行（套用移動）' }}
+            </button>
           </div>
         </div>
 

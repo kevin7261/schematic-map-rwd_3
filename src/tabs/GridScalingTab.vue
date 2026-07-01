@@ -16,6 +16,8 @@
 
   import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
   import { useDataStore } from '@/stores/dataStore.js';
+  import { isUniformGridTurningPoint } from '@/utils/dataProcessor.js';
+  import { fingerprintUniformGridRoutes } from '@/utils/uniformGridHvOptimize.js';
   import * as d3 from 'd3';
   const emit = defineEmits(['active-layer-change']);
 
@@ -68,6 +70,42 @@
 
   /** 上次繪製所用的資料參考；資料變更（如「隨機產生」重新載入）時即使尺寸不變也需要重繪 */
   let lastDrawnGridData = null;
+  /** 上次繪製的 HV 預覽狀態；預覽出現／清除時即使路線資料不變也必須重繪 */
+  let lastDrawnHvPreviewKey = '';
+
+  /** 取得目前圖層 HV 預覽繪製 key（空字串表示無預覽） */
+  const getHvPreviewDrawKey = () => {
+    const layer = dataStore.findLayerById(activeLayerTab.value);
+    if (layer?.layerId !== 'ai_test_layer' || !layer.hvOptimizeLastResult) return '';
+    const r = layer.hvOptimizeLastResult;
+    return `${r.ranAt ?? 0}:${r.changeCount ?? 0}:${r.routesFingerprint ?? ''}`;
+  };
+
+  /**
+   * 若容器尺寸與資料、HV 預覽狀態皆未變，可跳過重繪
+   * @returns {boolean} true = 可跳過重繪
+   */
+  const shouldSkipGridRedraw = (width, height, margin) => {
+    const existingSvg = d3.select('#grid-scaling-container').select('svg');
+    const hvPreviewDrawKey = getHvPreviewDrawKey();
+    if (
+      existingSvg.size() > 0 &&
+      lastDrawnGridData === gridData.value &&
+      lastDrawnHvPreviewKey === hvPreviewDrawKey
+    ) {
+      const existingWidth = parseFloat(existingSvg.attr('width'));
+      const existingHeight = parseFloat(existingSvg.attr('height'));
+      if (
+        Math.abs(existingWidth - (width + margin.left + margin.right)) < 2 &&
+        Math.abs(existingHeight - (height + margin.top + margin.bottom)) < 2
+      ) {
+        return true;
+      }
+    }
+    lastDrawnGridData = gridData.value;
+    lastDrawnHvPreviewKey = hvPreviewDrawKey;
+    return false;
+  };
 
   /** 均勻網格路線／標記 hover 用 tooltip（懶建立、重複利用，避免每次重繪都新增 DOM） */
   let uniformGridTooltip = null;
@@ -197,6 +235,15 @@
           x: targetLayer.drawJsonData.gridX,
           y: targetLayer.drawJsonData.gridY,
         };
+
+        if (
+          targetLayer.layerId === 'ai_test_layer' &&
+          targetLayer.hvOptimizeLastResult &&
+          targetLayer.hvOptimizeLastResult.routesFingerprint !==
+            fingerprintUniformGridRoutes(targetLayer.drawJsonData.routes)
+        ) {
+          targetLayer.hvOptimizeLastResult = null;
+        }
       } else {
         console.error('❌ 無法找到圖層數據:', {
           layerId: layerId,
@@ -260,29 +307,17 @@
     // 獲取容器尺寸
     const dimensions = getDimensions();
 
-    // 添加適當的邊距
-    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+    // 添加適當的邊距（均勻網格需預留左／下刻度標籤空間）
+    const margin = gridData.value?.uniform
+      ? { top: 20, right: 20, bottom: 36, left: 36 }
+      : { top: 20, right: 20, bottom: 20, left: 20 };
     const width = dimensions.width - margin.left - margin.right;
     const height = dimensions.height - margin.top - margin.bottom;
 
-    // 檢查是否已存在 SVG，如果存在且尺寸相同「且資料未變」則不需要重繪
-    // （資料變更時，例如「隨機產生」重新載入，即使容器尺寸不變也必須重繪）
-    const existingSvg = d3.select('#grid-scaling-container').select('svg');
-    if (existingSvg.size() > 0 && lastDrawnGridData === gridData.value) {
-      const existingWidth = parseFloat(existingSvg.attr('width'));
-      const existingHeight = parseFloat(existingSvg.attr('height'));
-
-      // 如果尺寸變化很小（小於 2px），則只更新尺寸而不重繪
-      // 降低閾值以確保寬度變化時能正確重繪
-      if (
-        Math.abs(existingWidth - (width + margin.left + margin.right)) < 2 &&
-        Math.abs(existingHeight - (height + margin.top + margin.bottom)) < 2
-      ) {
-        return;
-      }
+    // 檢查是否已存在 SVG，如果存在且尺寸相同「且資料／HV 預覽未變」則不需要重繪
+    if (shouldSkipGridRedraw(width, height, margin)) {
+      return;
     }
-
-    lastDrawnGridData = gridData.value;
 
     // 清除之前的圖表
     d3.select('#grid-scaling-container').selectAll('svg').remove();
@@ -679,8 +714,60 @@
   };
 
   /**
+   * 🔢 繪製均勻網格軸刻度數字 (Draw Uniform Grid Axis Labels)
+   * 在左側與底部邊界外標示 0…gridX／0…gridY 整數刻度（與路線座標系一致）
+   */
+  const drawUniformGridAxisLabels = (svg, gridX, gridY, cellWidth, cellHeight, height, margin) => {
+    const axisGroup = svg.append('g').attr('class', 'uniform-grid-axis-labels');
+    const fontSize = 10;
+    const tickLen = 4;
+    const labelColor = '#666666';
+
+    for (let i = 0; i <= gridX; i++) {
+      const xPos = margin.left + i * cellWidth;
+      axisGroup
+        .append('line')
+        .attr('x1', xPos)
+        .attr('y1', margin.top + height)
+        .attr('x2', xPos)
+        .attr('y2', margin.top + height + tickLen)
+        .attr('stroke', labelColor)
+        .attr('stroke-width', 1);
+      axisGroup
+        .append('text')
+        .attr('x', xPos)
+        .attr('y', margin.top + height + tickLen + fontSize)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', `${fontSize}px`)
+        .attr('fill', labelColor)
+        .text(i);
+    }
+
+    for (let j = 0; j <= gridY; j++) {
+      const yPos = margin.top + j * cellHeight;
+      axisGroup
+        .append('line')
+        .attr('x1', margin.left - tickLen)
+        .attr('y1', yPos)
+        .attr('x2', margin.left)
+        .attr('y2', yPos)
+        .attr('stroke', labelColor)
+        .attr('stroke-width', 1);
+      axisGroup
+        .append('text')
+        .attr('x', margin.left - tickLen - 4)
+        .attr('y', yPos)
+        .attr('text-anchor', 'end')
+        .attr('dominant-baseline', 'middle')
+        .attr('font-size', `${fontSize}px`)
+        .attr('fill', labelColor)
+        .text(j);
+    }
+  };
+
+  /**
    * 📐 繪製均勻網格 (Draw Uniform Grid Lines)
-   * 依 gridDimensions 平均切分寬高，只畫格線，不含數值或統計標籤
+   * 依 gridDimensions 平均切分寬高，畫格線與軸刻度數字，不含節點數值或統計標籤
    * @param {Object} svg - D3 SVG 選擇器
    * @param {number} width - 繪圖區域寬度
    * @param {number} height - 繪圖區域高度
@@ -714,6 +801,8 @@
         .attr('y2', margin.top + j * cellHeight);
     }
 
+    drawUniformGridAxisLabels(svg, gridX, gridY, cellWidth, cellHeight, height, margin);
+
     // 🚇 於網格上隨機產生的連續捷運風格路線（各自不同顏色，頂點皆為網格交點）
     const routes = gridData.value?.routes;
     if (Array.isArray(routes) && routes.length > 0) {
@@ -723,7 +812,7 @@
 
       const routeGroup = svg.append('g').attr('class', 'uniform-grid-routes');
       routes.forEach((route, routeIdx) => {
-        const segments = splitUniformGridRouteAtCrossings(
+        const segments = splitUniformGridRouteAtBreakPoints(
           route.points,
           markerInfo.pointKey,
           markerInfo.routeCountByPoint
@@ -750,7 +839,7 @@
               tooltip
                 .html(
                   `<strong>路線 ${routeIdx + 1}</strong><br>` +
-                    `區段：第 ${segIdx + 1} / ${segments.length} 段（交叉點斷開）<br>` +
+                    `區段：第 ${segIdx + 1} / ${segments.length} 段（交叉點／轉折點斷開）<br>` +
                     `站點數：${segPoints.length}<br>` +
                     `起點：(${from.x.toFixed(2)}, ${from.y.toFixed(2)})<br>` +
                     `終點：(${to.x.toFixed(2)}, ${to.y.toFixed(2)})`
@@ -772,6 +861,17 @@
       });
 
       drawUniformGridRouteMarkers(svg, routes, toPixel, markerInfo, tooltip);
+
+      const previewLayer = dataStore.findLayerById(activeLayerTab.value);
+      const preview = previewLayer?.hvOptimizeLastResult;
+      const routesFingerprint = fingerprintUniformGridRoutes(routes);
+      if (
+        previewLayer?.layerId === 'ai_test_layer' &&
+        preview?.changes?.length &&
+        preview.routesFingerprint === routesFingerprint
+      ) {
+        drawHvOptimizeMovePreview(svg, preview.changes, toPixel, tooltip);
+      }
     }
   };
 
@@ -811,20 +911,39 @@
   };
 
   /**
-   * ✂️ 依交叉點切分路線座標 (Split Route Points at Crossing Points)
-   * 交叉點作為前後兩段的共同端點，讓畫出來的線條在視覺上仍完整銜接。
+   * 🩷 收集各路線的轉折點 key
+   * @param {{ points: { x: number, y: number }[] }[]} routes
+   * @param {(p: { x: number, y: number }) => string} pointKey
+   * @returns {Set<string>}
+   */
+  const computeUniformGridTurningPointKeys = (routes, pointKey) => {
+    const keys = new Set();
+    routes.forEach((route) => {
+      route.points.forEach((p, idx) => {
+        if (isUniformGridTurningPoint(route.points, idx)) {
+          keys.add(pointKey(p));
+        }
+      });
+    });
+    return keys;
+  };
+
+  /**
+   * ✂️ 依交叉點與轉折點切分路線座標 (Split Route Points at Crossings and Turning Points)
+   * 斷點作為前後兩段的共同端點，讓畫出來的線條在視覺上仍完整銜接。
    * @param {{ x: number, y: number }[]} points
    * @param {(p: { x: number, y: number }) => string} pointKey
    * @param {Map<string, number>} routeCountByPoint
    * @returns {{ x: number, y: number }[][]}
    */
-  const splitUniformGridRouteAtCrossings = (points, pointKey, routeCountByPoint) => {
+  const splitUniformGridRouteAtBreakPoints = (points, pointKey, routeCountByPoint) => {
     const segments = [];
     let current = [points[0]];
     for (let i = 1; i < points.length; i++) {
       current.push(points[i]);
       const isCrossing = (routeCountByPoint.get(pointKey(points[i])) || 0) > 1;
-      if (isCrossing && i < points.length - 1) {
+      const isTurn = isUniformGridTurningPoint(points, i);
+      if ((isCrossing || isTurn) && i < points.length - 1) {
         segments.push(current);
         current = [points[i]];
       }
@@ -833,12 +952,16 @@
     return segments;
   };
 
+  /** 均勻網格標記色：轉折點（粉紅，與路線調整 palette 一致） */
+  const UNIFORM_GRID_TURNING_MARKER_COLOR = '#e377c2';
+
   /**
-   * ⚫🔴🔵 繪製路線車站（黑點）、交叉點（紅點）與端點（藍點） (Draw Route Station,
-   * Crossing, and Endpoint Markers)
-   * 交叉點：被 2 條以上路線共用的交叉點（如同轉乘站）；端點：各路線的起訖站；
-   * 車站：路線上其餘一般交點中隨機標記的站點。若同一點同時符合多種身份，
-   * 優先順序為交叉點（紅）＞端點（藍）＞車站（黑）。點與線皆支援 hover 顯示屬性。
+   * ⚫🔴🔵🩷 繪製路線車站（黑點）、交叉點（紅點）、端點（藍點）與轉折點（粉紅點）
+   * 交叉點：被 2 條以上路線共用、且幾何上非轉折之點（例如直线穿过）；端點：各路線的起訖站；
+   * 轉折點：同一路線前後線段方向改變之頂點（含多路線交會但為轉折者，一律粉紅）；
+   * 車站：路線上其餘一般交點中隨機標記的站點。
+   * 若同一點同時符合多種身份，優先順序為轉折點（粉紅）＞端點（藍）＞交叉點（紅）＞車站（黑）。
+   * 點與線皆支援 hover 顯示屬性。
    * @param {Object} svg - D3 SVG 選擇器
    * @param {{ color: string, points: { x: number, y: number }[], stations?: { x: number, y: number }[] }[]} routes
    * @param {(p: { x: number, y: number }) => [number, number]} toPixel
@@ -847,6 +970,7 @@
    */
   const drawUniformGridRouteMarkers = (svg, routes, toPixel, markerInfo, tooltip) => {
     const { pointKey, pointByKey, routeCountByPoint, endpointKeys } = markerInfo;
+    const turningPointKeys = computeUniformGridTurningPointKeys(routes, pointKey);
 
     const stationKeys = new Set();
     routes.forEach((route) => {
@@ -888,18 +1012,106 @@
         });
     };
 
-    // 車站（黑點）
-    stationKeys.forEach((k) => drawMarker(k, '#000000', '車站'));
+    const isCrossingKey = (k) => (routeCountByPoint.get(k) || 0) > 1;
 
-    // 端點（藍點）：若同一點同時是交叉點，讓交叉點（紅點）優先顯示
+    // 車站（黑點）
+    stationKeys.forEach((k) => {
+      if (isCrossingKey(k) || endpointKeys.has(k) || turningPointKeys.has(k)) return;
+      drawMarker(k, '#000000', '車站');
+    });
+
+    // 端點（藍點）：轉折優先以粉紅顯示，端點通常不在 turningPointKeys 內
     endpointKeys.forEach((k) => {
-      if ((routeCountByPoint.get(k) || 0) > 1) return;
+      if (turningPointKeys.has(k)) return;
       drawMarker(k, '#2196f3', '端點');
     });
 
-    // 交叉點（紅點）
+    // 轉折點（粉紅點）：幾何轉折一律粉紅，即使為多路線交會也不改畫紅
+    turningPointKeys.forEach((k) => {
+      drawMarker(k, UNIFORM_GRID_TURNING_MARKER_COLOR, '轉折點');
+    });
+
+    // 交叉點（紅點）：僅非轉折之多路線共用點（直线穿过等）
     routeCountByPoint.forEach((count, k) => {
-      if (count > 1) drawMarker(k, '#f44336', `交叉點（${count} 條路線交會）`);
+      if (count > 1 && !turningPointKeys.has(k)) {
+        drawMarker(k, '#f44336', `交叉點（${count} 條路線交會）`);
+      }
+    });
+  };
+
+  /**
+   * ➡️ 繪製 HV 最佳化建議移動預覽（虛線＋箭頭：現有位置 → 建議位置，不畫落點圓圈）
+   * @param {Object} svg
+   * @param {Array<{ kindLabel: string, id: number, from: {x:number,y:number}, to: {x:number,y:number}, routeColors: string[] }>} changes
+   * @param {(p: { x: number, y: number }) => [number, number]} toPixel
+   * @param {Object} tooltip
+   */
+  const drawHvOptimizeMovePreview = (svg, changes, toPixel, tooltip) => {
+    const previewGroup = svg.append('g').attr('class', 'uniform-grid-hv-optimize-preview');
+    const markerPrefix = `hv-opt-arrow-${Date.now()}`;
+    const colors = [...new Set(changes.map((c) => c.routeColors?.[0] || '#555555'))];
+    const defs = previewGroup.append('defs');
+    const markerUrlByColor = new Map();
+
+    colors.forEach((color, i) => {
+      const markerId = `${markerPrefix}-${i}`;
+      defs
+        .append('marker')
+        .attr('id', markerId)
+        .attr('viewBox', '0 -4 8 8')
+        .attr('refX', 7)
+        .attr('refY', 0)
+        .attr('markerWidth', 7)
+        .attr('markerHeight', 7)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,-4L8,0L0,4')
+        .attr('fill', color);
+      markerUrlByColor.set(color, `url(#${markerId})`);
+    });
+
+    changes.forEach((c) => {
+      const [x1, y1] = toPixel(c.from);
+      const [x2, y2] = toPixel(c.to);
+      if (x1 === x2 && y1 === y2) return;
+
+      const lineColor = c.routeColors?.[0] || '#555555';
+      const routeColorText = (c.routeColors || []).join(' ');
+
+      previewGroup
+        .append('line')
+        .attr('x1', x1)
+        .attr('y1', y1)
+        .attr('x2', x2)
+        .attr('y2', y2)
+        .attr('stroke', lineColor)
+        .attr('stroke-width', 2.5)
+        .attr('stroke-dasharray', '7,5')
+        .attr('stroke-linecap', 'round')
+        .attr('marker-end', markerUrlByColor.get(lineColor))
+        .attr('opacity', 0.9)
+        .style('pointer-events', 'stroke')
+        .style('cursor', 'pointer')
+        .on('mouseover', function (event) {
+          d3.select(this).attr('stroke-width', 4);
+          tooltip
+            .html(
+              `<strong>HV 建議移動（預覽）</strong><br>` +
+                `${c.kindLabel} id=${c.id}<br>` +
+                `(${c.from.x}, ${c.from.y}) → (${c.to.x}, ${c.to.y})<br>` +
+                `相連路線：${routeColorText || '—'}`
+            )
+            .style('opacity', 1)
+            .style('left', event.pageX + 12 + 'px')
+            .style('top', event.pageY - 10 + 'px');
+        })
+        .on('mousemove', function (event) {
+          tooltip.style('left', event.pageX + 12 + 'px').style('top', event.pageY - 10 + 'px');
+        })
+        .on('mouseout', function () {
+          d3.select(this).attr('stroke-width', 2.5);
+          tooltip.style('opacity', 0);
+        });
     });
   };
 
@@ -1405,24 +1617,10 @@
     let xMax = d3.max(allPoints, (d) => d.x);
     let yMax = d3.max(allPoints, (d) => d.y);
 
-    // 檢查是否已存在 SVG，如果存在且尺寸相同「且資料未變」則不需要重繪
-    // （資料變更時，例如「隨機產生」重新載入，即使容器尺寸不變也必須重繪）
-    const existingSvg = d3.select('#grid-scaling-container').select('svg');
-    if (existingSvg.size() > 0 && lastDrawnGridData === gridData.value) {
-      const existingWidth = parseFloat(existingSvg.attr('width'));
-      const existingHeight = parseFloat(existingSvg.attr('height'));
-
-      // 如果尺寸變化很小（小於 2px），則只更新尺寸而不重繪
-      // 降低閾值以確保寬度變化時能正確重繪
-      if (
-        Math.abs(existingWidth - (width + margin.left + margin.right)) < 2 &&
-        Math.abs(existingHeight - (height + margin.top + margin.bottom)) < 2
-      ) {
-        return;
-      }
+    // 檢查是否已存在 SVG，如果存在且尺寸相同「且資料／HV 預覽未變」則不需要重繪
+    if (shouldSkipGridRedraw(width, height, margin)) {
+      return;
     }
-
-    lastDrawnGridData = gridData.value;
 
     // 清除之前的圖表
     d3.select('#grid-scaling-container').selectAll('svg').remove();
@@ -1896,6 +2094,22 @@
     async (newDrawData) => {
       if (newDrawData && activeLayerTab.value) {
         await loadLayerData(activeLayerTab.value);
+        await nextTick();
+        drawSchematic();
+      }
+    },
+    { deep: true }
+  );
+
+  /** 👀 HV 最佳化預覽變更時重繪虛線 */
+  watch(
+    () => {
+      if (!activeLayerTab.value) return null;
+      const layer = visibleLayers.value.find((l) => l.layerId === activeLayerTab.value);
+      return layer?.layerId === 'ai_test_layer' ? layer.hvOptimizeLastResult : null;
+    },
+    async () => {
+      if (activeLayerTab.value) {
         await nextTick();
         drawSchematic();
       }

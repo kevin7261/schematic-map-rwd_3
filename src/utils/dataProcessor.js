@@ -1984,14 +1984,118 @@ function pointAtDistanceAlongRoute(points, distance) {
 }
 
 /**
- * 📍 收集所有路線的交叉點與端點座標 (Collect All Route Crossing and Endpoint Points)
+ * 求點到線段最近距離平方（投影 clamp 在端點之間）
+ * @param {{ x: number, y: number }} p
+ * @param {{ x: number, y: number }} a
+ * @param {{ x: number, y: number }} b
+ */
+function pointToSegmentDistanceSq(p, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq < 1e-18) {
+    const ex = p.x - a.x;
+    const ey = p.y - a.y;
+    return ex * ex + ey * ey;
+  }
+  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const px = a.x + t * dx;
+  const py = a.y + t * dy;
+  const ex = p.x - px;
+  const ey = p.y - py;
+  return ex * ex + ey * ey;
+}
+
+/**
+ * 判斷車站落在路線的哪一段（points[i]→points[i+1]）
+ * @param {{ x: number, y: number }[]} points
+ * @param {{ x: number, y: number }} station
+ * @returns {number}
+ */
+function findUniformGridStationSegmentIndex(points, station) {
+  if (!Array.isArray(points) || points.length < 2) return 0;
+  let bestSeg = 0;
+  let bestDistSq = Infinity;
+  for (let i = 0; i < points.length - 1; i++) {
+    const dSq = pointToSegmentDistanceSq(station, points[i], points[i + 1]);
+    if (dSq < bestDistSq) {
+      bestDistSq = dSq;
+      bestSeg = i;
+    }
+  }
+  return bestSeg;
+}
+
+/**
+ * 🚉 路線頂點移動後，將黑點車站依原所在線段重新均分
  *
- * 與繪製端使用的判定邏輯一致：交叉點為被 2 條以上路線共用的交叉點；端點為各路線的起訖站。
+ * 先依移動前座標判斷每個車站落在哪一段（points[i]→points[i+1]），
+ * 再以 (j+1)/(n+1) 沿該段新幾何均分插回（與拉直路線黑點邏輯一致）。
+ *
+ * @param {{ x: number, y: number }[]} oldPoints
+ * @param {{ x: number, y: number }[]} newPoints
+ * @param {{ x: number, y: number }[]} stations
+ * @returns {{ x: number, y: number }[]}
+ */
+export function redistributeUniformGridStationsAfterRouteMove(oldPoints, newPoints, stations) {
+  if (!Array.isArray(stations) || !stations.length) return [];
+  if (!Array.isArray(newPoints) || newPoints.length < 2) return [];
+
+  /** @type {Map<number, number>} */
+  const countBySegment = new Map();
+  (oldPoints?.length >= 2 ? stations : []).forEach((st) => {
+    const segIdx = findUniformGridStationSegmentIndex(oldPoints, st);
+    countBySegment.set(segIdx, (countBySegment.get(segIdx) || 0) + 1);
+  });
+  if (!countBySegment.size) return [];
+
+  const result = [];
+  [...countBySegment.keys()]
+    .sort((a, b) => a - b)
+    .forEach((segIdx) => {
+      const count = countBySegment.get(segIdx);
+      const i = Math.min(Math.max(0, segIdx), newPoints.length - 2);
+      const a = newPoints[i];
+      const b = newPoints[i + 1];
+      for (let j = 0; j < count; j++) {
+        const t = (j + 1) / (count + 1);
+        result.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+      }
+    });
+  return result;
+}
+
+/**
+ * ↩️ 判斷路線頂點是否為幾何轉折點（前後線段不共線）
+ * @param {{ x: number, y: number }[]} points
+ * @param {number} idx
+ * @returns {boolean}
+ */
+export function isUniformGridTurningPoint(points, idx) {
+  if (idx <= 0 || idx >= points.length - 1) return false;
+
+  const prev = points[idx - 1];
+  const curr = points[idx];
+  const next = points[idx + 1];
+  const dx1 = curr.x - prev.x;
+  const dy1 = curr.y - prev.y;
+  const dx2 = next.x - curr.x;
+  const dy2 = next.y - curr.y;
+
+  return Math.abs(dx1 * dy2 - dy1 * dx2) > 0.001;
+}
+
+/**
+ * 📍 收集所有路線的交叉點、端點與轉折點座標 (Collect Route Marker Points for Station Spacing)
+ *
+ * 與繪製端使用的判定邏輯一致：交叉點為被 2 條以上路線共用的交叉點；端點為各路線的起訖站；
+ * 轉折點為同一路線前後線段方向改變之頂點（粉紅點）。
  *
  * @param {{ points: { x: number, y: number }[] }[]} routes
  * @returns {{ x: number, y: number }[]}
  */
-function collectRouteCrossingAndEndpointMarkerPoints(routes) {
+function collectRouteStationExclusionMarkerPoints(routes) {
   const pointKey = (p) => `${p.x},${p.y}`;
   const pointByKey = new Map();
   const routeCountByPoint = new Map();
@@ -2011,6 +2115,11 @@ function collectRouteCrossingAndEndpointMarkerPoints(routes) {
   routes.forEach((route) => {
     markerKeys.add(pointKey(route.points[0]));
     markerKeys.add(pointKey(route.points[route.points.length - 1]));
+    route.points.forEach((p, idx) => {
+      if (isUniformGridTurningPoint(route.points, idx)) {
+        markerKeys.add(pointKey(p));
+      }
+    });
   });
   routeCountByPoint.forEach((count, k) => {
     if (count > 1) markerKeys.add(k);
@@ -2024,15 +2133,15 @@ function collectRouteCrossingAndEndpointMarkerPoints(routes) {
  *
  * 車站只需落在路線的線段上即可，不必是網格交點；沿路線總長度隨機取樣多個位置
  * （避開緊貼兩端，讓端點標記維持清楚），車站數量隨路線長度增加。任兩個車站
- * （不論是否同一路線），以及車站與任何交叉點（紅點）／端點（藍點）之間，
+ * （不論是否同一路線），以及車站與任何交叉點（紅點）／端點（藍點）／轉折點（粉紅點）之間，
  * 至少相距 {@link UNIFORM_GRID_MIN_STATION_DISTANCE}（1/4 個網格寬），
  * 過近的候選位置會重新取樣，多次仍無法安插則放棄該車站。
  *
  * @param {{ color: string, points: { x: number, y: number }[], stations?: { x: number, y: number }[] }[]} routes - 就地寫入 stations 欄位
  */
-function assignRandomStationsToRoutes(routes) {
-  /** 已放置座標（跨路線車站 + 所有交叉點／端點），用來檢查最小間距 */
-  const placedStations = collectRouteCrossingAndEndpointMarkerPoints(routes);
+export function assignRandomStationsToRoutes(routes) {
+  /** 已放置座標（跨路線車站 + 所有交叉點／端點／轉折點），用來檢查最小間距 */
+  const placedStations = collectRouteStationExclusionMarkerPoints(routes);
   const isFarEnoughFromAll = (p) =>
     placedStations.every(
       (q) => Math.hypot(p.x - q.x, p.y - q.y) >= UNIFORM_GRID_MIN_STATION_DISTANCE
