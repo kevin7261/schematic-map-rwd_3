@@ -12,10 +12,10 @@ description: Generate integer-grid schematic coordinates from connect skeleton +
 ## App 內（路線調整 → AI調整）
 
 1. 完成上游「站點與路線調整前置」
-2. 選 **AI調整** layer → **開始執行**
-3. 自動讀上游 → **逐步 loop**（預設每輪寫入圖層 → 使用者按「確定，下一輪」）→ 無點可動時結束
+2. 選 **AI調整** layer → **開始執行**（自動讀上游、呼叫 LLM、寫入圖層）
+3. 圖上確認 → **確定，下一輪** → 重複直到無點可動
 
-**LLM 連線**：dev server 設 `OPENAI_API_KEY`（走 `/api/llm-layout` proxy），或在 UI 填入 API Key。
+**LLM 連線**：dev server 設 `OPENAI_API_KEY`（`.env.local`），不需在 UI 填 Key。
 
 ## 快速流程（CLI / 離線）
 

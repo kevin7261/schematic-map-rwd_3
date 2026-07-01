@@ -33,9 +33,6 @@ export function getRouteAdjustAiLayer() {
   return useDataStore().findLayerById(ROUTE_ADJUST_AI_LAYER_ID);
 }
 
-/**
- * 自上游建立完整 LLM payload（含 skeleton，供套用）。
- */
 export function buildRouteAdjustAiPayload() {
   const input = resolveRouteAdjustLayoutInput();
   if (!input.ok) return input;
@@ -48,9 +45,6 @@ export function buildRouteAdjustAiPayload() {
   return { ok: true, payload, input };
 }
 
-/**
- * 驗證 LLM 回覆 JSON（CLI 選用）。
- */
 export function validateRouteAdjustAiResponse(payload, response) {
   try {
     const report = validateLlmLayoutFromPayload(payload, response);
@@ -97,9 +91,6 @@ function buildFinalSummary(payload, applied, loopStats, secs) {
     .join('\n\n');
 }
 
-/**
- * 套用逐點驗證後的座標並寫入 AI調整 圖層。
- */
 export function applyRouteAdjustAiLayout(payload, applied, loopStats = null) {
   const { coordChanges, edgeStats, graph, fullFlat, geometry, foreignRep, incremental } = applied;
   const loop = loopStats || {};
@@ -182,10 +173,7 @@ function newAiSession(payload) {
   };
 }
 
-/**
- * 執行單一 AI 調整輪次：LLM → 逐點驗證 → 寫入圖層。
- * @returns {Promise<object>}
- */
+/** 執行單一 AI 調整輪次：LLM → 逐點驗證 → 寫入圖層。 */
 export async function runOneRouteAdjustAiRound(session) {
   const { payload, loopStats } = session;
   const roundIndex = loopStats.rounds;
@@ -292,8 +280,7 @@ export async function startRouteAdjustAiStepwise() {
 
 /** 逐步模式：確認後下一輪 */
 export async function continueRouteAdjustAiStepwise() {
-  const layer = getRouteAdjustAiLayer();
-  const session = layer?.llmLayoutSession;
+  const session = getRouteAdjustAiLayer()?.llmLayoutSession;
   if (!session || session.phase !== 'awaiting_confirm') {
     return { ok: false, message: '目前沒有待確認的 AI 調整輪次' };
   }
@@ -319,10 +306,8 @@ export async function continueRouteAdjustAiStepwise() {
   return { ...result, phase: session.phase };
 }
 
-/** 逐步模式：停止（保留目前已寫入圖層的結果） */
 export function stopRouteAdjustAiStepwise() {
-  const layer = getRouteAdjustAiLayer();
-  const session = layer?.llmLayoutSession;
+  const session = getRouteAdjustAiLayer()?.llmLayoutSession;
   if (!session) {
     return { ok: false, message: '沒有進行中的 session' };
   }
@@ -337,9 +322,7 @@ export function stopRouteAdjustAiStepwise() {
   };
 }
 
-/**
- * dataStore executeFunction：自動跑完所有輪（不逐步確認）。
- */
+/** dataStore executeFunction：自動跑完所有輪（不逐步確認） */
 export async function executeRouteAdjustAi() {
   const built = buildRouteAdjustAiPayload();
   if (!built.ok) {

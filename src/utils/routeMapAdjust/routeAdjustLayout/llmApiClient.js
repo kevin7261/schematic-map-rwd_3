@@ -96,7 +96,7 @@ export async function callLlmLayoutChat(messages) {
     if (!settings.apiKey) {
       throw new Error(
         lastErr?.message ||
-          '未設定 LLM：請在 dev server 設 OPENAI_API_KEY，或在下方填入 API Key'
+          '未設定 LLM：請在 dev server 環境設 OPENAI_API_KEY（.env.local）後重啟 npm run serve'
       );
     }
     const base = settings.apiBase.replace(/\/$/, '');

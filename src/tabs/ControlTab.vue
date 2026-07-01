@@ -99,8 +99,6 @@
     resolveRouteAdjustLayoutInput,
     ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES,
     SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
-    getLlmApiSettings,
-    saveLlmApiSettings,
     startRouteAdjustAiStepwise,
     continueRouteAdjustAiStepwise,
     stopRouteAdjustAiStepwise,
@@ -10221,25 +10219,14 @@
     return r.message || '上游尚無路網。';
   };
 
-  const llmApiKeyInput = ref(getLlmApiSettings().apiKey);
-  const onLlmApiKeyBlur = () => {
-    saveLlmApiSettings({ apiKey: llmApiKeyInput.value });
-  };
-
-  /** AI調整：預設逐步確認每輪；勾選後改為自動跑完 */
-  const llmAutoRunAll = ref(false);
+  const routeAdjustAiAwaitingConfirm = (layer) =>
+    layer?.isRouteAdjustAiLayer && layer?.llmLayoutSession?.phase === 'awaiting_confirm';
 
   const onRouteAdjustAiStart = async () => {
     if (!routeAdjustLayoutInputReady() || isExecuting.value) return;
     isExecuting.value = true;
     try {
       await nextTick();
-      if (llmAutoRunAll.value) {
-        if (currentLayer.value?.executeFunction) {
-          await Promise.resolve(currentLayer.value.executeFunction({ type: 'FeatureCollection', features: [] }));
-        }
-        return;
-      }
       const res = await startRouteAdjustAiStepwise();
       if (!res.ok) {
         window.alert('[未產出]\n' + (res.message || 'AI 調整失敗'));
@@ -10256,6 +10243,15 @@
         isExecuting.value = false;
       }, 300);
     }
+  };
+
+  /** ①–⑧：executeFunction；AI調整：自動 LLM 逐輪 */
+  const onRouteAdjustLayoutStart = async (layer) => {
+    if (layer?.isRouteAdjustAiLayer) {
+      await onRouteAdjustAiStart();
+      return;
+    }
+    await executeLayerFunction();
   };
 
   const onRouteAdjustAiContinue = async (layer) => {
@@ -10286,9 +10282,6 @@
     const res = stopRouteAdjustAiStepwise();
     if (res.message) window.alert(res.message);
   };
-
-  const routeAdjustAiAwaitingConfirm = (layer) =>
-    layer?.isRouteAdjustAiLayer && layer?.llmLayoutSession?.phase === 'awaiting_confirm';
 
   const milpRoutePairAuditing = ref(false);
 
@@ -13015,7 +13008,7 @@
           >
             自動讀上游「{{ ROUTE_ADJUST_UPSTREAM_LAYER_NAME }}」，以 skill
             <code class="my-font-size-xs">llm-octilinear-layout</code>
-            逐輪呼叫 LLM 調整座標（預設每輪確認後才繼續）。不需 HiGHS / SAT。
+            逐輪自動調整座標（優先水平/垂直），每輪確認後繼續。不需 HiGHS / SAT。
           </div>
           <div
             v-else
@@ -13033,38 +13026,12 @@
           >
             {{ routeAdjustLayoutInputHint() }}
           </div>
-          <div v-if="layer.isRouteAdjustAiLayer" class="mb-2">
-            <label class="my-font-size-xs text-muted d-block pb-1">LLM API Key（選填；dev 可設 OPENAI_API_KEY）</label>
-            <input
-              v-model="llmApiKeyInput"
-              type="password"
-              class="form-control form-control-sm my-font-size-xs"
-              placeholder="sk-…"
-              autocomplete="off"
-              @blur="onLlmApiKeyBlur"
-            />
-          </div>
-          <div v-if="layer.isRouteAdjustAiLayer" class="form-check mb-2">
-            <input
-              :id="`llm-auto-run-${layer.layerId}`"
-              v-model="llmAutoRunAll"
-              type="checkbox"
-              class="form-check-input"
-              :disabled="routeAdjustAiAwaitingConfirm(layer) || isExecuting"
-            />
-            <label
-              class="form-check-label my-font-size-xs text-muted"
-              :for="`llm-auto-run-${layer.layerId}`"
-            >
-              自動跑完所有輪（不逐步確認）
-            </label>
-          </div>
           <button
             v-if="!routeAdjustAiAwaitingConfirm(layer)"
             type="button"
             class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
             :disabled="!routeAdjustLayoutInputReady() || isExecuting"
-            @click="onRouteAdjustAiStart"
+            @click="onRouteAdjustLayoutStart(layer)"
           >
             {{ isExecuting ? '計算中…' : '開始執行' }}
           </button>
