@@ -19,80 +19,17 @@ import {
   SCHEMATIC_MILP_STRAIGHTEN_LAYER_ID,
   SCHEMATIC_TOWARD_CENTER_VH_LAYER_ID,
 } from '../layerIds.js';
+import {
+  countFlatBad,
+  snapNonBlackSkeletonToIntegerGrid,
+  compactEmptyGridLinesSafe,
+  resolveIntroducedCrossings,
+} from './coordNormalizeMilpCompact.js';
 
 function fail(msg) {
   console.warn('[MILP結果正規化] ' + msg);
   if (typeof window !== 'undefined' && typeof window.alert === 'function') window.alert('[未產出]\n' + msg);
   return { ok: false, message: msg };
-}
-
-const rdP = (p) => (Array.isArray(p) ? [Number(p[0]), Number(p[1])] : [Number(p?.x ?? 0), Number(p?.y ?? 0)]);
-const wrP = (p, x, y) => { if (Array.isArray(p)) { p[0] = x; p[1] = y; } else if (p && typeof p === 'object') { p.x = x; p.y = y; } };
-const cz = (ax, ay, bx, by) => ax * by - ay * bx;
-
-/** 兩子邊（不同 section、不共端點）是否「交叉或疊線」。 */
-function pairBad(a, b, c, d) {
-  // 共線疊線
-  const rx = b[0] - a[0], ry = b[1] - a[1], sx = d[0] - c[0], sy = d[1] - c[1];
-  if (Math.abs(cz(rx, ry, sx, sy)) < 1e-9 && Math.abs(cz(rx, ry, c[0] - a[0], c[1] - a[1])) < 1e-9) {
-    const L = Math.hypot(rx, ry); if (L > 1e-9) {
-      const ux = rx / L, uy = ry / L;
-      const tb = (b[0] - a[0]) * ux + (b[1] - a[1]) * uy;
-      const tc = (c[0] - a[0]) * ux + (c[1] - a[1]) * uy;
-      const td = (d[0] - a[0]) * ux + (d[1] - a[1]) * uy;
-      const lo = Math.max(Math.min(0, tb), Math.min(tc, td));
-      const hi = Math.min(Math.max(0, tb), Math.max(tc, td));
-      if (hi - lo > 1e-6) return true;
-    }
-    return false;
-  }
-  // 嚴格內部相交
-  const d1 = cz(d[0] - c[0], d[1] - c[1], a[0] - c[0], a[1] - c[1]);
-  const d2 = cz(d[0] - c[0], d[1] - c[1], b[0] - c[0], b[1] - c[1]);
-  const d3 = cz(b[0] - a[0], b[1] - a[1], c[0] - a[0], c[1] - a[1]);
-  const d4 = cz(b[0] - a[0], b[1] - a[1], d[0] - a[0], d[1] - a[1]);
-  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
-}
-
-/** 整份 flat 的「交叉＋疊線」子邊對數（不同 section、不共端點）。 */
-function countFlatBad(segs) {
-  const subs = [];
-  segs.forEach((seg, sid) => {
-    const pts = (seg.points || []).map(rdP);
-    const ep0 = pts.length ? `${pts[0][0]},${pts[0][1]}` : '';
-    const epN = pts.length ? `${pts[pts.length - 1][0]},${pts[pts.length - 1][1]}` : '';
-    for (let i = 1; i < pts.length; i++) subs.push({ sid, a: pts[i - 1], b: pts[i], ep0, epN });
-  });
-  let n = 0;
-  for (let i = 0; i < subs.length; i++) for (let j = i + 1; j < subs.length; j++) {
-    if (subs[i].sid === subs[j].sid) continue;
-    // 共端點（兩 section 在 connect 相接）不算
-    if (subs[i].ep0 === subs[j].ep0 || subs[i].ep0 === subs[j].epN || subs[i].epN === subs[j].ep0 || subs[i].epN === subs[j].epN) continue;
-    if (pairBad(subs[i].a, subs[i].b, subs[j].a, subs[j].b)) n++;
-  }
-  return n;
-}
-
-/**
- * 壓縮空白行/列：移除「此 segs 內整排沒有任何點」之整數格線（本層傳入 connect 骨架
- * → 等同「整排沒有紅/藍 connect 點就刪除」，與黑點無關；一律移除，含對角線穿過者）。就地改寫 segs。
- */
-function compactEmptyGridLines(segs) {
-  const xs = new Set(), ys = new Set();
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const seg of segs) for (const p of seg.points || []) {
-    const [x, y] = rdP(p); xs.add(x); ys.add(y);
-    if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
-  }
-  const removeCols = [], removeRows = [];
-  for (let c = minX + 1; c < maxX; c++) if (!xs.has(c)) removeCols.push(c);
-  for (let r = minY + 1; r < maxY; r++) if (!ys.has(r)) removeRows.push(r);
-  const remap = (v, removed) => { let s = 0; for (const k of removed) { if (k < v) s++; else break; } return v - s; };
-  for (const seg of segs) for (const p of seg.points || []) {
-    const [x, y] = rdP(p);
-    wrP(p, remap(x, removeCols), remap(y, removeRows));
-  }
-  return { removedCols: removeCols.length, removedRows: removeRows.length };
 }
 
 /**
@@ -215,7 +152,7 @@ export function recomputeMilpReadBrownToBlackGray() {
   };
 }
 
-/** 「座標正規化」：保拓樸壓縮空白行列。 */
+/** 「座標正規化」：整數格吸附 → 保拓樸壓縮空白行列 → 必要時修正交叉。 */
 export function executeReadMilpResult() {
   const ds = useDataStore();
   const readLayer = ds.findLayerById(SCHEMATIC_MILP_READ_LAYER_ID);
@@ -235,7 +172,6 @@ export function executeReadMilpResult() {
   const baseFlat = JSON.parse(JSON.stringify(input));
 
   // 座標正規化前：以紅/黃/藍為邊界重算粉紅點（參數同骨架2），不再需要者降級為棕色。
-  //   MILP 結果為平面格座標 → planar:true（不做 cos(lat) 校正）。
   try {
     const demoted = revalidatePinkToBrownInFlat(baseFlat, { planar: true });
     if (demoted > 0) console.log(`[路線正規化] 粉紅點以紅/黃/藍邊界重算：${demoted} 個 → 降級棕色。`);
@@ -245,26 +181,43 @@ export function executeReadMilpResult() {
 
   const before = countFlatBad(baseFlat);
 
-  // 只看紅/藍 connect 點：抽出 connect 骨架（去黑點）→ 移除「整排沒有 connect 的空白行/列」
-  // → 黑點沿邊重新內插放回。依使用者要求一律移除（含對角線穿過者）。
+  // ① 紅/黃/藍/粉紅/灰骨架節點 snap 至整數格（同位置共點同步）。
+  const snappedGroups = snapNonBlackSkeletonToIntegerGrid(baseFlat);
+  if (snappedGroups > 0) {
+    console.log(`[路線正規化] 骨架邊界節點整數化：${snappedGroups} 組共點已調整。`);
+  }
+
+  // ② connect 骨架 → 安全刪空欄列（保護對角穿過格線 + 不新增交叉）。
   const { skeletonFlat, sections } = buildConnectSkeleton(baseFlat);
-  const { removedCols, removedRows } = compactEmptyGridLines(skeletonFlat);
-  const finalSegs = reinsertBlackStations(skeletonFlat, sections);
+  const { removedCols, removedRows } = compactEmptyGridLinesSafe(skeletonFlat, before);
+
+  // ③ 若仍新增交叉，於骨架上微調頂點後再插回黑點。
+  let crossFixed = 0;
+  if (countFlatBad(skeletonFlat) > before) {
+    crossFixed = resolveIntroducedCrossings(skeletonFlat, before);
+    if (crossFixed > 0) {
+      console.log(`[路線正規化] 交叉修正：${crossFixed} 組骨架共點已微調。`);
+    }
+  }
+  let finalSegs = reinsertBlackStations(skeletonFlat, sections);
+
   try {
-    refreshPinkDpRatioInFlat(finalSegs); // 壓縮後座標已變，須重算 dp_ratio
+    refreshPinkDpRatioInFlat(finalSegs);
   } catch (e) {
     console.warn('[MILP結果正規化] 正規化後重算 dp_ratio 失敗。', e);
   }
   const after = countFlatBad(finalSegs);
 
   const write = writeSchematicResultToLayer(SCHEMATIC_MILP_READ_LAYER_ID, finalSegs, {
-    algo: '座標正規化（移除整排無紅/藍 connect 點之空白行列）',
+    algo: '座標正規化（骨架整數格 + 安全刪空欄列 + 交叉修正）',
     sourceLayerId: SCHEMATIC_MILP_LAYER_ID,
     coordNormalize: true,
     removedCols,
     removedRows,
     crossBefore: before,
     crossAfter: after,
+    crossFixed,
+    snappedGroups,
     topologyError: after > before,
     topologyErrorCount: Math.max(0, after - before),
     readAt: Date.now(),
@@ -272,22 +225,25 @@ export function executeReadMilpResult() {
   if (!write.ok) return write;
   ds.requestSpaceNetworkGridFullRedraw();
 
-  // 拓撲錯誤偵測：若正規化「新增」了交叉/重疊（多為移除對角線穿過之空白行列把 45° 壓歪所致），顯示警示。
   const introduced = after - before;
   if (introduced > 0) {
     const msg =
-      `⚠ 座標正規化後出現拓撲錯誤！\n` +
+      `⚠ 座標正規化後仍出現拓撲錯誤！\n` +
       `新增交叉／重疊 ${introduced} 處（${before} → ${after}）。\n` +
-      `原因：移除了被 45° 對角線穿過的空白行/列，使對角線被壓歪而相交。\n` +
-      `後果：此結果已非平面拓撲，「紅／藍 connect 拉直」會因路網有交叉而拒跑。`;
+      `已嘗試整數 snap、保護對角格線與頂點微調（修正 ${crossFixed} 點），仍無法完全消除。\n` +
+      `後果：「紅／藍 connect 拉直」可能因路網有交叉而拒跑。`;
     console.warn('[MILP結果正規化] ' + msg);
     if (typeof window !== 'undefined' && typeof window.alert === 'function') window.alert(msg);
   }
 
-  const warn = introduced > 0 ? `；⚠ 拓撲錯誤：新增交叉/重疊 ${introduced}（${before}→${after}）` : `；交叉/重疊維持 ${after}（無新增）`;
+  const fixNote = crossFixed > 0 ? `；交叉修正 ${crossFixed} 點` : '';
+  const snapNote = snappedGroups > 0 ? `；整數化 ${snappedGroups} 組共點` : '';
+  const warn = introduced > 0
+    ? `；⚠ 拓撲錯誤：新增交叉/重疊 ${introduced}（${before}→${after}）`
+    : `；交叉/重疊維持 ${after}（無新增）`;
   return {
     ok: true,
-    message: `座標正規化完成：移除空白 ${removedCols} 欄、${removedRows} 列${warn}`,
+    message: `座標正規化完成：移除空白 ${removedCols} 欄、${removedRows} 列${snapNote}${fixNote}${warn}`,
     stats: write.stats,
   };
 }
