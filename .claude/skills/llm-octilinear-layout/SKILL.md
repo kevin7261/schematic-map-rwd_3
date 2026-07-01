@@ -9,7 +9,15 @@ description: Generate integer-grid schematic coordinates from connect skeleton +
 
 **適用規模**：connect 節點 < 30 效果最佳；更大路網請分段或 fallback 到 stroke/hillclimb 初解 + LLM 修復。
 
-## 快速流程
+## App 內（路線調整 → AI調整）
+
+1. 完成上游「站點與路線調整前置」
+2. 選 **AI調整** layer → **開始執行**
+3. 自動讀上游 → LLM（skill prompt）→ 驗證 H2–H4 → 寫入圖層
+
+**LLM 連線**：dev server 設 `OPENAI_API_KEY`（走 `/api/llm-layout` proxy），或在 UI 填入 API Key。
+
+## 快速流程（CLI / 離線）
 
 ```bash
 # 1. 從骨架 GeoJSON 匯出 LLM 輸入

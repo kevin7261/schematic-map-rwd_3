@@ -123,6 +123,43 @@ module.exports = defineConfig({
       if (!devServer?.app) return middlewares;
       const express = require('express');
       devServer.app.use(express.json({ limit: '50mb' }));
+
+      /** AI調整：dev proxy 轉發 LLM（需 OPENAI_API_KEY 環境變數） */
+      devServer.app.post('/api/llm-layout', async (req, res) => {
+        try {
+          const apiKey = process.env.OPENAI_API_KEY || process.env.VUE_APP_OPENAI_API_KEY;
+          if (!apiKey) {
+            res.status(503).json({ ok: false, error: 'OPENAI_API_KEY not set on dev server' });
+            return;
+          }
+          const { messages, model = process.env.LLM_LAYOUT_MODEL || 'gpt-5.4' } = req.body || {};
+          if (!Array.isArray(messages) || !messages.length) {
+            res.status(400).json({ ok: false, error: 'messages required' });
+            return;
+          }
+          const body = { model, messages, response_format: { type: 'json_object' } };
+          if (!/^gpt-5/i.test(String(model))) body.temperature = 0.2;
+          const r = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify(body),
+          });
+          const data = await r.json();
+          if (!r.ok) {
+            res.status(r.status).json({ ok: false, error: data.error?.message || r.statusText });
+            return;
+          }
+          const content = data.choices?.[0]?.message?.content;
+          res.json({ ok: true, content });
+        } catch (err) {
+          console.error('[llm-layout]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
       devServer.app.post('/api/save-result', (req, res) => {
         try {
           const resultDir = path.join(__dirname, 'public', 'data', 'result');

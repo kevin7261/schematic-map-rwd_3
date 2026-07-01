@@ -49,6 +49,21 @@ export function makeRouteAdjustLayoutLayer(spec) {
   };
 }
 
+/** @param {{ layerId: string, layerName: string, colorName: string, executeFunction?: Function|null }} spec */
+export function makeRouteAdjustAiLayer(spec) {
+  const base = makeRouteAdjustLayoutLayer({
+    ...spec,
+    executeFunction: spec.executeFunction ?? null,
+  });
+  return {
+    ...base,
+    isRouteAdjustLayoutLayer: false,
+    isRouteAdjustAiLayer: true,
+    llmLayoutPayload: null,
+    llmLayoutLastValidation: null,
+  };
+}
+
 /** @param {{ layerId: string, layerName: string, colorName: string }} spec */
 export function makeRmaDetailAdjustLayer(spec) {
   return {

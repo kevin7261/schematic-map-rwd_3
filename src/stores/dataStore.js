@@ -139,6 +139,7 @@ import { executeNormalizeRma } from '../utils/routeMapAdjust/schematic/normalize
 import { executeReadMilpResult as executeReadMilpResultRma } from '../utils/routeMapAdjust/schematic/milp/readMilpResult.js';
 import {
   makeRouteAdjustLayoutLayer,
+  makeRouteAdjustAiLayer,
   makeRmaDetailAdjustLayer,
 } from '../utils/routeMapAdjust/routeAdjustLayout/layerDef.js';
 import {
@@ -151,6 +152,7 @@ import {
   executeRouteAdjustMerrick,
   executeRouteAdjustSat,
 } from '../utils/routeMapAdjust/routeAdjustLayout/execute.js';
+import { executeRouteAdjustAi } from '../utils/routeMapAdjust/routeAdjustLayout/executeAi.js';
 import {
   ROUTE_ADJUST_STROKE_LAYER_ID,
   ROUTE_ADJUST_HILLCLIMB_LAYER_ID,
@@ -160,6 +162,7 @@ import {
   ROUTE_ADJUST_BAST_LAYER_ID,
   ROUTE_ADJUST_MERRICK_LAYER_ID,
   ROUTE_ADJUST_SAT_LAYER_ID,
+  ROUTE_ADJUST_AI_LAYER_ID,
   SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
   ROUTE_ADJUST_UPSTREAM_LAYER_NAME,
 } from '../utils/routeMapAdjust/routeAdjustLayout/layerIds.js';
@@ -1083,6 +1086,12 @@ export const useDataStore = defineStore(
               'dashboard',
             ],
           },
+          makeRouteAdjustAiLayer({
+            layerId: ROUTE_ADJUST_AI_LAYER_ID,
+            layerName: 'AI調整',
+            colorName: 'purple',
+            executeFunction: executeRouteAdjustAi,
+          }),
         ],
       },
       {

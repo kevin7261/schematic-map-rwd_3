@@ -98,6 +98,8 @@
     resolveRouteAdjustLayoutInput,
     ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES,
     SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
+    getLlmApiSettings,
+    saveLlmApiSettings,
   } from '@/utils/routeMapAdjust/routeAdjustLayout/index.js';
   import { computeStationDataFromRoutes } from '@/utils/dataExecute/computeStationDataFromRoutes.js';
   import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
@@ -10214,6 +10216,11 @@
     return r.message || '上游尚無路網。';
   };
 
+  const llmApiKeyInput = ref(getLlmApiSettings().apiKey);
+  const onLlmApiKeyBlur = () => {
+    saveLlmApiSettings({ apiKey: llmApiKeyInput.value });
+  };
+
   const milpRoutePairAuditing = ref(false);
 
   /** ③ MILP（RMA）：按鈕觸發路線對 CCW 環序審計（不動佈局管線） */
@@ -12926,10 +12933,26 @@
           </div>
         </div>
 
-        <!-- 站點與路線調整（RMA）#1–#8：讀「站點與路線調整前置」→ 八演算法重佈局（同示意圖佈局，獨立管線） -->
-        <div v-if="layer.isRouteAdjustLayoutLayer" class="pb-3 mb-3 border-bottom">
+        <!-- 站點與路線調整（RMA）#1–#8 + AI調整：讀「站點與路線調整前置」→ 重佈局 -->
+        <div
+          v-if="layer.isRouteAdjustLayoutLayer || layer.isRouteAdjustAiLayer"
+          class="pb-3 mb-3 border-bottom"
+        >
           <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
-          <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
+          <div
+            v-if="layer.isRouteAdjustAiLayer"
+            class="my-font-size-xs text-muted pb-2"
+            style="line-height: 1.45"
+          >
+            自動讀上游「{{ ROUTE_ADJUST_UPSTREAM_LAYER_NAME }}」，以 skill
+            <code class="my-font-size-xs">llm-octilinear-layout</code>
+            的 prompt 呼叫 LLM 產生整數格座標（優先水平/垂直），驗證通過後寫入本圖層。不需 HiGHS / SAT。
+          </div>
+          <div
+            v-else
+            class="my-font-size-xs text-muted pb-2"
+            style="line-height: 1.45"
+          >
             輸入固定為上游「{{ ROUTE_ADJUST_UPSTREAM_LAYER_NAME }}」（{{ ROUTE_ADJUST_UPSTREAM_LAYER_ID }}）：讀取已正規化之路網
             connect
             骨架，以與「示意圖佈局」相同的八演算法重新佈局，黑點沿新邊均分插回。不含⑨正規化。
@@ -12941,6 +12964,17 @@
           >
             {{ routeAdjustLayoutInputHint() }}
           </div>
+          <div v-if="layer.isRouteAdjustAiLayer" class="mb-2">
+            <label class="my-font-size-xs text-muted d-block pb-1">LLM API Key（選填；dev 可設 OPENAI_API_KEY）</label>
+            <input
+              v-model="llmApiKeyInput"
+              type="password"
+              class="form-control form-control-sm my-font-size-xs"
+              placeholder="sk-…"
+              autocomplete="off"
+              @blur="onLlmApiKeyBlur"
+            />
+          </div>
           <button
             type="button"
             class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
@@ -12949,6 +12983,31 @@
           >
             {{ isExecuting ? '計算中…' : '開始執行' }}
           </button>
+          <div
+            v-if="layer.isRouteAdjustAiLayer && layer.llmLayoutLastValidation?.pass"
+            class="mt-2 my-font-size-xs"
+            style="line-height: 1.45"
+          >
+            <div v-if="layer.llmLayoutLastValidation.violations" class="text-muted pb-1">
+              上次 HV 邊比例：
+              {{ Math.round((layer.llmLayoutLastValidation.violations.hvRatio ?? 0) * 100) }}%
+            </div>
+            <div
+              v-if="layer.llmLayoutLastValidation.coordChanges?.changeCount"
+              class="text-success"
+            >
+              <div class="pb-1">
+                座標調整 {{ layer.llmLayoutLastValidation.coordChanges.changeCount }} 點：
+              </div>
+              <div
+                class="text-muted"
+                style="max-height: 160px; overflow-y: auto; white-space: pre-wrap"
+              >
+                {{ layer.llmLayoutLastValidation.changeSummary }}
+              </div>
+            </div>
+            <div v-else class="text-muted">座標調整：無（與讀入初值相同）</div>
+          </div>
           <div
             v-if="
               layer.layerId === 'schematic_rma_route_adjust_milp' &&

@@ -29,6 +29,7 @@
 - 格式：`{"coords":[{"id":0,"x":0,"y":0},...],"notes":""}`
 - `coords` 必須包含 payload 中每個 `nodes[].id` 恰好一次
 - `x`, `y` 為非負整數
+- `notes` 可簡述本輪相對 `initial_grid` 調整了哪些 `id`（程式也會自動比對並顯示）
 
 ---
 
