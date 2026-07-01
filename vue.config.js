@@ -173,6 +173,72 @@ module.exports = defineConfig({
         }
       });
 
+      /** AI測試 HV（僅 devServer / 本地 Cursor 開發，正式 build 不含此 API） */
+      const aiTestHvDir = path.join(__dirname, 'public', 'data', 'ai_test');
+      const aiTestHvPayloadPath = path.join(aiTestHvDir, 'hv_payload.json');
+      const aiTestHvResponsePath = path.join(aiTestHvDir, 'hv_response.json');
+      const ensureAiTestHvDir = () => {
+        if (!fs.existsSync(aiTestHvDir)) fs.mkdirSync(aiTestHvDir, { recursive: true });
+      };
+
+      devServer.app.post('/api/ai-test-hv/payload', (req, res) => {
+        try {
+          ensureAiTestHvDir();
+          fs.writeFileSync(aiTestHvPayloadPath, JSON.stringify(req.body, null, 2), 'utf8');
+          res.json({ ok: true, path: 'public/data/ai_test/hv_payload.json' });
+        } catch (err) {
+          console.error('[ai-test-hv/payload]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.get('/api/ai-test-hv/payload', (req, res) => {
+        try {
+          if (!fs.existsSync(aiTestHvPayloadPath)) {
+            res.status(404).json({ ok: false, error: 'payload not found' });
+            return;
+          }
+          res.json(JSON.parse(fs.readFileSync(aiTestHvPayloadPath, 'utf8')));
+        } catch (err) {
+          console.error('[ai-test-hv/payload GET]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.post('/api/ai-test-hv/response', (req, res) => {
+        try {
+          ensureAiTestHvDir();
+          fs.writeFileSync(aiTestHvResponsePath, JSON.stringify(req.body, null, 2), 'utf8');
+          res.json({ ok: true, path: 'public/data/ai_test/hv_response.json' });
+        } catch (err) {
+          console.error('[ai-test-hv/response]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.get('/api/ai-test-hv/response', (req, res) => {
+        try {
+          if (!fs.existsSync(aiTestHvResponsePath)) {
+            res.json({ ok: true, missing: true });
+            return;
+          }
+          res.json(JSON.parse(fs.readFileSync(aiTestHvResponsePath, 'utf8')));
+        } catch (err) {
+          console.error('[ai-test-hv/response GET]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.delete('/api/ai-test-hv/response', (req, res) => {
+        try {
+          if (fs.existsSync(aiTestHvResponsePath)) fs.unlinkSync(aiTestHvResponsePath);
+          res.json({ ok: true });
+        } catch (err) {
+          console.error('[ai-test-hv/response DELETE]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
       /** 以下 API 仍保留於 devServer，前端已不再呼叫（路網成品改存圖層 dataOSM／dataGeojson／dataJson）。 */
       devServer.app.post('/api/save-osm2-geojson-2-json-artifacts', (req, res) => {
         try {

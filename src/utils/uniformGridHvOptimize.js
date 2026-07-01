@@ -2,9 +2,9 @@
  * 🧭 均勻網格捷運路線圖 — HV（水平／垂直）最佳化核心邏輯 (Uniform Grid HV Optimize Core)
  *
  * 目的：把「AI測試」圖層目前隨機漫遊產生的路線（`routes: [{ color, points, stations }]`），
- * 先化簡為 network（**完整頂點序列** + edges + topology），再依本檔 `HV_OPTIMIZE_SYSTEM_PROMPT`
- * 所寫規則（拓撲不變、HV 最大化、幾何約束）在本機計算平移；`applyHvOptimizeIncrementally`
- * 逐點驗證。App 按鈕一鍵執行，不需 API Key、不需手動貼 prompt。
+ * 先建 network（完整頂點序列 + edges + topology）；App 寫 hv_payload.json，
+ * Cursor Agent 依 skill 回寫 hv_response.json；App 以 `applyHvOptimizeIncrementally`
+ * 逐點驗證後預覽。不用 API Key、不用剪貼簿、不用本機求解。
  *
  * 與既有「AI調整」功能（src/utils/routeMapAdjust/routeAdjustLayout/llmLayoutCore.js）
  * 的多輪 LLM＋逐點驗證模式一致，但資料模型完全獨立、更簡單（無站名／地理座標／路線分歧環序）。
@@ -15,6 +15,7 @@
 
 import { segmentIntersectionInterior2D } from './routeSegmentIntersections.js';
 import { isUniformGridTurningPoint, redistributeUniformGridStationsAfterRouteMove } from './dataProcessor.js';
+import { parseLlmJsonResponse } from './routeMapAdjust/routeAdjustLayout/llmApiClient.js';
 
 /** @typedef {'crossing'|'endpoint'|'bend'|'vertex'} HvPointKind */
 
@@ -279,6 +280,64 @@ export function buildHvOptimizeChatMessages(userPrompt) {
     { role: 'system', content: HV_OPTIMIZE_SYSTEM_PROMPT },
     { role: 'user', content: userPrompt },
   ];
+}
+
+/**
+ * 📋 組出貼到 Cursor 的完整 prompt（System + User，單一文字）
+ * @param {ReturnType<typeof buildHvOptimizePayload>} payload
+ * @param {number} roundIndex
+ */
+export function buildHvOptimizeCursorExportText(payload, roundIndex) {
+  return [
+    '【依 ai-test-hv-optimize skill — 拓撲不可變】',
+    '請只回傳 JSON：{"coords":[{"id":0,"x":0,"y":0},...],"notes":"可省略"}',
+    '',
+    '=== System ===',
+    HV_OPTIMIZE_SYSTEM_PROMPT,
+    '',
+    '=== User ===',
+    buildHvOptimizeUserPrompt(payload, roundIndex),
+  ].join('\n');
+}
+
+/**
+ * 解析 Cursor LLM 回覆 JSON
+ * @param {string} text
+ */
+export function parseHvOptimizeLlmResponse(text) {
+  const parsed = parseLlmJsonResponse(text);
+  if (!parsed || !Array.isArray(parsed.coords)) {
+    throw new Error('LLM 回覆須含 coords 陣列');
+  }
+  return parsed;
+}
+
+/** 從 Agent 回覆 JSON 解析可顯示的 model／計算來源標籤 */
+export function resolveHvOptimizeModelLabel(responseBody) {
+  if (!responseBody || typeof responseBody !== 'object') return null;
+  if (typeof responseBody.model === 'string' && responseBody.model.trim()) {
+    return responseBody.model.trim();
+  }
+  if (responseBody.computedBy === 'llm') {
+    return 'Cursor Agent（LLM）';
+  }
+  if (typeof responseBody.notes === 'string' && responseBody.notes.trim()) {
+    return responseBody.notes.trim();
+  }
+  return null;
+}
+
+/** 是否為已停用的非 LLM（greedy／腳本）回覆 */
+export function isRejectedHvOptimizeNonLlmResponse(responseBody) {
+  if (!responseBody || typeof responseBody !== 'object') return false;
+  if (responseBody.computedBy === 'greedy-local') return true;
+  if (typeof responseBody.notes === 'string' && responseBody.notes.includes('computeResponse')) {
+    return true;
+  }
+  if (typeof responseBody.model === 'string' && responseBody.model.includes('greedy')) {
+    return true;
+  }
+  return false;
 }
 
 /**

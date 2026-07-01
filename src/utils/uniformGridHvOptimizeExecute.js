@@ -1,131 +1,231 @@
 /* eslint-disable no-console */
 
 /**
- * 🚀 均勻網格捷運路線圖 — HV 最佳化執行流程 (Uniform Grid HV Optimize Execute)
+ * 🚀 均勻網格 — HV 最佳化（僅本地 Cursor 開發）
  *
- * 按鈕一鍵自動執行（不需 API Key、不需剪貼簿／貼回）：
- * 依 `uniformGridHvOptimize.js` 內寫好的 prompt 規則（拓撲不變 + HV 最大化 + 幾何約束），
- * 在本機以貪婪對齊 + 逐點驗證跑最多 4 輪 → 虛線預覽 → 「執行」才寫回路線。
+ * 需 `npm run serve` + Cursor Agent（ai-test-hv-optimize skill）。
+ * 正式 build／部署不提供；Agent 讀寫 public/data/ai_test/hv_*.json。
  */
 
 import { showSolveOverlay } from './routeMapAdjust/schematic/solveOverlay.js';
 import { processUniformGridToDrawData } from './dataProcessor.js';
 import {
+  postAiTestHvPayload,
+  fetchAiTestHvResponse,
+  deleteAiTestHvResponse,
+  isAiTestHvLocalDevMode,
+} from './aiTestHvBridge.js';
+export { isAiTestHvLocalDevMode } from './aiTestHvBridge.js';
+import {
   buildHvOptimizePayload,
+  stripHvOptimizePayloadForExport,
+  parseHvOptimizeLlmResponse,
   applyHvOptimizeIncrementally,
   refreshHvOptimizePayloadFromCoords,
   rebuildRoutesFromOptimizedKeypoints,
-  runGreedyHvOptimizeRound,
-  buildHvOptimizeCoordsResponse,
   buildHvOptimizeChangeReport,
-  computeHvStats,
   fingerprintUniformGridRoutes,
+  resolveHvOptimizeModelLabel,
+  isRejectedHvOptimizeNonLlmResponse,
 } from './uniformGridHvOptimize.js';
 
-/** 安全上限 */
-export const HV_OPTIMIZE_MAX_ROUNDS = 4;
-
-/** 清除圖層上的 HV 最佳化虛線預覽狀態 */
+/** 清除圖層上的 HV 最佳化 session 與虛線預覽 */
 export function clearHvOptimizePreview(layer) {
-  if (layer) layer.hvOptimizeLastResult = null;
+  if (!layer) return;
+  layer.hvOptimizeLastResult = null;
+  layer.hvOptimizeSession = null;
 }
 
-/**
- * 🚉 HV 最佳化：一鍵計算預覽（本機 prompt 規則，僅預覽）
- */
-export async function runHvOptimizeForLayer(layer) {
-  if (!layer?.processedJsonData || !Array.isArray(layer.processedJsonData.routes)) {
+function ensureHvOptimizeSession(layer) {
+  const { gridX, gridY, routes } = layer.processedJsonData;
+  const fingerprint = fingerprintUniformGridRoutes(routes);
+  const session = layer.hvOptimizeSession;
+  if (session?.routesFingerprint === fingerprint) return session;
+
+  const payload = buildHvOptimizePayload(routes, gridX, gridY);
+  layer.hvOptimizeSession = {
+    routesFingerprint: fingerprint,
+    roundIndex: 0,
+    initialBeforeCoords: payload.movablePoints.map((p) => ({ x: p.x, y: p.y })),
+    initialHvStats: {
+      edgeCount: payload.edges.length,
+      hvEdges: payload.edges.length - payload.meta.initialNonHvCount,
+      hvRatio: payload.meta.initialHvRatio,
+    },
+    workingCoords: null,
+  };
+  layer.hvOptimizeLastResult = null;
+  return layer.hvOptimizeSession;
+}
+
+function getHvOptimizePayloadForSession(layer) {
+  const { gridX, gridY, routes } = layer.processedJsonData;
+  let payload = buildHvOptimizePayload(routes, gridX, gridY);
+  const session = layer.hvOptimizeSession;
+  if (session?.workingCoords?.length === payload.movablePoints.length) {
+    payload = refreshHvOptimizePayloadFromCoords(payload, session.workingCoords);
+  }
+  return payload;
+}
+
+/** 寫入 payload 供 Cursor Agent 讀取 */
+export async function syncAiTestHvPayloadForLayer(layer) {
+  if (!layer?.processedJsonData?.routes?.length) {
     return { ok: false, message: '目前圖層沒有可最佳化的路線資料，請先按「隨機產生」。' };
   }
 
-  const { gridX, gridY, routes } = layer.processedJsonData;
-  if (!routes.length) {
-    return { ok: false, message: '目前沒有路線可最佳化。' };
+  const session = ensureHvOptimizeSession(layer);
+  const payload = getHvOptimizePayloadForSession(layer);
+  const network = stripHvOptimizePayloadForExport(payload);
+
+  await postAiTestHvPayload({
+    updatedAt: Date.now(),
+    routesFingerprint: session.routesFingerprint,
+    roundIndex: session.roundIndex,
+    network,
+    session: {
+      initialBeforeCoords: session.initialBeforeCoords,
+      initialHvStats: session.initialHvStats,
+      workingCoords: session.workingCoords,
+    },
+  });
+
+  return { ok: true, roundIndex: session.roundIndex + 1 };
+}
+
+/** 讀取 Agent 回覆 JSON → 逐點驗證 → 虛線預覽 */
+export async function applyAiTestHvResponseForLayer(layer, responseBody) {
+  if (!layer?.processedJsonData?.routes?.length) {
+    return { ok: false, message: '目前圖層沒有路線資料。' };
   }
 
-  const overlay = showSolveOverlay('HV 最佳化中…');
-  let payload = buildHvOptimizePayload(routes, gridX, gridY);
-  const beforeCoords = payload.movablePoints.map((p) => ({ x: p.x, y: p.y }));
-  const initialHvStats = {
-    edgeCount: payload.edges.length,
-    hvEdges: payload.edges.length - payload.meta.initialNonHvCount,
-    hvRatio: payload.meta.initialHvRatio,
-  };
+  const session = ensureHvOptimizeSession(layer);
+  const { routes } = layer.processedJsonData;
+  const fingerprint = fingerprintUniformGridRoutes(routes);
+  if (session.routesFingerprint !== fingerprint) {
+    clearHvOptimizePreview(layer);
+    return { ok: false, message: '路線已變更，請重新按「HV 最佳化」。' };
+  }
 
-  let totalAccepted = 0;
-  let totalRejected = 0;
-  let lastCoords = beforeCoords.map((c) => ({ ...c }));
-  let rounds = 0;
-
+  const overlay = showSolveOverlay('驗證 Agent 座標…');
   try {
-    for (; rounds < HV_OPTIMIZE_MAX_ROUNDS; rounds++) {
-      overlay.setStatus(`第 ${rounds + 1} 輪：依 prompt 規則計算 HV 對齊…`);
+    const payload = getHvOptimizePayloadForSession(layer);
+    const response = parseHvOptimizeLlmResponse(JSON.stringify(responseBody));
+    const applied = applyHvOptimizeIncrementally(payload, response);
 
-      const { coords: greedyCoords, changed } = runGreedyHvOptimizeRound(payload);
-      if (!changed) break;
-
-      const applied = applyHvOptimizeIncrementally(
-        payload,
-        buildHvOptimizeCoordsResponse(greedyCoords)
-      );
-      totalAccepted += applied.acceptedCount;
-      totalRejected += applied.rejectedCount;
-      lastCoords = applied.coords.map((c) => ({ ...c }));
-
-      if (applied.acceptedCount === 0) {
-        rounds += 1;
-        break;
-      }
-
-      payload = refreshHvOptimizePayloadFromCoords(payload, applied.coords);
-    }
-
-    const finalHvStats = computeHvStats(
-      payload.edges.map((e) => {
-        const a = lastCoords[e.fromId];
-        const b = lastCoords[e.toId];
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        return { ...e, dx, dy, isHv: dx === 0 || dy === 0 };
-      })
-    );
+    session.workingCoords = applied.coords.map((c) => ({ x: c.x, y: c.y }));
+    session.roundIndex += 1;
 
     const changeReport = buildHvOptimizeChangeReport(
-      buildHvOptimizePayload(routes, gridX, gridY),
+      buildHvOptimizePayload(
+        routes,
+        layer.processedJsonData.gridX,
+        layer.processedJsonData.gridY
+      ),
       routes,
-      beforeCoords,
-      lastCoords,
-      initialHvStats,
-      finalHvStats
+      session.initialBeforeCoords,
+      applied.coords,
+      session.initialHvStats,
+      applied.hvStatsAfter
     );
 
     layer.hvOptimizeLastResult = {
       ...changeReport,
       previewOnly: true,
-      algo: 'prompt-rules·拓撲不變·逐點驗證',
-      routesFingerprint: fingerprintUniformGridRoutes(routes),
-      finalCoords: lastCoords.map((c) => ({ x: c.x, y: c.y })),
-      totalAccepted,
-      totalRejected,
-      rounds,
+      algo: 'cursor-agent·拓撲不變·逐點驗證',
+      model: resolveHvOptimizeModelLabel(responseBody),
+      computedBy: responseBody.computedBy ?? null,
+      routesFingerprint: fingerprint,
+      finalCoords: applied.coords.map((c) => ({ x: c.x, y: c.y })),
+      acceptedCount: applied.acceptedCount,
+      rejectedCount: applied.rejectedCount,
+      roundIndex: session.roundIndex,
       ranAt: Date.now(),
     };
 
     overlay.close();
 
+    const acceptMsg =
+      applied.acceptedCount > 0 ? `接受 ${applied.acceptedCount} 點` : '無座標被接受';
+    const rejectMsg = applied.rejectedCount > 0 ? `，拒絕 ${applied.rejectedCount} 點` : '';
+
     return {
       ok: true,
-      message: changeReport.changeSummary,
-      hvStatsBefore: initialHvStats,
-      hvStatsAfter: finalHvStats,
-      totalAccepted,
-      totalRejected,
+      message: `${acceptMsg}${rejectMsg}。${changeReport.changeSummary}`,
       changeReport,
+      acceptedCount: applied.acceptedCount,
+      rejectedCount: applied.rejectedCount,
     };
   } catch (e) {
     overlay.close();
-    console.error('[HV最佳化] 未預期錯誤:', e);
-    return { ok: false, message: `HV 最佳化失敗：${e?.message || e}` };
+    console.error('[HV最佳化] Agent 回覆驗證失敗:', e);
+    return { ok: false, message: `驗證失敗：${e?.message || e}` };
+  }
+}
+
+/**
+ * 🚉 HV 最佳化：同步 payload + 若有 Agent 回覆則載入預覽
+ */
+export async function runHvOptimizeForLayer(layer) {
+  if (!isAiTestHvLocalDevMode()) {
+    return {
+      ok: false,
+      message: 'HV 最佳化僅限本地 Cursor 開發（npm run serve）；正式部署不提供。',
+    };
+  }
+  if (!layer?.processedJsonData?.routes?.length) {
+    return { ok: false, message: '目前圖層沒有可最佳化的路線資料，請先按「隨機產生」。' };
+  }
+
+  try {
+    await syncAiTestHvPayloadForLayer(layer);
+
+    const responseBody = await fetchAiTestHvResponse();
+    if (!responseBody) {
+      return {
+        ok: true,
+        pendingAgent: true,
+        message:
+          '已同步 hv_payload.json。\n尚無 hv_response.json；在 Cursor 用 LLM 推理完成後再按「HV 最佳化」。',
+      };
+    }
+
+    if (isRejectedHvOptimizeNonLlmResponse(responseBody)) {
+      return {
+        ok: false,
+        message:
+          'hv_response.json 為本機 greedy／腳本產生，已停用。\n請在 Cursor 用 LLM 推理座標，並以 writeResponse.mjs 寫入（computedBy: "llm"）。',
+      };
+    }
+
+    const fp = fingerprintUniformGridRoutes(layer.processedJsonData.routes);
+    if (responseBody.routesFingerprint && responseBody.routesFingerprint !== fp) {
+      return {
+        ok: false,
+        message:
+          'Agent 回覆與目前路線不符（routesFingerprint 不同）。\n若剛按「隨機產生」，請在 Cursor 重新用 LLM 計算並寫入 hv_response.json。',
+      };
+    }
+
+    return applyAiTestHvResponseForLayer(layer, responseBody);
+  } catch (e) {
+    console.error('[HV最佳化]', e);
+    return { ok: false, message: e?.message || String(e) };
+  }
+}
+
+/** @deprecated 改用 runHvOptimizeForLayer */
+export const exportHvOptimizePromptForLayer = syncAiTestHvPayloadForLayer;
+
+/** @deprecated 改用 applyAiTestHvResponseForLayer */
+export const applyHvOptimizeLlmResponseForLayer = applyAiTestHvResponseForLayer;
+
+/** 隨機產生 / 套用後清除 Agent 回覆檔 */
+export async function resetAiTestHvBridgeFiles() {
+  try {
+    await deleteAiTestHvResponse();
+  } catch {
+    /* dev server 未啟動時略過 */
   }
 }
 
@@ -138,7 +238,7 @@ export async function applyHvOptimizePreviewForLayer(layer) {
     return { ok: false, message: '沒有可套用的 HV 預覽，請先按「HV 最佳化」。' };
   }
 
-  if (!layer?.processedJsonData || !Array.isArray(layer.processedJsonData.routes)) {
+  if (!layer?.processedJsonData?.routes?.length) {
     return { ok: false, message: '目前圖層沒有路線資料。' };
   }
 
@@ -153,7 +253,9 @@ export async function applyHvOptimizePreviewForLayer(layer) {
     const newRoutes = rebuildRoutesFromOptimizedKeypoints(routes, payload, preview.finalCoords);
     layer.processedJsonData = { ...layer.processedJsonData, routes: newRoutes };
     layer.drawJsonData = processUniformGridToDrawData(layer.processedJsonData);
-    layer.hvOptimizeLastResult = null;
+    clearHvOptimizePreview(layer);
+    await resetAiTestHvBridgeFiles();
+    await syncAiTestHvPayloadForLayer(layer);
     overlay.close();
     return { ok: true, message: '已套用 HV 最佳化，路線已更新。' };
   } catch (e) {

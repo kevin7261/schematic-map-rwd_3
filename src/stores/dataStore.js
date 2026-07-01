@@ -3706,6 +3706,7 @@ export const useDataStore = defineStore(
 
       if (layerId === 'ai_test_layer') {
         layer.hvOptimizeLastResult = null;
+        layer.hvOptimizeSession = null;
       }
 
       // 如果圖層是可見的，重新載入
