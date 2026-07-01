@@ -13,7 +13,7 @@ description: Generate integer-grid schematic coordinates from connect skeleton +
 
 1. 完成上游「站點與路線調整前置」
 2. 選 **AI調整** layer → **開始執行**
-3. 自動讀上游 → LLM（skill prompt）→ 驗證 H2–H4 → 寫入圖層
+3. 自動讀上游 → **多輪 LLM loop**（每輪逐點驗證）→ 該輪無點可動時結束 → 寫入圖層
 
 **LLM 連線**：dev server 設 `OPENAI_API_KEY`（走 `/api/llm-layout` proxy），或在 UI 填入 API Key。
 
@@ -47,15 +47,14 @@ node --no-warnings --loader ./loader.mjs \
 1. **匯出 payload** — 執行 `exportPromptPayload.mjs`（輸入 = app 下載的骨架 GeoJSON 或 `geojsonData` 存檔）。
 2. **組 prompt** — 讀 [prompt-template.md](prompt-template.md)，把 `{{PAYLOAD_JSON}}` 替換成 payload 字串。
 3. **呼叫 LLM** — 要求 **只回 JSON**（schema 見 payload 內 `output_schema`）。溫度 ≤ 0.2。
-4. **驗證** — 執行 `validateLlmLayout.mjs`；exit 0 = PASS。
-5. **失敗時修復迴圈**（最多 3 輪）— 把 `validateLlmLayout` 的 `violations` + `repairHints` 附加到 prompt，要求 LLM **只改有問題的節點**。
-6. **套用** — `applyLlmLayout.mjs` 產出 result GeoJSON；可 import 到 `schematic_rma_milp_read` 或與 `checkRotation.mjs` 交叉驗證。
+4. **多輪 loop** — 每輪 LLM → 逐點驗證套用；該輪 `accepted + foreignRepair === 0` 時停止（上限 16 輪）。
+5. **套用** — `applyLlmLayout.mjs` 寫入 result GeoJSON。
 
 ## 約束分級
 
 | 代號 | 規則 | 驗證 |
 |------|------|------|
-| **H1（軟）** | **優先**水平/垂直（`dx=0` 或 `dy=0`）；斜線僅在必要時使用；目標 HV 邊最多 | `validateLlmLayout` 回報 `hvEdges` / `diagonalEdges` / `skewEdges` |
+| **H1（任務）** | **優先**水平/垂直（`dx=0` 或 `dy=0`）；初值有非 HV 邊時必須移動座標改善 | `initialAnalysis` + `checkHvImprovement`；未改善則觸發 repair |
 | **H2（硬）** | 分歧點（≥3 支）branch CCW 環序與地理骨架一致 | `routePairRotationCheck.js` |
 | **H3（硬）** | 相鄰 connect 不可同格 | `repair.js` clashes |
 | **H4（硬）** | 非相鄰邊不可交叉、不可共線重疊 | `repair.js` crossings/overlaps |
@@ -73,11 +72,17 @@ node --no-warnings --loader ./loader.mjs \
 
 ```json
 {
-  "meta": { "connectCount": 24, "edgeCount": 28, "initialSpan": 48 },
+  "meta": { "connectCount": 24, "edgeCount": 28, "initialSpan": 48, "initialHvRatio": 0.72, "initialNonHvCount": 8 },
   "nodes": [{ "id": 0, "key": "n:淡水", "name": "淡水", "geo": [121.446, 25.168], "initial_grid": [0, 0] }],
   "edges": [{ "id": 0, "u": 0, "v": 1, "routes": ["淡水信義線"] }],
   "junctions": [{ "junctionKey": "n:景安", "branchOrderCCW": ["n:南勢角", "n:蘆洲"], "branches": [] }],
-  "output_schema": { "coords": [{ "id": 0, "x": 0, "y": 0 }] }
+  "initialAnalysis": {
+    "hvRatio": 0.72,
+    "nonHvCount": 8,
+    "nonHvEdges": [{ "uName": "A", "vName": "B", "dx": 3, "dy": 2, "fixHint": "移動「B」或「A」使兩端同 x 或同 y" }]
+  },
+  "task": { "doNotCopyInitialGrid": true, "mustImproveHvIfNonHv": true },
+  "output_schema": { "coords": [{ "id": 0, "x": "integer", "y": "integer" }] }
 }
 ```
 

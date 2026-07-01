@@ -7,7 +7,7 @@
  */
 
 import fs from 'fs';
-import { validateLlmLayoutFromPayload } from '../../../src/utils/routeMapAdjust/routeAdjustLayout/llmLayoutCore.js';
+import { applyLlmLayoutDirectFromPayload } from '../../../src/utils/routeMapAdjust/routeAdjustLayout/llmLayoutCore.js';
 import { flatSegmentsToGeojsonStyleExportRows } from '../../../src/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
 
 function loadPayload(path) {
@@ -51,13 +51,9 @@ function main() {
   const response = JSON.parse(fs.readFileSync(responsePath, 'utf8'));
   let report;
   try {
-    report = validateLlmLayoutFromPayload(payload, response);
+    report = applyLlmLayoutDirectFromPayload(payload, response);
   } catch (e) {
     console.error(JSON.stringify({ error: e.message }, null, 2));
-    process.exit(1);
-  }
-  if (!report.pass) {
-    console.error(JSON.stringify({ error: 'Validation failed', ...report }, null, 2));
     process.exit(1);
   }
 
@@ -66,7 +62,13 @@ function main() {
     generator: 'llm-octilinear-layout/applyLlmLayout.mjs',
     spaceNetworkGridJsonData: report.fullFlat,
     geojsonData: flatToFeatureCollection(report.fullFlat),
-    validation: { pass: true, violations: report.violations },
+    stats: {
+      hvRatio: report.edgeStats.hvRatio,
+      changeCount: report.coordChanges.changeCount,
+      acceptedMoves: report.incremental?.acceptedCount ?? 0,
+      rejectedMoves: report.incremental?.rejectedCount ?? 0,
+      geometry: report.geometry,
+    },
   };
   fs.writeFileSync(out, JSON.stringify(result, null, 2));
   console.log(JSON.stringify({ written: out, segmentCount: report.fullFlat.length }, null, 2));

@@ -1,20 +1,33 @@
 /**
  * LLM 示意圖佈局核心（瀏覽器 + Node skill 共用）。
- * 優先水平/垂直（HV）；H2–H4 為硬約束。
+ * App 內直接套用 LLM 座標；validateLlmLayoutFromPayload 僅供 CLI 選用。
  */
 
 import { buildSchematicGraph, applyCoordsToSkeleton } from '../schematic/graph.js';
 import { countViolations } from '../schematic/repair.js';
+import {
+  isNodeOnForeignEdge,
+  countNodesOnForeignEdge,
+} from '../schematic/enforceNoNodeOnForeignEdge.js';
 import { reinsertBlackStations } from '../schematic/assemble.js';
 import { analyzeRoutePairRotation } from '../schematic/routePairRotationCheck.js';
 import { buildJunctionTable, spokesFrom, orderedNKeys } from '../schematic/rotationStructure.js';
 import { readPt } from '../schematic/input.js';
 
-export const LLM_LAYOUT_SYSTEM_PROMPT = `你是地鐵示意圖（schematic map）佈局引擎。輸入為 connect 骨架圖（節點 + 邊 + 分歧點環序參考）。你的任務是為每個 connect 節點分配整數格網座標 (x, y)。
+export const LLM_LAYOUT_SYSTEM_PROMPT = `你是地鐵示意圖（schematic map）佈局引擎。輸入含 connect 骨架、initial_grid（讀入初值，僅供參考）、initialAnalysis（初值非 HV 邊清單）。
 
-邊的方向（H1 — 軟目標）：優先水平/垂直（dx=0 或 dy=0）；僅在無法滿足 H2–H4 時才用斜線；HV 邊盡量多。
+你的任務：輸出新的整數格網座標，使 connect 之間的邊盡量是水平或垂直（dx=0 或 dy=0）。
 
-硬約束：H2 分歧點 branch CCW 環序一致；H3 不同節點不可同格；H4 非相鄰邊不可交叉/重疊。
+重要（H1 調整目標）：
+- initial_grid 不是答案；若 initialAnalysis.nonHvCount > 0，禁止原封不動回傳 initial_grid。
+- 必須移動節點，把 initialAnalysis.nonHvEdges 列出的斜線/斜向邊改成 HV（通常讓兩端點同 x 或同 y）。
+- 在 notes 列出你調整了哪些 id 及原因。
+
+硬約束（每一點移動前都會逐點驗證；不通過則保留原位置）：
+- 非相鄰 connect 邊不可在內部交叉
+- 共線 connect 邊不可重疊（路線不可疊在同一段上）
+- 不同 connect 節點不可佔同一格
+- connect 端點不可落在「非其入射邊」之路線內部（不可壓他線）
 
 只輸出 JSON：{"coords":[{"id":0,"x":0,"y":0},...],"notes":""}`;
 
@@ -93,24 +106,76 @@ export function buildLlmPayloadFromSkeleton(skeletonFlat, refAngleFlat, sections
     1
   );
 
+  const initialAnalysis = buildInitialAnalysis(graph, nodes);
+
   return {
     meta: {
       connectCount: nodes.length,
       edgeCount: edges.length,
       initialSpan,
+      initialHvRatio: initialAnalysis.hvRatio,
+      initialNonHvCount: initialAnalysis.nonHvCount,
       source: 'llmLayoutCore.js',
       ...metaExtra,
     },
     nodes,
     edges,
     junctions,
+    initialAnalysis,
+    task: {
+      goal: '將斜線/斜向 connect 邊改為水平或垂直（HV）',
+      doNotCopyInitialGrid: initialAnalysis.nonHvCount > 0,
+    },
     output_schema: {
-      coords: nodes.map((n) => ({ id: n.id, x: n.initial_grid[0], y: n.initial_grid[1] })),
+      coords: nodes.map((n) => ({ id: n.id, x: 'integer', y: 'integer' })),
     },
     _skeletonFlat: skeletonFlat,
     _sections: sections,
     _graphMeta: { spreadCount: graph.spreadCount, dupCollapsed: graph.dupCollapsed },
   };
+}
+
+/** 依目前 nodes[].initial_grid 建立 initialAnalysis */
+export function buildInitialAnalysis(graph, nodes) {
+  const initialCoords = nodes.map((n) => n.initial_grid);
+  const initialEdgeStats = countEdgeDirections(graph, initialCoords);
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  const nonHvEdgeDetails = initialEdgeStats.nonHvEdges.map((e) => {
+    const u = nodeById.get(e.u);
+    const v = nodeById.get(e.v);
+    return {
+      edgeId: e.edgeId,
+      u: e.u,
+      v: e.v,
+      uName: u?.name,
+      vName: v?.name,
+      dx: e.dx,
+      dy: e.dy,
+      kind: e.kind,
+      fixHint: `移動「${v?.name || e.v}」或「${u?.name || e.u}」使兩端同 x 或同 y`,
+    };
+  });
+  return {
+    hvEdges: initialEdgeStats.hvEdges,
+    edgeCount: initialEdgeStats.edgeCount,
+    hvRatio: initialEdgeStats.hvRatio,
+    nonHvCount: nonHvEdgeDetails.length,
+    nonHvEdges: nonHvEdgeDetails.slice(0, 40),
+  };
+}
+
+/** 下一輪 loop 前：更新 skeleton 與 payload 內 current 初值 */
+export function refreshLlmPayloadFromCoords(payload, coords) {
+  const graph = buildSchematicGraph(payload._skeletonFlat);
+  payload._skeletonFlat = applyCoordsToSkeleton(payload._skeletonFlat, graph, coords);
+  const graph2 = buildSchematicGraph(payload._skeletonFlat);
+  for (const n of payload.nodes) {
+    n.initial_grid = [coords[n.id][0], coords[n.id][1]];
+  }
+  payload.initialAnalysis = buildInitialAnalysis(graph2, payload.nodes);
+  payload.meta.initialNonHvCount = payload.initialAnalysis.nonHvCount;
+  payload.task.doNotCopyInitialGrid = payload.initialAnalysis.nonHvCount > 0;
+  return payload;
 }
 
 /** @returns {Array<[number,number]>} */
@@ -133,14 +198,18 @@ export function parseLlmCoords(response, nodeCount) {
   return coords;
 }
 
-/** 比對 LLM 輸出 vs 讀入初值 initial_grid */
-export function computeCoordChanges(payload, coords) {
+/** 比對 coords vs baseline（預設 payload._originalInitialGrid 或 nodes.initial_grid） */
+export function computeCoordChanges(payload, coords, opts = {}) {
   const nodes = payload?.nodes || [];
+  const baseline =
+    opts.baseline ||
+    payload._originalInitialGrid ||
+    nodes.map((n) => [...(n.initial_grid || [0, 0])]);
   const changed = [];
   const unchanged = [];
   for (const n of nodes) {
     const id = n.id;
-    const [ox, oy] = n.initial_grid || [0, 0];
+    const [ox, oy] = baseline[id] || [0, 0];
     const [nx, ny] = coords[id] || [ox, oy];
     const item = {
       id,
@@ -168,6 +237,205 @@ export function formatCoordChangeSummary(changes, maxLines = 40) {
   const tail =
     changes.lines.length > maxLines ? `\n…另有 ${changes.lines.length - maxLines} 點未列出` : '';
   return `${head}\n${body}${tail}`;
+}
+
+/** 幾何硬約束：不重疊、不交叉、不同格、不壓他線 */
+export function geometryConstraintsPass(hard) {
+  return (
+    (hard?.overlaps ?? 0) === 0 &&
+    (hard?.crossings ?? 0) === 0 &&
+    (hard?.clashes ?? 0) === 0 &&
+    (hard?.onForeignEdge ?? 0) === 0
+  );
+}
+
+function coordsGeometryOk(graph, coords) {
+  return geometryConstraintsPass(countViolations(graph, coords));
+}
+
+function manhattanDeltas(maxR) {
+  const out = [[0, 0]];
+  for (let r = 1; r <= maxR; r++) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dy = -r; dy <= r; dy++) {
+        if (Math.abs(dx) + Math.abs(dy) === r) out.push([dx, dy]);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * 逐點嘗試移動：每移動一點即驗證幾何；不通過則還原該點。
+ * 多輪掃描以爭取更多可接受的移動（順序無關時）。
+ */
+export function applyNodeMovesIncrementally(graph, initialCoords, proposedCoords) {
+  const coords = initialCoords.map((c) => [c[0], c[1]]);
+  const pending = [];
+  for (let i = 0; i < coords.length; i++) {
+    const tx = proposedCoords[i][0];
+    const ty = proposedCoords[i][1];
+    if (coords[i][0] !== tx || coords[i][1] !== ty) {
+      pending.push({ id: i, to: [tx, ty] });
+    }
+  }
+  const accepted = [];
+  const maxPasses = Math.max(pending.length + 8, 8);
+  for (let pass = 0; pass < maxPasses && pending.length > 0; pass++) {
+    let progress = false;
+    const next = [];
+    for (const ch of pending) {
+      if (coords[ch.id][0] === ch.to[0] && coords[ch.id][1] === ch.to[1]) continue;
+      const saved = [coords[ch.id][0], coords[ch.id][1]];
+      coords[ch.id] = [ch.to[0], ch.to[1]];
+      if (coordsGeometryOk(graph, coords)) {
+        accepted.push({ id: ch.id, from: saved, to: [ch.to[0], ch.to[1]] });
+        progress = true;
+      } else {
+        coords[ch.id] = saved;
+        next.push(ch);
+      }
+    }
+    pending.length = 0;
+    pending.push(...next);
+    if (!progress) break;
+  }
+  return {
+    coords,
+    accepted,
+    rejected: pending,
+    acceptedCount: accepted.length,
+    rejectedCount: pending.length,
+  };
+}
+
+/** 壓他線修復：每一步移動都需通過幾何驗證 */
+export function repairForeignEdgeIncrementally(graph, coords, opts = {}) {
+  const maxPasses = opts.maxPasses ?? 96;
+  const maxDist = opts.maxDist ?? 16;
+  const out = coords.map((c) => [c[0], c[1]]);
+  const deltas = manhattanDeltas(maxDist);
+  let moves = 0;
+
+  for (let pass = 0; pass < maxPasses; pass++) {
+    let improved = false;
+    for (let n = 0; n < graph.nodes.length; n++) {
+      if (!isNodeOnForeignEdge(graph, out, n)) continue;
+      const ox = out[n][0];
+      const oy = out[n][1];
+      let best = null;
+      for (const [dx, dy] of deltas) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = Math.round(ox + dx);
+        const ny = Math.round(oy + dy);
+        const saved = [out[n][0], out[n][1]];
+        out[n] = [nx, ny];
+        const ok = !isNodeOnForeignEdge(graph, out, n) && coordsGeometryOk(graph, out);
+        out[n] = saved;
+        if (!ok) continue;
+        const dist = Math.abs(dx) + Math.abs(dy);
+        if (!best || dist < best.dist) best = { nx, ny, dist };
+      }
+      if (best) {
+        out[n] = [best.nx, best.ny];
+        moves++;
+        improved = true;
+      }
+    }
+    if (!improved) break;
+  }
+
+  return { coords: out, moves, remaining: countNodesOnForeignEdge(graph, out) };
+}
+
+/** @param {{ accepted: object[], rejected: object[] }} incremental */
+export function formatIncrementalApplySummary(incremental, payload, maxLines = 30) {
+  const nodeById = new Map((payload?.nodes || []).map((n) => [n.id, n]));
+  const lines = [];
+  if (incremental?.acceptedCount > 0) {
+    lines.push(`已套用 ${incremental.acceptedCount} 點移動（逐點驗證通過）`);
+  }
+  if (incremental?.rejectedCount > 0) {
+    const rej = incremental.rejected.slice(0, maxLines).map((ch) => {
+      const n = nodeById.get(ch.id);
+      const name = n?.name || `節點${ch.id}`;
+      return `${name}（id ${ch.id}）→ (${ch.to[0]}, ${ch.to[1]}) 未套用`;
+    });
+    const tail =
+      incremental.rejected.length > maxLines
+        ? `\n…另有 ${incremental.rejected.length - maxLines} 點未列出`
+        : '';
+    lines.push(`未套用 ${incremental.rejectedCount} 點（幾何不通過）：\n${rej.join('\n')}${tail}`);
+  }
+  return lines.join('\n\n');
+}
+
+/** 逐點驗證後套用 LLM 建議座標（一定產出合法幾何結果） */
+export function applyLlmLayoutDirectFromPayload(payload, response, opts = {}) {
+  const autoRepairForeign = opts.autoRepairForeign !== false;
+  const skeletonFlat = payload._skeletonFlat;
+  const sections = payload._sections || [];
+  const graph = buildSchematicGraph(skeletonFlat);
+  const initialCoords = payload.nodes.map((n) => [...n.initial_grid]);
+  const proposedCoords = parseLlmCoords(response, graph.nodes.length);
+  const incremental = applyNodeMovesIncrementally(graph, initialCoords, proposedCoords);
+  let coords = incremental.coords;
+  let foreignRep = { moves: 0, remaining: 0 };
+  if (autoRepairForeign) {
+    foreignRep = repairForeignEdgeIncrementally(graph, coords);
+    coords = foreignRep.coords;
+  }
+  const optimized = applyCoordsToSkeleton(skeletonFlat, graph, coords);
+  const outFull = reinsertBlackStations(optimized, sections);
+  const edgeStats = countEdgeDirections(graph, coords);
+  const hard = countViolations(graph, coords);
+  const coordChanges = computeCoordChanges(payload, coords);
+  return {
+    coords,
+    graph,
+    fullFlat: outFull,
+    edgeStats,
+    coordChanges,
+    incremental,
+    geometry: { ...hard, pass: geometryConstraintsPass(hard) },
+    foreignRep,
+  };
+}
+
+export function buildGeometryRepairHints(geometry, payload) {
+  const hints = [];
+  if ((geometry?.onForeignEdge ?? 0) > 0) {
+    hints.push(
+      `有 ${geometry.onForeignEdge} 個 connect 端點壓在與其無關的路線內部；請移開這些節點，不可讓站點落在非其入射邊的線段上。`
+    );
+  }
+  if ((geometry?.overlaps ?? 0) > 0) {
+    hints.push(`有 ${geometry.overlaps} 處路線共線重疊；請錯開平行段或縮短重疊區間。`);
+  }
+  if ((geometry?.crossings ?? 0) > 0) {
+    hints.push(`有 ${geometry.crossings} 處非相鄰邊交叉；請改走 L 形水平/垂直繞行。`);
+  }
+  if ((geometry?.clashes ?? 0) > 0) {
+    hints.push(`有 ${geometry.clashes} 個不同站同格；請把重合節點分到相鄰空格。`);
+  }
+  const nonHv = payload?.initialAnalysis?.nonHvCount ?? 0;
+  if (nonHv > 0) {
+    hints.push('同時盡量維持 HV 邊（dx=0 或 dy=0）。');
+  }
+  return hints;
+}
+
+/** 幾何約束驗證（不含環序 / HV 改善門檻） */
+export function validateLlmGeometryFromPayload(payload, response, opts = {}) {
+  const applied = applyLlmLayoutDirectFromPayload(payload, response, opts);
+  const violations = { ...applied.geometry, ...applied.edgeStats };
+  const repairHints = buildGeometryRepairHints(applied.geometry, payload);
+  return {
+    pass: applied.geometry.pass,
+    violations,
+    repairHints,
+    ...applied,
+  };
 }
 
 export function countEdgeDirections(graph, coords) {
@@ -199,8 +467,12 @@ export function countEdgeDirections(graph, coords) {
   };
 }
 
-function buildRepairHints(violations, edgeStats) {
+function buildRepairHints(violations, edgeStats, hvFail) {
   const hints = [];
+  if (hvFail) {
+    hints.push(hvFail);
+    hints.push('不可原封不動回傳 initial_grid；請移動 initialAnalysis.nonHvEdges 涉及的端點，使 dx=0 或 dy=0。');
+  }
   if (edgeStats.nonHvEdges.length > 0) {
     hints.push(
       `H1 soft: ${edgeStats.hvEdges}/${edgeStats.edgeCount} edges are HV (${Math.round(edgeStats.hvRatio * 100)}%). Try converting non-HV edges to axis-aligned L-paths where H2–H4 still hold.`
@@ -220,7 +492,41 @@ function buildRepairHints(violations, edgeStats) {
   if (violations.overlaps > 0) {
     hints.push('Collinear edges overlap; offset parallel corridors or shorten overlapping segments.');
   }
+  if ((violations.onForeignEdge ?? 0) > 0) {
+    hints.push('Connect nodes sit on unrelated route interiors; move them off foreign edges.');
+  }
   return hints;
+}
+
+/** 初值有非 HV 邊時，輸出必須改善 HV 或至少移動座標 */
+export function checkHvImprovement(payload, report) {
+  const initial = payload?.initialAnalysis;
+  if (!initial || initial.nonHvCount === 0) {
+    return { ok: true, pass: true };
+  }
+  const initPct = Math.round((initial.hvRatio ?? 0) * 100);
+  const outPct = Math.round((report.violations?.hvRatio ?? 0) * 100);
+  const improved = (report.violations?.hvRatio ?? 0) > (initial.hvRatio ?? 0);
+  const outNonHv =
+    report.violations?.nonHvEdges?.length ??
+    (report.violations?.diagonalEdges ?? 0) + (report.violations?.skewEdges ?? 0);
+  const fewerNonHv = outNonHv < initial.nonHvCount;
+  const moved = (report.coordChanges?.changeCount ?? 0) > 0;
+  if (improved || fewerNonHv || (report.violations?.hvRatio ?? 0) >= 0.999) {
+    return { ok: true, pass: true };
+  }
+  if (!moved) {
+    return {
+      ok: true,
+      pass: false,
+      hvFail: `未調整任何座標，但初值有 ${initial.nonHvCount} 條非 HV 邊（HV ${initPct}%）。請移動節點使邊改為水平/垂直。`,
+    };
+  }
+  return {
+    ok: true,
+    pass: false,
+    hvFail: `HV 未改善（${initPct}% → ${outPct}%），仍有非 HV 邊。請繼續移動 initialAnalysis.nonHvEdges 中的端點。`,
+  };
 }
 
 /** @param {object} payload 含 _skeletonFlat / _sections */
@@ -242,24 +548,28 @@ export function validateLlmLayoutFromPayload(payload, response) {
     overlaps: hard.overlaps,
     crossings: hard.crossings,
     clashes: hard.clashes,
+    onForeignEdge: hard.onForeignEdge,
     rotationFail,
     ...edgeStats,
   };
-  const repairHints = buildRepairHints(violations, edgeStats);
+  const coordChanges = computeCoordChanges(payload, coords);
+
+  const hardPass =
+    geometryConstraintsPass(hard) &&
+    rotationFail === 0;
+
+  const hvCheck = hardPass ? checkHvImprovement(payload, { violations, coordChanges }) : { pass: true };
+  const repairHints = buildRepairHints(violations, edgeStats, hvCheck.hvFail);
   if (rotationFail && rotation.reasonLines?.length) {
     repairHints.push(...rotation.reasonLines);
   }
 
-  const pass =
-    hard.overlaps === 0 &&
-    hard.crossings === 0 &&
-    hard.clashes === 0 &&
-    rotationFail === 0;
-
-  const coordChanges = computeCoordChanges(payload, coords);
+  const pass = hardPass && hvCheck.pass !== false;
 
   return {
     pass,
+    hardPass,
+    hvImprovementPass: hvCheck.pass !== false,
     violations,
     repairHints,
     rotation: rotation.summary,
@@ -279,8 +589,26 @@ export function stripLlmPayloadForExport(payload) {
   return forLlm;
 }
 
-export function buildLlmUserPrompt(payloadForLlm) {
-  return `${LLM_LAYOUT_SYSTEM_PROMPT}\n\n請為以下骨架產生整數格網座標（優先水平/垂直，HV 邊盡量多）。\n\n${JSON.stringify(payloadForLlm, null, 2)}`;
+export function buildLlmUserPrompt(payloadForLlm, loopRound = 0) {
+  const nonHv = payloadForLlm?.initialAnalysis?.nonHvCount ?? 0;
+  const hvPct = Math.round((payloadForLlm?.initialAnalysis?.hvRatio ?? 0) * 100);
+  const taskLines = [
+    '請輸出新的整數格網座標（不是複製 initial_grid）。',
+    '優先水平/垂直：每條 connect 邊盡量 dx=0 或 dy=0。',
+    '硬約束：路線不可重疊、非相鄰邊不可交叉、不同站不可同格、端點不可壓在無關路線上。',
+    '程式會逐點驗證你的建議移動；幾何不通過的點會保留原位置。',
+    '整個流程會一輪接一輪重複，直到某一輪完全沒有任何點可以移動為止。',
+  ];
+  if (loopRound > 0) {
+    taskLines.push(`這是第 ${loopRound + 1} 輪；上一輪已有移動被套用，請繼續改善剩餘非 HV 邊。`);
+  }
+  if (nonHv > 0) {
+    taskLines.push(
+      `初值 HV 僅 ${hvPct}%，有 ${nonHv} 條非 HV 邊；請依 initialAnalysis.nonHvEdges 移動端點改為 HV。`,
+      '禁止輸出與 initial_grid 完全相同的 coords。'
+    );
+  }
+  return `${LLM_LAYOUT_SYSTEM_PROMPT}\n\n${taskLines.join('\n')}\n\n${JSON.stringify(payloadForLlm, null, 2)}`;
 }
 
 export function buildLlmRepairPrompt(payloadForLlm, report) {
