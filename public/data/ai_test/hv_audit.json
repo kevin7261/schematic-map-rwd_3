@@ -4,37 +4,37 @@
   "proposed": {
     "pass": true,
     "hvStatsBefore": {
-      "edgeCount": 40,
-      "hvEdges": 9,
-      "hvRatio": 0.225
+      "edgeCount": 56,
+      "hvEdges": 20,
+      "hvRatio": 0.35714285714285715
     },
     "hvStatsAfter": {
-      "edgeCount": 40,
-      "hvEdges": 18,
-      "hvRatio": 0.45
+      "edgeCount": 56,
+      "hvEdges": 26,
+      "hvRatio": 0.4642857142857143
     },
     "newCrossRouteGridKeys": []
   },
   "applied": {
     "pass": true,
     "hvStatsBefore": {
-      "edgeCount": 40,
-      "hvEdges": 9,
-      "hvRatio": 0.225
+      "edgeCount": 56,
+      "hvEdges": 20,
+      "hvRatio": 0.35714285714285715
     },
     "hvStatsAfter": {
-      "edgeCount": 40,
-      "hvEdges": 18,
-      "hvRatio": 0.45
+      "edgeCount": 56,
+      "hvEdges": 26,
+      "hvRatio": 0.4642857142857143
     },
     "newCrossRouteGridKeys": []
   },
   "incremental": {
-    "acceptedCount": 8,
+    "acceptedCount": 6,
     "rejectedCount": 0
   },
-  "auditedAt": 1782929011108,
-  "routesFingerprint": "0:8:1,7:9,0|1:7:1,6:0,16|2:19:0,16:16,9|3:10:1,15:1,2",
+  "auditedAt": 1782929511832,
+  "routesFingerprint": "0:8:7,7:0,0|1:14:1,0:16,12|2:10:5,3:11,9|3:14:1,0:9,15|4:7:0,6:1,0|5:9:3,4:10,0",
   "responseModel": "Composer",
-  "writtenAt": 1782929011108
+  "writtenAt": 1782929511832
 }
