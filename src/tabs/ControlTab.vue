@@ -28,6 +28,7 @@
   import { useSelectRouteMapCatalog } from '@/utils/selectRouteMap/cityCatalog.js';
   import { useRouteMapAdjust } from '@/utils/routeMapAdjust/loadFromSelectRouteMap.js';
   import { useRouteMapAdjust2 } from '@/utils/routeMapAdjust/loadFromSelectRouteMap2.js';
+  import { useRmaMilpReadPrepCatalog } from '@/utils/routeMapAdjust/loadRmaMilpReadPrep.js';
   import { useRouteMapAdjustStraight } from '@/utils/routeMapAdjust/loadFromSelectRouteMapStraight.js';
   import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
   import { computeQuadtreePartitionFromGeojson } from '@/utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
@@ -3613,6 +3614,26 @@
     routeMapAdjustRouteName: rmasRouteName,
     routeMapAdjustStationLabel: rmasStationLabel,
   } = useRouteMapAdjustStraight(dataStore);
+
+  // 🏷️「站點與路線調整前置」— 載入全球預算結果（骨架2→⑨→前置）
+  const {
+    selContinent: rmaPrepContinent,
+    selCountry: rmaPrepCountry,
+    selCity: rmaPrepCity,
+    selQuick: rmaPrepQuick,
+    selStationSort: rmaPrepStationSort,
+    loadableCities: rmaPrepLoadableCities,
+    quickCities: rmaPrepQuickCities,
+    stationSortedCities: rmaPrepStationSortedCities,
+    drawContinents: rmaPrepContinents,
+    drawCountries: rmaPrepCountries,
+    drawCities: rmaPrepCities,
+    isLoading: rmaPrepLoading,
+    loadedCityLabel: rmaPrepLoadedLabel,
+    loadedOfficialUrl: rmaPrepOfficialUrl,
+    loadSelectedCity: rmaPrepLoadSelectedCity,
+    quickLoadCity: rmaPrepQuickLoad,
+  } = useRmaMilpReadPrepCatalog(dataStore);
 
   /** 📥「示意圖佈局」：把「路線圖轉換骨架」的**骨架**轉成 geojson（way 顏色＝骨架分類色）寫入此圖層之 geojsonData */
   const loadRouteAdjustIntoSchematic = (layer) => {
@@ -12890,6 +12911,88 @@
 
         <!-- 路線調整（RMA）：「站點與路線調整前置」圖層 — 移除無用網格 + 站點調整移除交叉 + 匯入 -->
         <div v-if="layer.layerId === 'schematic_rma_milp_read'" class="pb-3 mb-3 border-bottom">
+          <!-- 全球預算：骨架2 → ⑨ 正規化 → 前置（與手動匯入⑨等價） -->
+          <div class="my-title-xs-gray pb-2">快速載入城市預算（骨架2→⑨→前置）</div>
+          <div
+            v-if="rmaPrepLoadedLabel"
+            class="my-font-size-xs text-success pb-2"
+            style="line-height: 1.35"
+          >
+            目前已載入：{{ rmaPrepLoadedLabel }}
+            <div v-if="rmaPrepOfficialUrl">
+              <a :href="rmaPrepOfficialUrl" target="_blank" rel="noopener noreferrer">官方路線圖 ↗</a>
+            </div>
+          </div>
+          <select
+            v-model="rmaPrepQuick"
+            :disabled="rmaPrepLoading"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+            @change="rmaPrepQuickLoad(rmaPrepQuick)"
+          >
+            <option value="">快選城市…</option>
+            <option v-for="c in rmaPrepQuickCities" :key="c.id" :value="c.id">
+              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+            </option>
+          </select>
+          <select
+            v-model="rmaPrepStationSort"
+            :disabled="rmaPrepLoading"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-3 my-cursor-pointer"
+            @change="rmaPrepQuickLoad(rmaPrepStationSort)"
+          >
+            <option value="">依站點數排序…</option>
+            <option v-for="c in rmaPrepStationSortedCities" :key="c.id" :value="c.id">
+              {{
+                (c.cityZh ? c.cityZh + ' ' : '') +
+                c.city +
+                '（' +
+                c.stations +
+                ' 站・' +
+                c.routes +
+                ' 線）'
+              }}
+            </option>
+          </select>
+          <div class="my-title-xs-gray pb-2">
+            載入城市預算（全球・共 {{ rmaPrepLoadableCities.length }} 城市）
+          </div>
+          <select
+            v-model="rmaPrepContinent"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇洲別…</option>
+            <option v-for="c in rmaPrepContinents" :key="c" :value="c">{{ c }}</option>
+          </select>
+          <select
+            v-model="rmaPrepCountry"
+            :disabled="!rmaPrepContinent"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇國家…</option>
+            <option v-for="c in rmaPrepCountries" :key="c.country" :value="c.country">
+              {{ c.label }}
+            </option>
+          </select>
+          <select
+            v-model="rmaPrepCity"
+            :disabled="!rmaPrepCountry"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇城市…</option>
+            <option v-for="c in rmaPrepCities" :key="c.id" :value="c.id">
+              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-3"
+            :disabled="!rmaPrepCity || rmaPrepLoading"
+            title="載入該城市預算結果（⑨ 正規化後之路網，等同「從⑨匯入」）"
+            @click="rmaPrepLoadSelectedCity"
+          >
+            {{ rmaPrepLoading ? '讀取中…' : '載入預算結果' }}
+          </button>
+
           <!-- 移除無用網格前：以紅/黃/藍邊界重算粉紅點，不需者→棕色（獨立按鈕） -->
           <button
             type="button"

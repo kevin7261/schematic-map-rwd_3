@@ -16,6 +16,7 @@ import {
   computeRouteMapRouteStations,
   routeMapColorNameForIndex,
 } from './routeStations.js';
+import { parseMetroGeojsonToRouteMap } from './metroGeojsonToRouteMap.js';
 
 /** 本圖層 id（與 dataStore 內定義一致） */
 export const SELECT_ROUTE_MAP_LAYER_ID = 'select_route_map';
@@ -48,60 +49,14 @@ const QUICK_CITY_IDS = [
   'united-states-new-york-city',
 ];
 
-/**
- * 把扁平 GeoJSON（way/node）套到「選擇路線圖」圖層：路線、黑點中間站、站名站號 meta；回傳路線數。
- */
+/** 把扁平 GeoJSON（way/node）套到「選擇路線圖」圖層；回傳路線數。 */
 const applyMetroFcToLayer = (fc, lyr) => {
-  const feats = Array.isArray(fc?.features) ? fc.features : [];
-  const isWay = (f) => f?.properties?.element_type === 'way' && f.geometry?.type === 'LineString';
-  const isNode = (f) => f?.properties?.element_type === 'node' && f.geometry?.type === 'Point';
-  const lines = feats
-    .filter(isWay)
-    .map((f) => ({
-      color: f.properties.color || '#666666',
-      routeName: f.properties.route_name,
-      routeId: f.properties.route_id,
-      routeCompany: f.properties.route_company,
-      railway: f.properties.railway,
-      osmId: f.properties.osm_id,
-      latlngs: (f.geometry.coordinates || []).map(([lon, lat]) => [lat, lon]),
-    }))
-    .filter((l) => l.latlngs.length >= 2);
-  if (!lines.length) return 0;
-  const ll6 = (lat, lon) => `${(+lat).toFixed(6)},${(+lon).toFixed(6)}`;
-  const stationMeta = {};
-  const nodes = [];
-  for (const f of feats) {
-    if (!isNode(f)) continue;
-    const [lon, lat] = f.geometry.coordinates;
-    stationMeta[ll6(lat, lon)] = {
-      id: f.properties.station_id,
-      name: f.properties.station_name,
-      osmId: f.properties.osm_id,
-    };
-    nodes.push([lat, lon]);
-  }
-  const memb = new Map();
-  lines.forEach((l, li) => {
-    l.latlngs.forEach((c, i) => {
-      const k = ll6(c[0], c[1]);
-      let m = memb.get(k);
-      if (!m) {
-        m = { lines: new Set(), endpoint: false };
-        memb.set(k, m);
-      }
-      m.lines.add(li);
-      if (i === 0 || i === l.latlngs.length - 1) m.endpoint = true;
-    });
-  });
-  const blackDots = nodes.filter(([lat, lon]) => {
-    const m = memb.get(ll6(lat, lon));
-    return m && m.lines.size < 2 && !m.endpoint;
-  });
+  const { lines, blackDots, stationMeta, routeCount } = parseMetroGeojsonToRouteMap(fc);
+  if (!routeCount) return 0;
   lyr.selectRouteMapLines = lines;
   lyr.selectRouteMapBlackDots = blackDots;
   lyr.selectRouteMapStationMeta = stationMeta;
-  return lines.length;
+  return routeCount;
 };
 
 /**

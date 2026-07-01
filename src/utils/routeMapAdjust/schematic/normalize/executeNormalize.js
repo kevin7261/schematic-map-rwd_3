@@ -346,18 +346,14 @@ export function computeQuadtreePartitionFromGeojson(geojson) {
 
 // ── 主執行函式 ────────────────────────────────────────────────────────────────
 
-export function executeNormalizeRma() {
-  const dataStore = useDataStore();
-  const layer = dataStore.findLayerById(LAYER_ID);
-  if (!layer) {
-    return { ok: false, message: '找不到圖層 schematic_rma_normalize' };
-  }
-
-  const geojson = layer.geojsonData;
+/**
+ * ⑨ 正規化核心（純函式）：骨架 geojson → flat 路網（含黑點均分插回）。
+ * @returns {{ ok: boolean, message?: string, fullFlat?: Array, stats?: object }}
+ */
+export function normalizeSkeletonGeojsonToFlat(geojson) {
   if (!geojson?.features?.length) {
     return { ok: false, message: '圖層尚無輸入資料，請先載入骨架。' };
   }
-  layer.quadtreePartition = null;
 
   const snap = buildGridSnapFromGeojson(geojson);
   if (!snap) {
@@ -376,13 +372,41 @@ export function executeNormalizeRma() {
     /* 非致命 */
   }
 
-  const result = writeSchematicResultToLayer(LAYER_ID, fullFlat, {
+  return {
+    ok: true,
+    message: '正規化完成。',
+    fullFlat,
+    graph,
+    stats: {
+      segmentCount: fullFlat.length,
+      gridCols: snap.sortedX.length - 1,
+      gridRows: snap.sortedY.length - 1,
+      graphNodes: graph?.nodes?.length ?? 0,
+      graphEdges: graph?.edges?.length ?? 0,
+    },
+  };
+}
+
+export function executeNormalizeRma() {
+  const dataStore = useDataStore();
+  const layer = dataStore.findLayerById(LAYER_ID);
+  if (!layer) {
+    return { ok: false, message: '找不到圖層 schematic_rma_normalize' };
+  }
+
+  const geojson = layer.geojsonData;
+  layer.quadtreePartition = null;
+
+  const result = normalizeSkeletonGeojsonToFlat(geojson);
+  if (!result.ok) return result;
+
+  const write = writeSchematicResultToLayer(LAYER_ID, result.fullFlat, {
     sourceLayerId: LAYER_ID,
     coordNormalize: true,
-    _schematicGraph: graph,
-    gridCols: snap.sortedX.length - 1,
-    gridRows: snap.sortedY.length - 1,
+    _schematicGraph: result.graph,
+    gridCols: result.stats?.gridCols,
+    gridRows: result.stats?.gridRows,
   });
 
-  return { ok: result.ok !== false, message: '正規化完成。', stats: result.stats };
+  return { ok: write.ok !== false, message: '正規化完成。', stats: write.stats ?? result.stats };
 }
