@@ -37,7 +37,7 @@ function main() {
     body.computedBy = 'llm';
   }
   if (body.computedBy !== 'llm') {
-    throw new Error('HV response 須 computedBy: "llm"（禁止 greedy／腳本求解）');
+    throw new Error('【鐵律】HV response 須 computedBy: "llm" — 座標只能由 LLM 推理，禁止腳本／程式求解');
   }
   if (!body.model) {
     body.model = process.env.CURSOR_AGENT_MODEL || 'Cursor Agent（LLM）';

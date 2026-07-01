@@ -129,6 +129,13 @@
     resetAiTestHvBridgeFiles,
     isAiTestHvLocalDevMode,
   } from '@/utils/uniformGridHvOptimizeExecute.js';
+  import {
+    AI_TEST_HV_IRON_RULE,
+    AI_TEST_HV_PROCEDURE,
+    AI_TEST_HV_SKILL_TEXT,
+    AI_TEST_HV_PROMPT_TEMPLATE,
+    AI_TEST_HV_SYSTEM_PROMPT,
+  } from '@/utils/aiTestHvOptimizeHelp.js';
 
   /**
    * 網格合併和縮減工具函數引入
@@ -353,21 +360,14 @@
   });
 
   /**
-   * 判斷當前圖層是否為網格示意圖測試圖層
-   * 只有網格示意圖測試圖層才顯示網格預覽
+   * 判斷當前圖層是否為網格示意圖測試圖層（test_layer）
+   * 只有此圖層才顯示操作區網格預覽；AI示意圖測試（ai_test_layer）雖同為 isGridSchematic 但不顯示
    *
    * @type {ComputedRef<boolean>}
-   * @returns {boolean} 是否為網格示意圖測試圖層
+   * @returns {boolean} 是否顯示網格預覽
    */
   const isCurrentLayerGridSchematic = computed(() => {
-    if (!activeLayerTab.value) return false;
-    if (!Array.isArray(visibleLayers.value) || visibleLayers.value.length === 0) {
-      return false;
-    }
-    const currentLayer = visibleLayers.value.find(
-      (layer) => layer && layer.layerId === activeLayerTab.value
-    );
-    return currentLayer && currentLayer.isGridSchematic === true;
+    return activeLayerTab.value === 'test_layer';
   });
 
   /**
@@ -13531,6 +13531,27 @@
                 {{ hvOptimizeApplying ? '套用中…' : '執行（套用移動）' }}
               </button>
             </div>
+
+            <div
+              class="mt-3 pt-2 border-top ai-test-hv-help"
+              style="font-size: 11px; line-height: 1.5"
+            >
+              <div class="my-title-xs-gray pb-2">HV 最佳化 — 操作說明（本地 Cursor 開發）</div>
+
+              <pre class="ai-test-hv-help-pre ai-test-hv-help-iron mb-2">{{ AI_TEST_HV_IRON_RULE }}</pre>
+
+              <div class="text-muted pb-1 fw-semibold">操作流程</div>
+              <pre class="ai-test-hv-help-pre mb-2">{{ AI_TEST_HV_PROCEDURE }}</pre>
+
+              <div class="text-muted pb-1 fw-semibold">Skill 內容</div>
+              <pre class="ai-test-hv-help-pre mb-2">{{ AI_TEST_HV_SKILL_TEXT }}</pre>
+
+              <div class="text-muted pb-1 fw-semibold">Prompt 模板</div>
+              <pre class="ai-test-hv-help-pre mb-2">{{ AI_TEST_HV_PROMPT_TEMPLATE }}</pre>
+
+              <div class="text-muted pb-1 fw-semibold">System Prompt（HV_OPTIMIZE_SYSTEM_PROMPT）</div>
+              <pre class="ai-test-hv-help-pre mb-0">{{ AI_TEST_HV_SYSTEM_PROMPT }}</pre>
+            </div>
           </template>
         </div>
 
@@ -15892,5 +15913,27 @@
   .layer-toggle input:disabled + label {
     cursor: not-allowed;
     opacity: 0.6;
+  }
+
+  .ai-test-hv-help-pre {
+    margin: 0;
+    padding: 8px 10px;
+    background: var(--my-color-gray-100, #f5f5f5);
+    border: 1px solid var(--my-color-gray-300, #ddd);
+    border-radius: 6px;
+    color: var(--my-color-gray-700, #444);
+    font-size: 10px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .ai-test-hv-help-iron {
+    background: rgba(255, 193, 7, 0.12);
+    border-color: rgba(255, 193, 7, 0.45);
+    color: var(--my-color-gray-800, #333);
+    max-height: none;
   }
 </style>

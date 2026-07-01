@@ -27,6 +27,7 @@ import {
   fingerprintUniformGridRoutes,
   resolveHvOptimizeModelLabel,
   isRejectedHvOptimizeNonLlmResponse,
+  auditHvOptimizeCoords,
 } from './uniformGridHvOptimize.js';
 
 /** 清除圖層上的 HV 最佳化 session 與虛線預覽 */
@@ -113,6 +114,20 @@ export async function applyAiTestHvResponseForLayer(layer, responseBody) {
     const response = parseHvOptimizeLlmResponse(JSON.stringify(responseBody));
     const applied = applyHvOptimizeIncrementally(payload, response);
 
+    const audit = auditHvOptimizeCoords(payload, applied.coords, {
+      baselineCoords: payload.movablePoints.map((p) => ({ x: p.x, y: p.y })),
+    });
+    if (!audit.pass) {
+      overlay.close();
+      const preview = audit.violations.slice(0, 6).map((v) => v.message);
+      const tail =
+        audit.violations.length > 6 ? `\n…共 ${audit.violations.length} 項幾何違規` : '';
+      return {
+        ok: false,
+        message: `反驗證失敗（移動後幾何不合法）：\n${preview.join('\n')}${tail}\n請在 Cursor 修正 LLM 座標後重試。`,
+      };
+    }
+
     session.workingCoords = applied.coords.map((c) => ({ x: c.x, y: c.y }));
     session.roundIndex += 1;
 
@@ -194,7 +209,7 @@ export async function runHvOptimizeForLayer(layer) {
       return {
         ok: false,
         message:
-          'hv_response.json 為本機 greedy／腳本產生，已停用。\n請在 Cursor 用 LLM 推理座標，並以 writeResponse.mjs 寫入（computedBy: "llm"）。',
+          'hv_response.json 不符合鐵律（須 computedBy: "llm"）。\n座標只能由 Cursor LLM 推理決定，禁止腳本／程式求解。請用 writeResponse.mjs 寫入。',
       };
     }
 
