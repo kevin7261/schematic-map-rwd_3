@@ -29,6 +29,7 @@
   import { useRouteMapAdjust } from '@/utils/routeMapAdjust/loadFromSelectRouteMap.js';
   import { useRouteMapAdjust2 } from '@/utils/routeMapAdjust/loadFromSelectRouteMap2.js';
   import { useRmaMilpReadPrepCatalog } from '@/utils/routeMapAdjust/loadRmaMilpReadPrep.js';
+  import { useRmaMilpReadOneClickCatalog } from '@/utils/routeMapAdjust/loadRmaMilpReadOneClick.js';
   import { useRouteMapAdjustStraight } from '@/utils/routeMapAdjust/loadFromSelectRouteMapStraight.js';
   import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
   import { computeQuadtreePartitionFromGeojson } from '@/utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
@@ -3701,6 +3702,28 @@
     loadSelectedCity: rmaPrepLoadSelectedCity,
     quickLoadCity: rmaPrepQuickLoad,
   } = useRmaMilpReadPrepCatalog(dataStore);
+
+  // 🏷️「站點與路線調整前置」— 載入全球一鍵執行預算結果（可下載）
+  const {
+    selContinent: rmaOneClickContinent,
+    selCountry: rmaOneClickCountry,
+    selCity: rmaOneClickCity,
+    selQuick: rmaOneClickQuick,
+    selStationSort: rmaOneClickStationSort,
+    loadableCities: rmaOneClickLoadableCities,
+    quickCities: rmaOneClickQuickCities,
+    stationSortedCities: rmaOneClickStationSortedCities,
+    drawContinents: rmaOneClickContinents,
+    drawCountries: rmaOneClickCountries,
+    drawCities: rmaOneClickCities,
+    isLoading: rmaOneClickLoading,
+    loadedCityLabel: rmaOneClickLoadedLabel,
+    loadedOfficialUrl: rmaOneClickOfficialUrl,
+    loadSelectedCity: rmaOneClickLoadSelectedCity,
+    quickLoadCity: rmaOneClickQuickLoad,
+    downloadSelectedCity: rmaOneClickDownloadSelectedCity,
+    downloadLoadedCity: rmaOneClickDownloadLoadedCity,
+  } = useRmaMilpReadOneClickCatalog(dataStore);
 
   /** 📥「示意圖佈局」：把「路線圖轉換骨架」的**骨架**轉成 geojson（way 顏色＝骨架分類色）寫入此圖層之 geojsonData */
   const loadRouteAdjustIntoSchematic = (layer) => {
@@ -13253,6 +13276,116 @@
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
             匯入只顯示原始；按「移除無用網格」才壓縮空白行列。若有交叉可再按「站點調整移除交叉」。未匯入時，「移除無用網格」會直接讀記憶體中的 ③
             MILP（RMA）結果。跨工作階段存檔請用上方「匯出／匯入 JSON（斷點存檔）」。
+          </div>
+
+          <!-- 🗺️ 選擇路線圖：全球一鍵執行預算結果（可載入／下載） -->
+          <div class="pt-3 mt-3 border-top">
+            <div class="my-title-xs-gray pb-2">選擇路線圖（一鍵執行預算）</div>
+            <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
+              預先計算全球城市經「一鍵執行」四步驟後之路網，可直接載入本圖層或下載 JSON。
+            </div>
+            <div
+              v-if="rmaOneClickLoadedLabel"
+              class="my-font-size-xs text-success pb-2"
+              style="line-height: 1.35"
+            >
+              目前已載入：{{ rmaOneClickLoadedLabel }}
+              <div v-if="rmaOneClickOfficialUrl">
+                <a :href="rmaOneClickOfficialUrl" target="_blank" rel="noopener noreferrer"
+                  >官方路線圖 ↗</a
+                >
+              </div>
+            </div>
+            <select
+              v-model="rmaOneClickQuick"
+              :disabled="rmaOneClickLoading"
+              class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+              @change="rmaOneClickQuickLoad(rmaOneClickQuick)"
+            >
+              <option value="">快選城市…</option>
+              <option v-for="c in rmaOneClickQuickCities" :key="c.id" :value="c.id">
+                {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+              </option>
+            </select>
+            <select
+              v-model="rmaOneClickStationSort"
+              :disabled="rmaOneClickLoading"
+              class="form-select form-select-sm rounded-pill my-font-size-xs mb-3 my-cursor-pointer"
+              @change="rmaOneClickQuickLoad(rmaOneClickStationSort)"
+            >
+              <option value="">依站點數排序…</option>
+              <option v-for="c in rmaOneClickStationSortedCities" :key="c.id" :value="c.id">
+                {{
+                  (c.cityZh ? c.cityZh + ' ' : '') +
+                  c.city +
+                  '（' +
+                  c.stations +
+                  ' 站・' +
+                  c.routes +
+                  ' 線）'
+                }}
+              </option>
+            </select>
+            <div class="my-title-xs-gray pb-2">
+              載入一鍵執行結果（全球・共 {{ rmaOneClickLoadableCities.length }} 城市）
+            </div>
+            <select
+              v-model="rmaOneClickContinent"
+              class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+            >
+              <option value="">選擇洲別…</option>
+              <option v-for="c in rmaOneClickContinents" :key="c" :value="c">{{ c }}</option>
+            </select>
+            <select
+              v-model="rmaOneClickCountry"
+              :disabled="!rmaOneClickContinent"
+              class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+            >
+              <option value="">選擇國家…</option>
+              <option v-for="c in rmaOneClickCountries" :key="c.country" :value="c.country">
+                {{ c.label }}
+              </option>
+            </select>
+            <select
+              v-model="rmaOneClickCity"
+              :disabled="!rmaOneClickCountry"
+              class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+            >
+              <option value="">選擇城市…</option>
+              <option v-for="c in rmaOneClickCities" :key="c.id" :value="c.id">
+                {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+              </option>
+            </select>
+            <div class="d-flex gap-2 mb-2">
+              <button
+                type="button"
+                class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+                :disabled="!rmaOneClickCity || rmaOneClickLoading"
+                title="載入該城市一鍵執行預算結果到本圖層"
+                @click="rmaOneClickLoadSelectedCity"
+              >
+                {{ rmaOneClickLoading ? '讀取中…' : '載入路線圖' }}
+              </button>
+              <button
+                type="button"
+                class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+                :disabled="!rmaOneClickCity || rmaOneClickLoading"
+                title="下載所選城市一鍵執行 JSON"
+                @click="rmaOneClickDownloadSelectedCity"
+              >
+                下載 JSON
+              </button>
+            </div>
+            <button
+              v-if="rmaOneClickLoadedLabel"
+              type="button"
+              class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-1"
+              :disabled="rmaOneClickLoading"
+              title="下載目前已載入城市的一鍵執行 JSON"
+              @click="rmaOneClickDownloadLoadedCity"
+            >
+              下載目前已載入 JSON
+            </button>
           </div>
         </div>
 
