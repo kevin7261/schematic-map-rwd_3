@@ -1,13 +1,14 @@
 /* eslint-disable no-console */
 
 /**
- * 站點與路線調整：自「路線正規化」讀入 → Web Worker 求解（八演算法之一）→ 寫回圖層。
+ * 站點與路線調整：自「站點與路線調整前置」讀入 → Web Worker 求解（八演算法之一）→ 寫回圖層。
  * 組裝流程同 schematic/runLiveLayout，輸入／寫回獨立。
  */
 
 import { resolveRouteAdjustLayoutInput } from './input.js';
 import { writeRouteAdjustLayoutResultToLayer } from './writeResult.js';
-import { buildSchematicGraph, splitHighDegreeNodes, applyCoordsToSkeleton } from '../schematic/graph.js';
+import { buildSchematicGraph, splitHighDegreeNodes, applyCoordsToSkeleton, collapseSplitJunctionCoords } from '../schematic/graph.js';
+import { repairNodesOnForeignEdge } from '../schematic/enforceNoNodeOnForeignEdge.js';
 import {
   analyzeRotationStructure,
   fixRotationStructure,
@@ -38,7 +39,10 @@ export async function runRouteAdjustLiveLayout(layerId, profileId, title, opts =
     return { ok: false, message: input.message };
   }
 
-  const graph = splitHighDegreeNodes(buildSchematicGraph(input.skeletonFlat), 8);
+  const graph = splitHighDegreeNodes(
+    buildSchematicGraph(input.skeletonFlat, { mergeByGridCell: true }),
+    8
+  );
   const refFullFlatSnapshot = isMilp ? input.refFullFlat : null;
   const refAngleFlat = isMilp ? input.refAngleFlat : null;
 
@@ -71,7 +75,12 @@ export async function runRouteAdjustLiveLayout(layerId, profileId, title, opts =
     worker.onerror = (err) => {
       finish({ ok: false, message: 'Worker 錯誤：' + (err?.message || err) });
     };
-    worker.postMessage({ skeletonFlat: input.skeletonFlat, profileId });
+    worker.postMessage({
+      skeletonFlat: input.skeletonFlat,
+      profileId,
+      buildGraphOpts: { mergeByGridCell: true },
+      enforceNoForeignEdge: true,
+    });
   });
 
   if (!result.ok) {
@@ -83,7 +92,14 @@ export async function runRouteAdjustLiveLayout(layerId, profileId, title, opts =
   }
 
   overlay.setStatus('產生圖層資料…');
-  let layoutCoords = result.coords.map((c) => [c[0], c[1]]);
+  let layoutCoords = collapseSplitJunctionCoords(graph, result.coords.map((c) => [c[0], c[1]]));
+  const foreignRep = repairNodesOnForeignEdge(graph, layoutCoords);
+  layoutCoords = foreignRep.coords;
+  if (foreignRep.moves > 0) {
+    console.log(
+      `[站點與路線調整] 端點壓線修復：移動 ${foreignRep.moves} 次，剩 ${foreignRep.remaining} 處。`
+    );
+  }
   let structCheck = null;
   let rotationStructureCheck = null;
   let optimizedSkeleton = applyCoordsToSkeleton(input.skeletonFlat, graph, layoutCoords);
@@ -116,8 +132,11 @@ export async function runRouteAdjustLiveLayout(layerId, profileId, title, opts =
       );
       structCheck = fixed.check;
       fixedIterations = fixed.iterations || 0;
-      if (fixed.outConnectSkeleton) optimizedSkeleton = fixed.outConnectSkeleton;
-      layoutCoords = fixed.coords.map((c) => [c[0], c[1]]);
+      layoutCoords = collapseSplitJunctionCoords(graph, fixed.coords.map((c) => [c[0], c[1]]));
+      const foreignRep2 = repairNodesOnForeignEdge(graph, layoutCoords);
+      layoutCoords = foreignRep2.coords;
+      optimizedSkeleton = applyCoordsToSkeleton(input.skeletonFlat, graph, layoutCoords);
+      injectEdgeBends(optimizedSkeleton, graph, result.edgePaths);
       outFullFlat = reinsertBlackStations(optimizedSkeleton, input.sections);
       if (!fixed.ok) console.warn('[站點與路線調整·入射方向校正]', fixed);
     }
@@ -167,7 +186,7 @@ export async function runRouteAdjustLiveLayout(layerId, profileId, title, opts =
       : `\n⚠️ 入射方向順序仍有 ${structCheck.violationCount} 處不符`;
   }
 
-  const summary = `完成！耗時 ${secs.toFixed(1)} 秒\n八方向違規 ${v.nonocti ?? '?'}、新交叉 ${v.crossings ?? '?'}、新重疊 ${v.overlaps ?? '?'}、重合 ${v.clashes ?? '?'}${structNote}${ovNote}`;
+  const summary = `完成！耗時 ${secs.toFixed(1)} 秒\n八方向違規 ${v.nonocti ?? '?'}、新交叉 ${v.crossings ?? '?'}、新重疊 ${v.overlaps ?? '?'}、重合 ${v.clashes ?? '?'}、端點壓他線 ${v.onForeignEdge ?? '?'}${structNote}${ovNote}`;
   useDataStore().requestSpaceNetworkGridFullRedraw();
   if (typeof window !== 'undefined' && window.alert) window.alert(summary);
   return { ok: true, message: summary, stats: write.stats, outputOverlaps: outOv.count };

@@ -23,7 +23,7 @@ import {
   countFlatBad,
   snapNonBlackSkeletonToIntegerGrid,
   compactEmptyGridLinesSafe,
-  resolveIntroducedCrossings,
+  resolveRouteCrossingsByMinimalEndpointMove,
 } from './coordNormalizeMilpCompact.js';
 
 function fail(msg) {
@@ -49,7 +49,7 @@ export function loadMilpJsonRaw(parsed) {
   }
   readLayer.dataJson = JSON.parse(JSON.stringify(flat));
   const write = writeSchematicResultToLayer(SCHEMATIC_MILP_READ_LAYER_ID, flat, {
-    algo: '已匯入 MILP JSON（原始，未正規化）。按「座標正規化」做壓縮。',
+    algo: '已匯入 MILP JSON（原始，未正規化）。按「移除無用網格」壓縮空白行列。',
     sourceLayerId: SCHEMATIC_MILP_LAYER_ID,
     imported: true,
     coordNormalize: false,
@@ -57,7 +57,7 @@ export function loadMilpJsonRaw(parsed) {
   });
   if (!write.ok) return write;
   ds.requestSpaceNetworkGridFullRedraw();
-  return { ok: true, message: '已匯入 MILP JSON（原始）。按「座標正規化」做壓縮。', stats: write.stats };
+  return { ok: true, message: '已匯入 MILP JSON（原始）。按「移除無用網格」壓縮空白行列。', stats: write.stats };
 }
 
 /**
@@ -140,19 +140,30 @@ export function recomputeMilpReadBrownToBlackGray() {
     return fail('未提供 MILP 結果：請先「匯入 JSON 檔」或從①②③（RMA）匯入排版結果。');
   }
   const flat = JSON.parse(JSON.stringify(input));
-  const { brownToBlack, straightened, gray } = recomputeGrayAfterBrownToBlack(flat, { planar: true });
+  const hadBrown = flat.some((seg) =>
+    (Array.isArray(seg?.nodes) ? seg.nodes : []).some((nd) => {
+      const t = nd?.tags || {};
+      return (nd?.node_kind ?? t.node_kind) === 'brown'
+        || String(t.node_class_color ?? nd?.node_class_color ?? '').toLowerCase() === '#9a6324';
+    })
+  );
+  if (!hadBrown) {
+    return { ok: true, message: '路網中無棕點；未變更任何路線。', brownToBlack: 0, straightened: 0, gray: 0 };
+  }
+  const { brownToBlack, straightened, gray, splitSegments } = recomputeGrayAfterBrownToBlack(flat, { planar: true });
   const res = loadMilpJsonRaw(flat);
   if (!res.ok) return res;
   return {
     ok: true,
-    message: `棕點還原為黑點 ${brownToBlack} 個；拉直 ${straightened} 段；重算灰點：新增 ${gray} 個（兩相鄰邊界點間黑點 ≤ 4）。`,
+    message: `棕點還原為黑點 ${brownToBlack} 個；拉直 ${straightened} 段；重算灰點 ${gray} 個；切段 ${splitSegments} 段（含灰點邊界）。`,
     brownToBlack,
     straightened,
     gray,
+    splitSegments,
   };
 }
 
-/** 「座標正規化」：整數格吸附 → 保拓樸壓縮空白行列 → 必要時修正交叉。 */
+/** 「移除無用網格」：整數格吸附 → 保拓樸壓縮空白行列（交叉移除另按「站點調整移除交叉」）。 */
 export function executeReadMilpResult() {
   const ds = useDataStore();
   const readLayer = ds.findLayerById(SCHEMATIC_MILP_READ_LAYER_ID);
@@ -174,9 +185,9 @@ export function executeReadMilpResult() {
   // 座標正規化前：以紅/黃/藍為邊界重算粉紅點（參數同骨架2），不再需要者降級為棕色。
   try {
     const demoted = revalidatePinkToBrownInFlat(baseFlat, { planar: true });
-    if (demoted > 0) console.log(`[路線正規化] 粉紅點以紅/黃/藍邊界重算：${demoted} 個 → 降級棕色。`);
+    if (demoted > 0) console.log(`[路線調整] 粉紅點以紅/黃/藍邊界重算：${demoted} 個 → 降級棕色。`);
   } catch (e) {
-    console.error('[路線正規化] 粉紅點重算（→棕色）失敗，沿用原分類。', e);
+    console.error('[路線調整] 粉紅點重算（→棕色）失敗，沿用原分類。', e);
   }
 
   const before = countFlatBad(baseFlat);
@@ -184,21 +195,13 @@ export function executeReadMilpResult() {
   // ① 紅/黃/藍/粉紅/灰骨架節點 snap 至整數格（同位置共點同步）。
   const snappedGroups = snapNonBlackSkeletonToIntegerGrid(baseFlat);
   if (snappedGroups > 0) {
-    console.log(`[路線正規化] 骨架邊界節點整數化：${snappedGroups} 組共點已調整。`);
+    console.log(`[路線調整] 骨架邊界節點整數化：${snappedGroups} 組共點已調整。`);
   }
 
   // ② connect 骨架 → 安全刪空欄列（保護對角穿過格線 + 不新增交叉）。
   const { skeletonFlat, sections } = buildConnectSkeleton(baseFlat);
   const { removedCols, removedRows } = compactEmptyGridLinesSafe(skeletonFlat, before);
 
-  // ③ 若仍新增交叉，於骨架上微調頂點後再插回黑點。
-  let crossFixed = 0;
-  if (countFlatBad(skeletonFlat) > before) {
-    crossFixed = resolveIntroducedCrossings(skeletonFlat, before);
-    if (crossFixed > 0) {
-      console.log(`[路線正規化] 交叉修正：${crossFixed} 組骨架共點已微調。`);
-    }
-  }
   let finalSegs = reinsertBlackStations(skeletonFlat, sections);
 
   try {
@@ -209,14 +212,13 @@ export function executeReadMilpResult() {
   const after = countFlatBad(finalSegs);
 
   const write = writeSchematicResultToLayer(SCHEMATIC_MILP_READ_LAYER_ID, finalSegs, {
-    algo: '座標正規化（骨架整數格 + 安全刪空欄列 + 交叉修正）',
+    algo: '移除無用網格（骨架整數格 + 安全刪空欄列）',
     sourceLayerId: SCHEMATIC_MILP_LAYER_ID,
     coordNormalize: true,
     removedCols,
     removedRows,
     crossBefore: before,
     crossAfter: after,
-    crossFixed,
     snappedGroups,
     topologyError: after > before,
     topologyErrorCount: Math.max(0, after - before),
@@ -228,22 +230,101 @@ export function executeReadMilpResult() {
   const introduced = after - before;
   if (introduced > 0) {
     const msg =
-      `⚠ 座標正規化後仍出現拓撲錯誤！\n` +
+      `⚠ 移除無用網格後仍出現拓撲錯誤！\n` +
       `新增交叉／重疊 ${introduced} 處（${before} → ${after}）。\n` +
-      `已嘗試整數 snap、保護對角格線與頂點微調（修正 ${crossFixed} 點），仍無法完全消除。\n` +
+      `可再按「站點調整移除交叉」嘗試以最小端點位移消除。\n` +
       `後果：「紅／藍 connect 拉直」可能因路網有交叉而拒跑。`;
     console.warn('[MILP結果正規化] ' + msg);
     if (typeof window !== 'undefined' && typeof window.alert === 'function') window.alert(msg);
   }
 
-  const fixNote = crossFixed > 0 ? `；交叉修正 ${crossFixed} 點` : '';
   const snapNote = snappedGroups > 0 ? `；整數化 ${snappedGroups} 組共點` : '';
   const warn = introduced > 0
     ? `；⚠ 拓撲錯誤：新增交叉/重疊 ${introduced}（${before}→${after}）`
-    : `；交叉/重疊維持 ${after}（無新增）`;
+    : after > 0
+      ? `；交叉/重疊 ${after} 處（可再按「站點調整移除交叉」）`
+      : `；交叉/重疊維持 ${after}（無新增）`;
   return {
     ok: true,
-    message: `座標正規化完成：移除空白 ${removedCols} 欄、${removedRows} 列${snapNote}${fixNote}${warn}`,
+    message: `移除無用網格完成：移除空白 ${removedCols} 欄、${removedRows} 列${snapNote}${warn}`,
+    stats: write.stats,
+  };
+}
+
+function resolveMilpReadInputFlat(readLayer) {
+  const ds = useDataStore();
+  const loaded = Array.isArray(readLayer?.dataJson) && readLayer.dataJson.length ? readLayer.dataJson : null;
+  if (loaded) return loaded;
+  const fromDisplay =
+    Array.isArray(readLayer?.spaceNetworkGridJsonData) && readLayer.spaceNetworkGridJsonData.length
+      ? readLayer.spaceNetworkGridJsonData
+      : null;
+  if (fromDisplay) return fromDisplay;
+  const milp = ds.findLayerById(SCHEMATIC_MILP_LAYER_ID);
+  return Array.isArray(milp?.spaceNetworkGridJsonData) && milp.spaceNetworkGridJsonData.length
+    ? milp.spaceNetworkGridJsonData
+    : null;
+}
+
+/**
+ * 🔘 站點調整移除交叉：有交叉之路線端點所屬共點群組整點最小位移（同格座標一併移動，不斷開路線）。
+ */
+export function recomputeMilpReadRemoveCrossings() {
+  const ds = useDataStore();
+  const readLayer = ds.findLayerById(SCHEMATIC_MILP_READ_LAYER_ID);
+  if (!readLayer) return fail('找不到圖層 ' + SCHEMATIC_MILP_READ_LAYER_ID);
+  const input = resolveMilpReadInputFlat(readLayer);
+  if (!input) {
+    return fail('未提供路網：請先「匯入 JSON 檔」、從示意圖佈局匯入，或按「移除無用網格」。');
+  }
+
+  const flat = JSON.parse(JSON.stringify(input));
+  const { skeletonFlat, sections } = buildConnectSkeleton(flat);
+  const { crossBefore, crossAfter, endpointMoves } = resolveRouteCrossingsByMinimalEndpointMove(skeletonFlat);
+  if (crossBefore === 0) {
+    return { ok: true, message: '路網無交叉／重疊，未變更。', crossBefore: 0, crossAfter: 0, endpointMoves: 0 };
+  }
+  if (endpointMoves === 0) {
+    return {
+      ok: true,
+      message: `仍有交叉／重疊 ${crossAfter} 處（${crossBefore} → ${crossAfter}），端點最小位移無法再改善。`,
+      crossBefore,
+      crossAfter,
+      endpointMoves: 0,
+    };
+  }
+
+  const finalSegs = reinsertBlackStations(skeletonFlat, sections);
+  try {
+    refreshPinkDpRatioInFlat(finalSegs);
+  } catch (e) {
+    console.warn('[MILP結果正規化] 移除交叉後重算 dp_ratio 失敗。', e);
+  }
+
+  const write = writeSchematicResultToLayer(SCHEMATIC_MILP_READ_LAYER_ID, finalSegs, {
+    algo: '站點調整移除交叉（端點最小位移）',
+    sourceLayerId: SCHEMATIC_MILP_READ_LAYER_ID,
+    crossBefore,
+    crossAfter,
+    endpointMoves,
+    readAt: Date.now(),
+  });
+  if (!write.ok) return write;
+  ds.requestSpaceNetworkGridFullRedraw();
+
+  const improved = crossBefore - crossAfter;
+  const note =
+    crossAfter === 0
+      ? '已全部消除'
+      : improved > 0
+        ? `減少 ${improved} 處，剩 ${crossAfter} 處`
+        : `仍 ${crossAfter} 處`;
+  return {
+    ok: true,
+    message: `站點調整移除交叉：移動端點 ${endpointMoves} 次，交叉／重疊 ${crossBefore} → ${crossAfter}（${note}）。`,
+    crossBefore,
+    crossAfter,
+    endpointMoves,
     stats: write.stats,
   };
 }

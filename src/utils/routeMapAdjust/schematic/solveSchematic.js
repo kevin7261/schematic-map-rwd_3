@@ -23,6 +23,7 @@ import { runMerrick } from './pathSimplify/merrickCore.js';
 import { runSat } from './sat/satCore.js';
 import { runOctilinearLayout } from './milp/runOctilinearLayout.js';
 import { countViolations } from './repair.js';
+import { repairNodesOnForeignEdge } from './enforceNoNodeOnForeignEdge.js';
 
 // MILP（③）目標權重：S1 彎折 / S2 相對位置 / S3 長度（Nöllenburg & Wolff 2011，§4.8 Eq.15）。
 const MILP_WEIGHTS = { wBend: 1.5, wRpos: 1.5, wLen: 0.1 };
@@ -32,17 +33,27 @@ const KNOWN_PROFILES = new Set(['stroke', 'hillclimb', 'milp', 'force', 'wangchi
 // SAT（⑧）目標權重：f1 彎折 / f2 相對位置 / f3 邊長（Fuchs 2022，§3.4；論文預設皆 1，實驗用 (3,2,1)）。
 const SAT_WEIGHTS = { f1: 3, f2: 2, f3: 1 };
 
+function finalizeCoords(graph, coords, opts) {
+  let out = coords.map((c) => [c[0], c[1]]);
+  if (opts.enforceNoForeignEdge) {
+    const rep = repairNodesOnForeignEdge(graph, out);
+    out = rep.coords;
+  }
+  return out;
+}
+
 /**
  * @param {Array} skeletonFlat connect 骨架（已縮放整數格）
  * @param {string} profileId  stroke|hillclimb|milp|force|wangchi|bast|merrick
  * @param {(msg:string)=>void} onProgress 進度回報（worker 轉發給主執行緒）
+ * @param {{ buildGraphOpts?: object, enforceNoForeignEdge?: boolean }} [opts]
  * @returns {Promise<{ ok, coords?, violations?, h4Pairs?, sepPairs?, status?, message? }>}
  */
-export async function solveSchematic(skeletonFlat, profileId, onProgress) {
+export async function solveSchematic(skeletonFlat, profileId, onProgress, opts = {}) {
   if (!KNOWN_PROFILES.has(profileId)) return { ok: false, message: '未知 profile：' + profileId };
   const report = typeof onProgress === 'function' ? onProgress : () => {};
 
-  const graph = splitHighDegreeNodes(buildSchematicGraph(skeletonFlat), 8);
+  const graph = splitHighDegreeNodes(buildSchematicGraph(skeletonFlat, opts.buildGraphOpts || {}), 8);
   const coords0 = initialCoords(graph);
 
   // 啟發式 / 直接式圖層：各自輸出自己演算法的座標（不接 MILP）。
@@ -76,8 +87,9 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
   if (direct[profileId]) {
     const r = direct[profileId]();
     // ⑥ Bast 回傳 { coords, edgePaths }(邊內彎折幾何);其餘回傳 coords 陣列。
-    const coords = Array.isArray(r) ? r : r.coords;
+    const raw = Array.isArray(r) ? r : r.coords;
     const edgePaths = Array.isArray(r) ? undefined : r.edgePaths;
+    const coords = finalizeCoords(graph, raw, opts);
     return { ok: true, coords, edgePaths, violations: countViolations(graph, coords), status: profileId };
   }
 
@@ -94,7 +106,8 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
     if (!r.ok) {
       return { ok: false, status: 'sat-failed', message: (r.message || 'SAT 求解未產出') + '\n（依論文忠實度要求,不以啟發式冒充 SAT）' };
     }
-    return { ok: true, coords: r.coords, violations: countViolations(graph, r.coords), h4Pairs: r.h4Pairs, status: r.status };
+    const coords = finalizeCoords(graph, r.coords, opts);
+    return { ok: true, coords, violations: countViolations(graph, coords), h4Pairs: r.h4Pairs, status: r.status };
   }
 
   // ③ MILP：Nöllenburg & Wolff (2011) 精確八方向求解（完全照論文,不加 fallback/簡化)。
@@ -119,10 +132,11 @@ export async function solveSchematic(skeletonFlat, profileId, onProgress) {
     };
   }
 
+  const coords = finalizeCoords(graph, layout.coords, opts);
   return {
     ok: true,
-    coords: layout.coords,
-    violations: countViolations(graph, layout.coords),
+    coords,
+    violations: countViolations(graph, coords),
     h4Pairs: layout.h4Pairs,
     sepPairs: layout.sepPairs,
     status: layout.status,

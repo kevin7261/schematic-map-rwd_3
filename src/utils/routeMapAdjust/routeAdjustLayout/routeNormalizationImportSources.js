@@ -1,5 +1,5 @@
 /**
- * 「路網網格／路網網格_2」自「路線正規化」群組匯入路網之來源清單（順序同 dataStore 群組）。
+ * 「路網網格／路網網格_2」自「路線調整」群組匯入路網之來源清單（順序同 dataStore 群組）。
  * @typedef {{ layerId: string, label: string }} RouteNormalizationImportSource
  */
 
@@ -13,6 +13,7 @@ import {
   ROUTE_ADJUST_MERRICK_LAYER_ID,
   ROUTE_ADJUST_SAT_LAYER_ID,
   ROUTE_ADJUST_UPSTREAM_LAYER_ID,
+  ROUTE_ADJUST_UPSTREAM_LAYER_NAME,
   ROUTE_ADJUST_LAYOUT_LAYER_IDS,
   SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
 } from './layerIds.js';
@@ -23,7 +24,7 @@ const SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID = 'schematic_rma_toward_center_vh'
 
 /** @type {ReadonlyArray<RouteNormalizationImportSource>} */
 export const ROUTE_NORMALIZATION_IMPORT_SOURCES = Object.freeze([
-  { layerId: ROUTE_ADJUST_UPSTREAM_LAYER_ID, label: '路線正規化' },
+  { layerId: ROUTE_ADJUST_UPSTREAM_LAYER_ID, label: ROUTE_ADJUST_UPSTREAM_LAYER_NAME },
   { layerId: ROUTE_ADJUST_STROKE_LAYER_ID, label: '① 站點與路線調整（Stroke-based）' },
   { layerId: ROUTE_ADJUST_HILLCLIMB_LAYER_ID, label: '② 站點與路線調整（Hill Climbing）' },
   { layerId: ROUTE_ADJUST_MILP_LAYER_ID, label: '③ 站點與路線調整（MILP）' },

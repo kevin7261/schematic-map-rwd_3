@@ -101,9 +101,9 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
   const isRmaLayer = (lyr) => isRmaLayoutNetworkGridFromVhDrawLayerId(lyr?.layerId);
 
   /**
-   * 路網網格（RMA）：自「路線正規化」群組任一路網層匯入（強制重建本層）。
+   * 路網網格（RMA）：自「路線調整」群組任一路網層匯入（強制重建本層）。
    * @param {object} lyr 本層
-   * @param {string} sourceLayerId 路線正規化群組內任一层 layerId
+   * @param {string} sourceLayerId 路線調整群組內任一 layerId
    */
   const importRmaLayoutNetworkGridFrom = async (lyr, sourceLayerId) => {
     if (!isRmaLayer(lyr)) return;

@@ -1,9 +1,6 @@
 /**
- * 路線正規化「座標正規化」：整數格吸附 + 安全刪空欄列 + 交叉修正。
- *
- * 1. 紅／黃／藍／粉紅／灰（及紫）骨架節點 snap 至整數格；同位置共點一併更新。
- * 2. 僅刪「整欄／列無上述骨架點」且「無 45° 對角線穿過」之格線。
- * 3. 若壓縮後仍新增交叉，微調可動頂點至最近合法整數格。
+ * 路線調整「移除無用網格」：整數格吸附 + 安全刪空欄列。
+ * 「站點調整移除交叉」另見 resolveRouteCrossingsByMinimalEndpointMove。
  */
 
 const rdP = (p) => (Array.isArray(p) ? [Number(p[0]), Number(p[1])] : [Number(p?.x ?? 0), Number(p?.y ?? 0)]);
@@ -425,4 +422,134 @@ export function resolveIntroducedCrossings(segs, crossBaseline, maxPasses = 48) 
     if (!improved) break;
   }
   return fixed;
+}
+
+function buildSubSegments(segs) {
+  const subs = [];
+  segs.forEach((seg, sid) => {
+    const pts = (seg.points || []).map(rdP);
+    const ep0 = pts.length ? `${pts[0][0]},${pts[0][1]}` : '';
+    const epN = pts.length ? `${pts[pts.length - 1][0]},${pts[pts.length - 1][1]}` : '';
+    for (let i = 1; i < pts.length; i++) subs.push({ sid, a: pts[i - 1], b: pts[i], ep0, epN });
+  });
+  return subs;
+}
+
+/** 有交叉／疊線之子邊所涉及之 section 索引。 */
+function affectedSegmentIdsFromCrossings(segs) {
+  const subs = buildSubSegments(segs);
+  const ids = new Set();
+  for (let i = 0; i < subs.length; i++) {
+    for (let j = i + 1; j < subs.length; j++) {
+      if (subs[i].sid === subs[j].sid) continue;
+      if (
+        subs[i].ep0 === subs[j].ep0 ||
+        subs[i].ep0 === subs[j].epN ||
+        subs[i].epN === subs[j].ep0 ||
+        subs[i].epN === subs[j].epN
+      ) {
+        continue;
+      }
+      if (pairBad(subs[i].a, subs[i].b, subs[j].a, subs[j].b)) {
+        ids.add(subs[i].sid);
+        ids.add(subs[j].sid);
+      }
+    }
+  }
+  return ids;
+}
+
+function collectAllVertexGroups(segs) {
+  const groups = new Map();
+  segs.forEach((seg, si) => {
+    const pts = seg.points || [];
+    for (let pi = 0; pi < pts.length; pi++) {
+      const [x, y] = rdP(pts[pi]);
+      const k = coordKey(Math.round(x), Math.round(y));
+      let g = groups.get(k);
+      if (!g) {
+        g = { refs: [], x: Math.round(x), y: Math.round(y) };
+        groups.set(k, g);
+      }
+      g.refs.push({ si, pi });
+    }
+  });
+  return groups;
+}
+
+/** 有交叉 section 之端點所對應的共點群組（同格座標整組移動，不斷開路線）。 */
+function endpointGroupsFromAffectedSegments(segs, affected) {
+  const allGroups = collectAllVertexGroups(segs);
+  const byKey = new Map();
+  for (const sid of affected) {
+    const seg = segs[sid];
+    const pts = seg.points || [];
+    if (pts.length < 2) continue;
+    for (const pi of [0, pts.length - 1]) {
+      const [x, y] = rdP(pts[pi]);
+      const k = coordKey(Math.round(x), Math.round(y));
+      const g = allGroups.get(k);
+      if (g && !byKey.has(k)) byKey.set(k, g);
+    }
+  }
+  return [...byKey.values()];
+}
+
+function manhattanDeltas(maxR = 8) {
+  const out = [[0, 0]];
+  for (let r = 1; r <= maxR; r++) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dy = -r; dy <= r; dy++) {
+        if (Math.abs(dx) + Math.abs(dy) === r) out.push([dx, dy]);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * 站點調整移除交叉：對「有交叉」路線之端點所屬共點群組，整點一併最小位移，不斷開路線。
+ * @returns {{ crossBefore: number, crossAfter: number, endpointMoves: number }}
+ */
+export function resolveRouteCrossingsByMinimalEndpointMove(segs, maxPasses = 64, maxDist = 8) {
+  const crossBefore = countFlatBad(segs);
+  if (crossBefore === 0) {
+    return { crossBefore: 0, crossAfter: 0, endpointMoves: 0 };
+  }
+  const deltas = manhattanDeltas(maxDist);
+  let endpointMoves = 0;
+  for (let pass = 0; pass < maxPasses; pass++) {
+    const before = countFlatBad(segs);
+    if (before === 0) break;
+    const affected = affectedSegmentIdsFromCrossings(segs);
+    if (!affected.size) break;
+
+    const candidateGroups = endpointGroupsFromAffectedSegments(segs, affected);
+    let best = null;
+    for (const g of candidateGroups) {
+      const ox = Math.round(g.x);
+      const oy = Math.round(g.y);
+      for (const [dx, dy] of deltas) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = ox + dx;
+        const ny = oy + dy;
+        applyGroupCoord(segs, g.refs, nx, ny);
+        const after = countFlatBad(segs);
+        const dist = Math.abs(dx) + Math.abs(dy);
+        if (
+          after < before &&
+          (!best || after < best.after || (after === best.after && dist < best.dist))
+        ) {
+          best = { g, nx, ny, after, dist, ox, oy };
+        }
+        applyGroupCoord(segs, g.refs, ox, oy);
+      }
+    }
+    if (!best) break;
+    applyGroupCoord(segs, best.g.refs, best.nx, best.ny);
+    best.g.x = best.nx;
+    best.g.y = best.ny;
+    endpointMoves++;
+  }
+  return { crossBefore, crossAfter: countFlatBad(segs), endpointMoves };
 }

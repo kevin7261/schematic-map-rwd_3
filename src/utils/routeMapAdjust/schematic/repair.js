@@ -33,6 +33,8 @@ function isOcti(a, b) {
   return dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy);
 }
 
+import { countNodesOnForeignEdge } from './enforceNoNodeOnForeignEdge.js';
+
 /** 全域違規統計（回報用）。 */
 export function countViolations(graph, coords) {
   const { edges } = graph;
@@ -44,15 +46,18 @@ export function countViolations(graph, coords) {
   }
   for (let i = 0; i < edges.length; i++) {
     const a = edges[i];
+    if (a.isLink) continue;
     const A = coords[a.u], B = coords[a.v];
     if (!isOcti(A, B)) nonocti++;
     for (let j = i + 1; j < edges.length; j++) {
       const b = edges[j];
+      if (b.isLink) continue;
       const adj = a.u === b.u || a.u === b.v || a.v === b.u || a.v === b.v;
       const C = coords[b.u], D = coords[b.v];
       if (!adj && segmentIntersectionInterior2D(A[0], A[1], B[0], B[1], C[0], C[1], D[0], D[1])) crossings++;
       if (segOverlap(A, B, C, D) > 1e-6) overlaps++;
     }
   }
-  return { overlaps, crossings, clashes, nonocti };
+  const onForeignEdge = countNodesOnForeignEdge(graph, coords);
+  return { overlaps, crossings, clashes, nonocti, onForeignEdge };
 }

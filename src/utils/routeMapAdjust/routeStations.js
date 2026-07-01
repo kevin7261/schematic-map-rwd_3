@@ -12,6 +12,9 @@
  * 座標一律為 [lat, lng]。
  */
 
+import { buildConnectSkeleton } from './schematic/input.js';
+import { reinsertBlackStations } from './schematic/assemble.js';
+
 /** 路線具名調色盤（與顏色名一一對應；路線以顏色為名） */
 export const ROUTE_MAP_ADJUST_PALETTE = [
   { name: '紅色', hex: '#e6194b' },
@@ -470,10 +473,15 @@ const straightenAndRedistributeLeg = (ks, anchorA, anchorB, cloneNodeAtKey, stat
  * 錨點座標絕不改；支線 segment 不碰；折角格只刪不位移。
  * @returns {number} 拉直的路段數
  */
-const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn) => {
+const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn, affectedRouteKeys = null) => {
   if (!brownLegKeys?.size) return 0;
   const pendingBrowns = new Set(brownLegKeys);
   const vkey = (a, b) => `${a.toFixed(6)},${b.toFixed(6)}`;
+  const segRouteKey = (seg, si) => String(seg?.route_name ?? seg?.name ?? '').trim() || `__idx_${si}`;
+  const isAffectedSeg = (si) => {
+    if (!affectedRouteKeys || affectedRouteKeys.size === 0) return true;
+    return affectedRouteKeys.has(segRouteKey(flat[si], si));
+  };
 
   const buildGraph = () => {
     const occ = new Map();
@@ -602,6 +610,7 @@ const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn) => {
     const fullSegs = [];
     const partialSegs = [];
     for (let si = 0; si < flat.length; si++) {
+      if (!isAffectedSeg(si)) continue;
       const seg = flat[si];
       const pts = seg?.points;
       if (!Array.isArray(pts) || pts.length < 2) continue;
@@ -614,6 +623,7 @@ const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn) => {
 
     // 部分路段：錨點 index 不動，只換中間；依 segment 方向決定黑點順序。
     for (const { si, iA, iB } of partialSegs) {
+      if (!isAffectedSeg(si)) continue;
       if (fullSegs.includes(si) || partialDone.has(si)) continue;
       const seg = flat[si];
       const i0 = Math.min(iA, iB);
@@ -1049,18 +1059,19 @@ export const revalidatePinkToBrownInFlat = (flat, opts = {}) => {
 /**
  * 🤎→🖤 + 🩶 把棕點改回一般黑點，再以「紅/黃/藍/粉紅 + 新增灰點」為邊界重算灰點配置
  *   （規則同骨架2：兩相鄰邊界點之間黑點 ≥ maxBetween+1（預設 5）時，於中間補 G=⌊N/(maxBetween+1)⌋ 個灰點，
- *   使每段黑點 ≤ maxBetween）。既有灰點先一併還原成黑點後重算。
- *   ① 合併 segment → ② 拉直（錨點不動、刪折角）→ ③ 黑點 (j+1)/(n+1) 重分配。
- *   computeGrayBlackDots 以「索引」均分定位，與座標系無關；故 planar 僅影響邊界折線之建構。
- * @param {Array<{points:Array, nodes:Array}>} flat 路網 flat segments（就地修改 nodes tags 與座標）
+ *   使每段黑點 ≤ maxBetween）。**僅處理含棕點之路線**；無棕點之路線完全不動（灰點不還原、不重算）。
+ *   重算後於灰點（及紅/黃/藍/粉紅等邊界）**切開路段**，黑點沿邊均分插回。
+ *   ① 合併 segment → ② 拉直（錨點不動、刪折角）→ ③ 黑點 (j+1)/(n+1) 重分配 → ④ 邊界切段。
+ * @param {Array<{points:Array, nodes:Array, route_name?:string, name?:string}>} flat 路網 flat segments（就地修改 nodes tags 與座標）
  * @param {{planar?:boolean, maxBetween?:number}} [opts]
- * @returns {{brownToBlack:number, straightened:number, gray:number}}
+ * @returns {{brownToBlack:number, straightened:number, gray:number, splitSegments:number}}
  */
 export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
-  if (!Array.isArray(flat) || !flat.length) return { brownToBlack: 0, straightened: 0, gray: 0 };
+  if (!Array.isArray(flat) || !flat.length) return { brownToBlack: 0, straightened: 0, gray: 0, splitSegments: 0 };
   const planar = !!opts.planar;
   const repr = (a, b) => (planar ? [a, b] : [b, a]);
   const kkey = (p) => `${Number(p[0]).toFixed(6)},${Number(p[1]).toFixed(6)}`;
+  const segRouteKey = (seg, si) => String(seg?.route_name ?? seg?.name ?? '').trim() || `__idx_${si}`;
   const isBrown = (nd) => {
     if (!nd) return false;
     const t = nd.tags || {};
@@ -1077,21 +1088,30 @@ export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
       String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase() === GRAY_DOT_HEX.toLowerCase()
     );
   };
-  // 0) 記錄棕點座標（棕→黑後仍用同一格定位「需拉直的錨點區段」）。
+  // 0) 找出含棕點之路線；無棕點則整段不處理。
   const brownKeys = new Set();
-  for (const seg of flat) {
+  const routesWithBrown = new Set();
+  for (let si = 0; si < flat.length; si++) {
+    const seg = flat[si];
     const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
     const pts = seg?.points;
     if (!Array.isArray(pts)) continue;
     for (let i = 0; i < pts.length; i++) {
       if (!isBrown(nodes[i])) continue;
+      routesWithBrown.add(segRouteKey(seg, si));
       const [a, b] = readFlatPt(pts[i]);
       brownKeys.add(`${a.toFixed(6)},${b.toFixed(6)}`);
     }
   }
-  // 1) 棕→黑；既有灰→黑（重算前先還原，避免舊灰殘留）。
+  if (routesWithBrown.size === 0) {
+    return { brownToBlack: 0, straightened: 0, gray: 0, splitSegments: 0 };
+  }
+  const isAffectedRoute = (seg, si) => routesWithBrown.has(segRouteKey(seg, si));
+  // 1) 僅含棕點之路線：棕→黑；既有灰→黑（重算前先還原，避免舊灰殘留）。
   let brownToBlack = 0;
-  for (const seg of flat) {
+  for (let si = 0; si < flat.length; si++) {
+    const seg = flat[si];
+    if (!isAffectedRoute(seg, si)) continue;
     const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
     const pts = seg?.points;
     if (!Array.isArray(pts)) continue;
@@ -1109,15 +1129,18 @@ export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
       else if (isGray(nd)) setNodeClass(nd, 'black', '#000000');
     }
   }
-  // 1.5) ① 合併 → ② 拉直 → ③ 黑點重分配（僅含棕點的錨點鏈）。
+  // 1.5) ① 合併 → ② 拉直 → ③ 黑點重分配（僅含棕點之路線的錨點鏈）。
   const straightened = brownKeys.size > 0
-    ? collapseBrownAnchorChainsInFlat(flat, brownKeys, nodeIsRYBorPinkClass)
+    ? collapseBrownAnchorChainsInFlat(flat, brownKeys, nodeIsRYBorPinkClass, routesWithBrown)
     : 0;
-  // 2) 以紅/黃/藍為邊界建折線；粉紅為內部 flush 邊界（同骨架2 computeGrayBlackDots 之 pinkKeys）。
-  const paths = buildRYBBoundedPaths(flat, planar);
+  // 2) 僅含棕點之路線：以紅/黃/藍為邊界建折線；粉紅為內部 flush 邊界。
+  const affectedSegs = flat.filter((seg, si) => isAffectedRoute(seg, si));
+  const paths = buildRYBBoundedPaths(affectedSegs, planar);
   const blackPts = [];
   const pinkKeys = new Set();
-  for (const seg of flat) {
+  for (let si = 0; si < flat.length; si++) {
+    const seg = flat[si];
+    if (!isAffectedRoute(seg, si)) continue;
     const pts = seg?.points;
     const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
     if (!Array.isArray(pts)) continue;
@@ -1127,13 +1150,15 @@ export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
       else if (nodeIsPinkClass(nodes[i])) pinkKeys.add(kkey(repr(a, b)));
     }
   }
-  // 3) 重算灰點（規則／參數同骨架2）。
+  // 3) 重算灰點（規則／參數同骨架2；僅含棕點之路線）。
   const grayKeys = computeGrayBlackDots(paths, blackPts, pinkKeys, {
     maxBetween: opts.maxBetween ?? GRAY_MAX_BLACK_BETWEEN,
   });
-  // 4) 套用：被選中的黑點 → 灰。
+  // 4) 套用：被選中的黑點 → 灰（僅含棕點之路線）。
   let gray = 0;
-  for (const seg of flat) {
+  for (let si = 0; si < flat.length; si++) {
+    const seg = flat[si];
+    if (!isAffectedRoute(seg, si)) continue;
     const pts = seg?.points;
     const nodes = Array.isArray(seg?.nodes) ? seg.nodes : [];
     if (!Array.isArray(pts)) continue;
@@ -1143,7 +1168,23 @@ export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
       if (grayKeys.has(kkey(repr(a, b)))) { setNodeClass(nodes[i], 'gray', GRAY_DOT_HEX); gray++; }
     }
   }
-  return { brownToBlack, straightened, gray };
+  // 5) 灰點（及紅/黃/藍/粉紅等邊界）處切開路段；黑點沿邊均分插回（僅含棕點之路線）。
+  const unaffectedSegs = [];
+  const affectedCopy = [];
+  for (let si = 0; si < flat.length; si++) {
+    const seg = flat[si];
+    if (isAffectedRoute(seg, si)) affectedCopy.push(JSON.parse(JSON.stringify(seg)));
+    else unaffectedSegs.push(seg);
+  }
+  let splitSegments = affectedCopy.length;
+  if (affectedCopy.length > 0) {
+    const { skeletonFlat, sections } = buildConnectSkeleton(affectedCopy);
+    const splitAffected = reinsertBlackStations(skeletonFlat, sections);
+    splitSegments = splitAffected.length;
+    flat.length = 0;
+    flat.push(...unaffectedSegs, ...splitAffected);
+  }
+  return { brownToBlack, straightened, gray, splitSegments };
 };
 
 /** 黑點上限：兩相鄰邊界點（紅/黃/紫/藍/粉紅/灰）之間最多容許的黑點數。超過則在中間把黑點改灰點。預設 4。 */

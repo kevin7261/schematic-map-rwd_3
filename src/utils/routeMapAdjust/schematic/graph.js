@@ -62,6 +62,8 @@ function spreadOverlaps(nodes) {
 
 /**
  * @param {Array<object>} skeletonFlat 2 點一段的 connect 骨架
+ * @param {{ mergeByGridCell?: boolean }} [opts]
+ *   mergeByGridCell：整數格路網（站點與路線調整）時，同格座標視為同一共點，不 spread 拆開。
  * @returns {{
  *   nodes: Array<{id:number,key:string,x:number,y:number,refs:Array<{si:number,pi:number}>}>,
  *   edges: Array<{id:number,u:number,v:number,route_name:string,si:number}>,
@@ -70,7 +72,8 @@ function spreadOverlaps(nodes) {
  *   spreadCount: number
  * }}
  */
-export function buildSchematicGraph(skeletonFlat) {
+export function buildSchematicGraph(skeletonFlat, opts = {}) {
+  const mergeByGridCell = !!opts.mergeByGridCell;
   const keyToNode = new Map();
   const nodes = [];
   const nodeOfRef = new Map();
@@ -90,14 +93,18 @@ export function buildSchematicGraph(skeletonFlat) {
     if (!Array.isArray(pts) || pts.length < 2) continue;
     for (let pi = 0; pi < pts.length; pi++) {
       const [x, y] = readXY(pts[pi]);
-      const key = connectKey(seg?.nodes?.[pi]) || `xy:${x},${y}`;
-      const id = nodeIdByKey(key, x, y);
+      const ix = Math.round(x);
+      const iy = Math.round(y);
+      const key = mergeByGridCell
+        ? `cell:${ix},${iy}`
+        : (connectKey(seg?.nodes?.[pi]) || `xy:${x},${y}`);
+      const id = nodeIdByKey(key, mergeByGridCell ? ix : x, mergeByGridCell ? iy : y);
       nodes[id].refs.push({ si, pi });
       nodeOfRef.set(`${si},${pi}`, id);
     }
   }
 
-  const spreadCount = spreadOverlaps(nodes);
+  const spreadCount = mergeByGridCell ? 0 : spreadOverlaps(nodes);
 
   // 邊以「無序節點對」去重：平行路線/重複 section 共用走廊 → 一條幾何邊（路線與分段清單保留）。
   // 這使度數=不同鄰居數（真實拓撲），避免重複 section 把度數灌爆。
@@ -275,6 +282,39 @@ function angleAt(nodes, edges, nodeId, edgeId) {
 /** 由圖節點取初值座標陣列 nodeId -> [x,y]。 */
 export function initialCoords(graph) {
   return graph.nodes.map((n) => [n.x, n.y]);
+}
+
+/**
+ * splitHighDegreeNodes 產生之 sub-node（key 帶 #0/#1…）佈局後合回同一格，恢復路線共點。
+ * @param {object} graph
+ * @param {Array<[number,number]>} coords
+ * @returns {Array<[number,number]>}
+ */
+export function collapseSplitJunctionCoords(graph, coords) {
+  const byBase = new Map();
+  for (let i = 0; i < graph.nodes.length; i++) {
+    const m = /^(.+)#\d+$/.exec(graph.nodes[i].key);
+    if (!m) continue;
+    const base = m[1];
+    if (!byBase.has(base)) byBase.set(base, []);
+    byBase.get(base).push(i);
+  }
+  const out = coords.map((c) => [c[0], c[1]]);
+  for (const ids of byBase.values()) {
+    if (ids.length < 2) continue;
+    let sx = 0;
+    let sy = 0;
+    for (const id of ids) {
+      sx += out[id][0];
+      sy += out[id][1];
+    }
+    const cx = Math.round(sx / ids.length);
+    const cy = Math.round(sy / ids.length);
+    for (const id of ids) {
+      out[id] = [cx, cy];
+    }
+  }
+  return out;
 }
 
 /**

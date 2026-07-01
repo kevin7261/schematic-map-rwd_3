@@ -3,6 +3,7 @@
  * 港澳台、日本等請勿轉換（會誤改日文漢字，如 広島→廣島）。
  */
 import OpenCC from 'opencc-js';
+import { normStationName } from '../src/utils/metroStationNameNorm.js';
 
 const conv = OpenCC.Converter({ from: 'cn', to: 'tw' });
 
@@ -30,12 +31,7 @@ export function convertFcToTraditional(fc) {
 export function mergeSameNameStations(fc) {
   const key = (lon, lat) => `${(+lon).toFixed(6)},${(+lat).toFixed(6)}`;
   // 正規化分組鍵：把常見異體字視為同字（臺=台、塩=鹽…），避免「臺北車站/台北車站」沒合併
-  const normName = (s) =>
-    String(s || '')
-      .trim()
-      .replace(/臺/g, '台')
-      .replace(/塩/g, '鹽')
-      .replace(/\s+/g, '');
+  const normName = normStationName;
   const nodes = (fc.features || []).filter((f) => f.properties?.element_type === 'node');
   const byKey = new Map(); // 正規化鍵 → { coords:[], names:Map(原名→次數) }
   for (const n of nodes) {

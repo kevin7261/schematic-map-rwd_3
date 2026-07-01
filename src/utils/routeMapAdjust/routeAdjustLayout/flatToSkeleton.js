@@ -1,5 +1,5 @@
 /**
- * 路線正規化 flat segments → connect 骨架 + 黑點 sections（供八演算法重佈局）。
+ * 站點與路線調整前置 flat segments → connect 骨架 + 黑點 sections（供八演算法重佈局）。
  * 邏輯同 ControlTab milpReadFlatToSkeleton，獨立實作供本管線使用。
  */
 

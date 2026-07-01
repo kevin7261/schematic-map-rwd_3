@@ -142,6 +142,7 @@ export function findNodeOnForeignEdgePairs(graph, coords, limit = 400) {
     const inc = incident[n];
     if (!inc.length) continue;
     for (const e of edges) {
+      if (e.isLink) continue;
       if (e.u === n || e.v === n) continue; // 自身入射邊
       const ax = coords[e.u][0], ay = coords[e.u][1], bx = coords[e.v][0], by = coords[e.v][1];
       if ((bx - ax) * (py - ay) - (by - ay) * (px - ax) !== 0) continue; // 不共線

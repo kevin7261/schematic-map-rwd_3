@@ -5,11 +5,16 @@
 import { solveSchematic } from '../schematic/solveSchematic.js';
 
 self.onmessage = async (e) => {
-  const { skeletonFlat, profileId } = e.data || {};
+  const { skeletonFlat, profileId, buildGraphOpts, enforceNoForeignEdge } = e.data || {};
   try {
-    const res = await solveSchematic(skeletonFlat, profileId, (msg) => {
-      self.postMessage({ type: 'progress', msg });
-    });
+    const res = await solveSchematic(
+      skeletonFlat,
+      profileId,
+      (msg) => {
+        self.postMessage({ type: 'progress', msg });
+      },
+      { buildGraphOpts, enforceNoForeignEdge }
+    );
     self.postMessage({ type: 'done', result: res });
   } catch (err) {
     self.postMessage({

@@ -1,6 +1,6 @@
 /**
  * 站點與路線調整八演算法 executeFunction（dataStore 用）。
- * 輸入固定為上游「路線正規化」；演算法與示意圖佈局 #1–#8 相同。
+ * 輸入固定為上游「站點與路線調整前置」；演算法與示意圖佈局 #1–#8 相同。
  */
 
 import { runRouteAdjustLiveLayout } from './runLiveLayout.js';

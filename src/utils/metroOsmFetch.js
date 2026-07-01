@@ -1,3 +1,5 @@
+import { normStationName } from './metroStationNameNorm.js';
+
 /**
  * 🌐 瀏覽器端「即時抓取」單一城市地鐵路線（on-demand）。
  *
@@ -188,7 +190,8 @@ function makeStationSnapper(stations, meters) {
   // stations: [{ coord:[lat,lng], name }]。
   const byName = new Map();
   for (const s of stations) {
-    const nm = (s.name || '').trim();
+    const nm = normStationName(s.name);
+    if (!nm) continue;
     let clusters = byName.get(nm);
     if (!clusters) {
       clusters = [];
@@ -213,7 +216,7 @@ function makeStationSnapper(stations, meters) {
     }
   }
   return (p, name) => {
-    const clusters = byName.get((name || '').trim());
+    const clusters = byName.get(normStationName(name));
     if (!clusters || !clusters.length) return [round6(p[0]), round6(p[1])];
     let best = null;
     let bd = Infinity;
@@ -609,30 +612,40 @@ export async function fetchMetroGeojsonByBbox(bbox, opts = {}) {
   //    「最佳位置」＝所有同名出現點的重心（centroid），讓多線在此相接於單一交點、且僅產生一個站點。
   //    ⚠️ noNameMerge（如紐約）：同名不同站之特例，停用此合併。
   if (!opts.noNameMerge) {
-    const byName = new Map();
+    const byNorm = new Map();
     for (const l of built) {
       if (!l.canon) continue;
       for (const st of l.canon) {
         const nm = (st.name || '').trim();
-        if (!nm) continue;
-        let arr = byName.get(nm);
-        if (!arr) {
-          arr = [];
-          byName.set(nm, arr);
+        const nk = normStationName(nm);
+        if (!nk) continue;
+        let g = byNorm.get(nk);
+        if (!g) {
+          g = { coords: [], names: new Map() };
+          byNorm.set(nk, g);
         }
-        arr.push(st.c);
+        g.coords.push(st.c);
+        g.names.set(nm, (g.names.get(nm) || 0) + 1);
       }
     }
-    const nameToCoord = new Map();
-    for (const [nm, coords] of byName) {
-      const cen = coords.reduce((a, c) => [a[0] + c[0], a[1] + c[1]], [0, 0]);
-      nameToCoord.set(nm, [round6(cen[0] / coords.length), round6(cen[1] / coords.length)]);
+    const normToCoord = new Map();
+    const normToDisplay = new Map();
+    for (const [nk, g] of byNorm) {
+      const cen = g.coords.reduce((a, c) => [a[0] + c[0], a[1] + c[1]], [0, 0]);
+      normToCoord.set(nk, [round6(cen[0] / g.coords.length), round6(cen[1] / g.coords.length)]);
+      let best = '';
+      let bc = -1;
+      for (const [nm, cnt] of g.names) if (cnt > bc) ((bc = cnt), (best = nm));
+      normToDisplay.set(nk, best);
     }
     for (const l of built) {
       if (!l.canon) continue;
       for (const st of l.canon) {
-        const nm = (st.name || '').trim();
-        if (nm && nameToCoord.has(nm)) st.c = nameToCoord.get(nm);
+        const nk = normStationName(st.name);
+        if (nk && normToCoord.has(nk)) {
+          st.c = normToCoord.get(nk);
+          st.name = normToDisplay.get(nk) || st.name;
+        }
       }
       l.latlngs = dedupeConsecutive(l.canon.map((s2) => s2.c));
       if (l.closed) l.latlngs = closeRing(l.latlngs); // 環線：合併同名站後重建仍需閉合

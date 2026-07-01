@@ -1,5 +1,5 @@
 /**
- * 管線四階段（路線圖處理／示意圖佈局／路線正規化／路網網格）圖層快照匯入／匯出。
+ * 管線四階段（路線圖處理／示意圖佈局／路線調整／路網網格）圖層快照匯入／匯出。
  * 檔名：{groupName}_{layerName}_{cityName}.json
  */
 
@@ -11,7 +11,7 @@ export const PIPELINE_SNAPSHOT_VERSION = 1;
 export const PIPELINE_GROUP_NAMES = Object.freeze([
   '路線圖處理',
   '示意圖佈局',
-  '路線正規化',
+  '路線調整',
   '路網網格',
 ]);
 

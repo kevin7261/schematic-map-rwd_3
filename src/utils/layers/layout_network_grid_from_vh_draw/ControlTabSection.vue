@@ -233,11 +233,11 @@
       <LayoutVhDrawBlackDotRatioTables :layer="layer" />
     </div>
 
-    <!-- RMA 路網網格／路網網格_2：自「路線正規化」群組任一路網層匯入（同工作階段記憶體） -->
+    <!-- RMA 路網網格／路網網格_2：自「路線調整」群組任一路網層匯入（同工作階段記憶體） -->
     <div v-if="api.isRmaLayer(layer)" class="pb-3 mb-3 border-bottom">
-      <div class="my-title-xs-gray pb-2">匯入路網（路線正規化群組）</div>
+      <div class="my-title-xs-gray pb-2">匯入路網（路線調整群組）</div>
       <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
-        自「路線正規化」群組任一有路網之圖層匯入本層（黑點站沿線放回）。匯入後沿用所選來源，
+        自「路線調整」群組任一有路網之圖層匯入本層（黑點站沿線放回）。匯入後沿用所選來源，
         切換分頁不會被預設來源覆寫。無路網之來源按鈕為停用。跨工作階段存檔請用 Control 頂部「匯出／匯入
         JSON（斷點存檔）」。
       </div>

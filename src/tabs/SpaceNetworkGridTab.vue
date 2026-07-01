@@ -2890,7 +2890,7 @@
     let stationFeatures = [];
     /** 展開後路段（Normalize 分支內賦值；繪製階段供度數著色等使用） */
     let flatSegments = [];
-    /** 路線正規化／③MILP：粉紅 dp_ratio 幾何（Normalize 分支內賦值） */
+    /** 路線調整／③MILP：粉紅 dp_ratio 幾何（Normalize 分支內賦值） */
     let livePinkDpDetail = null;
     /** taipei_d：以「縮減疊加網格（空列／空行）後」座標繪製路網 */
     let taipeiCReducedOverlayDraw = false;
@@ -2972,7 +2972,7 @@
         flatSegments = segments;
       }
 
-      // 路線正規化／③MILP：hover 用格座標即時算 dp_ratio（不 mutate 圖層，避免 deep watch 迴圈）。
+      // 路線調整／③MILP：hover 用格座標即時算 dp_ratio（不 mutate 圖層，避免 deep watch 迴圈）。
       livePinkDpDetail =
         layerTab === SCHEMATIC_MILP_READ_LAYER_ID || layerTab === SCHEMATIC_MILP_LAYER_ID
           ? buildPinkDpRatioDetailMap(flatSegments)

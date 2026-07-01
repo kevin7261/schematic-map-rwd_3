@@ -12,6 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { normStationName } from '../src/utils/metroStationNameNorm.js';
 
 const REQ_WAY = ['route_company', 'route_id', 'element_type', 'color', 'route_name', 'osm_id', 'railway'];
 const REQ_NODE = ['osm_id', 'station_name', 'element_type', 'station_id'];
@@ -60,6 +61,45 @@ export function validateGeojson(fc) {
   if (colorName) errors.push(`${colorName} 線 route_name 為顏色名`);
   const emptyNm = nodes.filter((n) => blank(n.properties.station_name)).length;
   if (nodes.length && emptyNm / nodes.length > 0.2) warns.push(`${Math.round((emptyNm / nodes.length) * 100)}% 站缺名`);
+
+  const byNorm = new Map();
+  for (const n of nodes) {
+    const nm = (n.properties.station_name || '').trim();
+    const nk = normStationName(nm);
+    if (!nk) continue;
+    const c = k(n.geometry.coordinates[0], n.geometry.coordinates[1]);
+    let g = byNorm.get(nk);
+    if (!g) {
+      g = { coords: new Set(), names: new Set() };
+      byNorm.set(nk, g);
+    }
+    g.coords.add(c);
+    g.names.add(nm);
+  }
+  const normDupes = [...byNorm.entries()].filter(([, g]) => g.coords.size > 1);
+  if (normDupes.length) {
+    const sample = normDupes
+      .slice(0, 3)
+      .map(([nk, g]) => `${nk}(${[...g.names].join('/')})`)
+      .join('; ');
+    errors.push(`正規化同名未共點 ${normDupes.length} 組（如 ${sample}）`);
+  }
+  const exactDupes = new Map();
+  for (const n of nodes) {
+    const nm = (n.properties.station_name || '').trim();
+    if (!nm) continue;
+    const c = k(n.geometry.coordinates[0], n.geometry.coordinates[1]);
+    let s = exactDupes.get(nm);
+    if (!s) {
+      s = new Set();
+      exactDupes.set(nm, s);
+    }
+    s.add(c);
+  }
+  const exactMulti = [...exactDupes.entries()].filter(([, s]) => s.size > 1);
+  if (exactMulti.length) {
+    errors.push(`完全相同站名未共點 ${exactMulti.length} 組（如 ${exactMulti.slice(0, 3).map(([nm]) => nm).join('、')}）`);
+  }
 
   const multi = ways.filter((w) => /[;,/]/.test(w.properties.route_id));
   if (multi.length) errors.push(`多線合併關聯 ${multi.length}`);

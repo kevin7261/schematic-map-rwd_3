@@ -1,14 +1,14 @@
 /* eslint-disable no-console */
 
 /**
- * 「站點與路線調整」八演算法輸入：自「路線正規化」schematic_rma_milp_read 讀 flat 路網，
- * 抽 connect 骨架（黑點另存 sections），已是整數格座標，不再做地理縮放。
+ * 「站點與路線調整」八演算法輸入：自「站點與路線調整前置」schematic_rma_milp_read 讀 flat 路網，
+ * 抽 connect 骨架（buildConnectSkeleton：保留分歧／交叉共點，黑點另存 sections），已是整數格座標，不再做地理縮放。
  */
 
 import { useDataStore } from '@/stores/dataStore.js';
 import { normalizeSpaceNetworkDataToFlatSegments } from '@/utils/gridNormalizationMinDistance.js';
-import { ROUTE_ADJUST_UPSTREAM_LAYER_ID } from './layerIds.js';
-import { flatSegmentsToConnectSkeleton } from './flatToSkeleton.js';
+import { ROUTE_ADJUST_UPSTREAM_LAYER_ID, ROUTE_ADJUST_UPSTREAM_LAYER_NAME } from './layerIds.js';
+import { buildConnectSkeleton } from '../schematic/input.js';
 
 /**
  * @returns {{ ok: boolean, message?: string, skeletonFlat?: Array, sections?: Array, refAngleFlat?: Array, refFullFlat?: Array, meta?: object }}
@@ -17,7 +17,7 @@ export function resolveRouteAdjustLayoutInput() {
   const dataStore = useDataStore();
   const src = dataStore.findLayerById(ROUTE_ADJUST_UPSTREAM_LAYER_ID);
   if (!src) {
-    return { ok: false, message: `找不到上游圖層「路線正規化」（${ROUTE_ADJUST_UPSTREAM_LAYER_ID}）` };
+    return { ok: false, message: `找不到上游圖層「${ROUTE_ADJUST_UPSTREAM_LAYER_NAME}」（${ROUTE_ADJUST_UPSTREAM_LAYER_ID}）` };
   }
 
   const raw = src.spaceNetworkGridJsonData ?? src.dataJson;
@@ -25,7 +25,7 @@ export function resolveRouteAdjustLayoutInput() {
     return {
       ok: false,
       message:
-        '上游「路線正規化」尚無路網；請先完成 ③ MILP 佈局 →「座標正規化」，或匯入 MILP 結果 JSON 後正規化。',
+        `上游「${ROUTE_ADJUST_UPSTREAM_LAYER_NAME}」尚無路網；請先完成 ③ MILP 佈局 →「移除無用網格」，或匯入 MILP 結果 JSON 後執行。`,
     };
   }
 
@@ -42,7 +42,7 @@ export function resolveRouteAdjustLayoutInput() {
   }
 
   const refFullFlat = JSON.parse(JSON.stringify(baseFlat));
-  const { skeleton: skeletonFlat, sections } = flatSegmentsToConnectSkeleton(baseFlat);
+  const { skeletonFlat, sections } = buildConnectSkeleton(baseFlat);
   if (!skeletonFlat.length) {
     return { ok: false, message: '上游路網無可用 connect 骨架（每段至少需起迄兩點）。' };
   }

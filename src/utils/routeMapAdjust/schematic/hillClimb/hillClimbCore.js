@@ -23,6 +23,7 @@ import {
 } from '../graph.js';
 import { schematicCost } from '../objective.js';
 import { segOverlap } from '../repair.js';
+import { isNodeOnForeignEdge } from '../enforceNoNodeOnForeignEdge.js';
 import { segmentIntersectionInterior2D } from '@/utils/routeSegmentIntersections.js';
 
 const STOTT_PREF_MULTIPLE = 4; // Table 4：Pref. grid spacing l
@@ -62,21 +63,6 @@ function overlapAtNode(graph, coords, n) {
     }
   }
   return cnt;
-}
-
-/** §3.3 Occlusion Rule（論文原文）：站不可移到「壓在他線(非其入射邊)內部」。 */
-function nodeOnForeignEdge(graph, coords, n) {
-  const { edges } = graph;
-  const px = coords[n][0], py = coords[n][1];
-  for (const e of edges) {
-    if (e.u === n || e.v === n) continue; // 自身入射邊不算
-    const ax = coords[e.u][0], ay = coords[e.u][1], bx = coords[e.v][0], by = coords[e.v][1];
-    if ((bx - ax) * (py - ay) - (by - ay) * (px - ax) !== 0) continue; // 不共線
-    if (px < Math.min(ax, bx) || px > Math.max(ax, bx) || py < Math.min(ay, by) || py > Math.max(ay, by)) continue;
-    if ((px === ax && py === ay) || (px === bx && py === by)) continue; // 在端點不算
-    return true;
-  }
-  return false;
 }
 
 function angAt(graph, coords, nodeId, edgeId) {
@@ -283,7 +269,7 @@ export function runHillClimb(graph, coords0, opts = {}) {
       if (
         preservesRotation(graph, rot, coords, [n]) &&
         crossingsAtNode(graph, coords, n) <= beforeCross &&
-        !nodeOnForeignEdge(graph, coords, n)
+        !isNodeOnForeignEdge(graph, coords, n)
       ) {
         const ov = overlapAtNode(graph, coords, n); // 重疊不可比目前最佳更糟
         if (ov <= bestOverlap) {
@@ -330,7 +316,7 @@ export function runHillClimb(graph, coords0, opts = {}) {
         for (const m of members) { afterCross += crossingsAtNode(graph, coords, m); afterOverlap += overlapAtNode(graph, coords, m); }
         // 字典序：先讓重疊變少（即使成本沒降也接受），重疊相同時才比成本（同單站移動）。
         if (afterOverlap <= bestOverlap && preservesRotation(graph, rot, coords, members) && afterCross <= beforeCross
-          && members.every((m) => !nodeOnForeignEdge(graph, coords, m))) {
+          && members.every((m) => !isNodeOnForeignEdge(graph, coords, m))) {
           const c = schematicCost(graph, coords, routePairs, params);
           if (afterOverlap < bestOverlap || c < bestCost - 1e-9) {
             bestOverlap = afterOverlap; bestCost = c; best = [dx, dy];

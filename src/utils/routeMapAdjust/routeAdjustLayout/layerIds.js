@@ -1,11 +1,12 @@
 /**
  * 「站點與路線調整」八演算法圖層（#1–#8，不含⑨正規化）。
- * 輸入：上游「路線正規化」schematic_rma_milp_read 之 spaceNetworkGridJsonData。
+ * 輸入：上游「站點與路線調整前置」schematic_rma_milp_read 之 spaceNetworkGridJsonData。
  * 演算法核心與「示意圖佈局」相同，但管線／輸入解析獨立於 routeMapAdjust/schematic。
  */
 
-/** 上游：路線正規化（MILP 結果座標正規化後） */
+/** 上游：站點與路線調整前置（MILP 結果座標正規化後） */
 export const ROUTE_ADJUST_UPSTREAM_LAYER_ID = 'schematic_rma_milp_read';
+export const ROUTE_ADJUST_UPSTREAM_LAYER_NAME = '站點與路線調整前置';
 
 /** #1 Li & Dong (2010) stroke-based */
 export const ROUTE_ADJUST_STROKE_LAYER_ID = 'schematic_rma_route_adjust_stroke';
@@ -24,7 +25,7 @@ export const ROUTE_ADJUST_MERRICK_LAYER_ID = 'schematic_rma_route_adjust_merrick
 /** #8 Fuchs (2022) SAT octilinear */
 export const ROUTE_ADJUST_SAT_LAYER_ID = 'schematic_rma_route_adjust_sat';
 
-/** 站點與路線細部調整：自①～⑧或路線正規化匯入完整路網（含黑點），供往中心聚集上游。 */
+/** 站點與路線細部調整：自①～⑧或站點與路線調整前置匯入完整路網（含黑點），供往中心聚集上游。 */
 export const SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID = 'schematic_rma_detail_adjust';
 
 /** 八個站點與路線調整佈局圖層（#1–#8） */

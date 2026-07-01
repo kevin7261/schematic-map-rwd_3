@@ -46,6 +46,7 @@
     loadMilpJsonRaw as loadMilpJsonRawRma,
     recomputeMilpReadPinkToBrown as recomputeMilpReadPinkToBrownRma,
     recomputeMilpReadBrownToBlackGray as recomputeMilpReadBrownToBlackGrayRma,
+    recomputeMilpReadRemoveCrossings as recomputeMilpReadRemoveCrossingsRma,
   } from '@/utils/routeMapAdjust/schematic/milp/readMilpResult.js';
   import { auditMilpRoutePairRotation } from '@/utils/routeMapAdjust/schematic/auditMilpRoutePair.js';
   import {
@@ -93,6 +94,7 @@
   import { clusterOrthoOverlapsForMergedBand } from '@/utils/layers/json_grid_coord_normalized/orthoNudgeTowardCrossConnectivity.js';
   import {
     ROUTE_ADJUST_UPSTREAM_LAYER_ID,
+    ROUTE_ADJUST_UPSTREAM_LAYER_NAME,
     resolveRouteAdjustLayoutInput,
     ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES,
     SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
@@ -402,7 +404,7 @@
     () => currentLayer.value && isTaipeiTestGOrHWeightLayerTab(currentLayer.value.layerId)
   );
 
-  /** 目前圖層是否屬管線四階段（路線圖處理／示意圖佈局／路線正規化／路網網格） */
+  /** 目前圖層是否屬管線四階段（路線圖處理／示意圖佈局／路線調整／路網網格） */
   const isCurrentLayerPipelineGroup = computed(() => {
     const L = currentLayer.value;
     return !!(L?.layerId && findPipelineGroupName(dataStore, L.layerId));
@@ -2957,7 +2959,7 @@
       lyr.schematicBlackSections = sections;
       applyConnectStraightenSegmentsToLayer(lyr, skeleton);
     } else if (layerId === 'schematic_rma_detail_adjust') {
-      // 細部調整：保留完整路網（含黑點），自路線正規化鏡像。
+      // 細部調整：保留完整路網（含黑點），自路線調整群組「站點與路線調整前置」圖層鏡像。
       applyConnectStraightenSegmentsToLayer(lyr, JSON.parse(JSON.stringify(srcData)));
       lyr.schematicBlackSections = null;
     } else if (
@@ -4182,7 +4184,7 @@
     );
   };
 
-  /** 路線正規化（RMA）：自「示意圖佈局①～⑨（RMA）」其一匯入其排版結果。 */
+  /** 路線調整·「站點與路線調整前置」圖層：自「示意圖佈局①～⑨（RMA）」其一匯入其排版結果。 */
   const importLayoutResultIntoMilpReadRma = (sourceLayerId) => {
     const layerId = 'schematic_rma_milp_read';
     const src = dataStore.findLayerById(sourceLayerId);
@@ -4290,15 +4292,21 @@
     );
   };
 
-  /** 路線正規化（RMA）：座標正規化前，以紅/黃/藍為邊界重算粉紅點，不需者改棕色（獨立按鈕）。 */
+  /** 路線調整·「站點與路線調整前置」圖層：移除無用網格前，以紅/黃/藍為邊界重算粉紅點，不需者改棕色（獨立按鈕）。 */
   const recomputeMilpReadPinkToBrownClick = () => {
     const res = recomputeMilpReadPinkToBrownRma();
     if (res?.message) window.alert(res.message);
   };
 
-  /** 路線正規化（RMA）：把棕點改回黑點，再以紅/黃/藍/粉紅/灰為邊界重算灰點（獨立按鈕）。 */
+  /** 路線調整·「站點與路線調整前置」圖層：把棕點改回黑點，再以紅/黃/藍/粉紅/灰為邊界重算灰點（獨立按鈕）。 */
   const recomputeMilpReadBrownToBlackGrayClick = () => {
     const res = recomputeMilpReadBrownToBlackGrayRma();
+    if (res?.message) window.alert(res.message);
+  };
+
+  /** 路線調整·「站點與路線調整前置」：有交叉之路線端點最小位移移除交叉。 */
+  const recomputeMilpReadRemoveCrossingsClick = () => {
+    const res = recomputeMilpReadRemoveCrossingsRma();
     if (res?.message) window.alert(res.message);
   };
 
@@ -10195,13 +10203,13 @@
   const routeSchematicHasResult = (layer) =>
     Array.isArray(layer?.spaceNetworkGridJsonData) && layer.spaceNetworkGridJsonData.length > 0;
 
-  /** 上游「路線正規化」是否已有路網（站點與路線調整八演算法輸入） */
+  /** 上游「站點與路線調整前置」是否已有路網（站點與路線調整八演算法輸入） */
   const routeAdjustLayoutInputReady = () => resolveRouteAdjustLayoutInput().ok;
   const routeAdjustLayoutInputHint = () => {
     const r = resolveRouteAdjustLayoutInput();
     if (r.ok) {
       const m = r.meta || {};
-      return `上游「路線正規化」已就緒：${m.sectionCount ?? '?'} 段 connect、黑點 ${m.blackStationCount ?? '?'} 個。`;
+      return `上游「${ROUTE_ADJUST_UPSTREAM_LAYER_NAME}」已就緒：${m.sectionCount ?? '?'} 段 connect、黑點 ${m.blackStationCount ?? '?'} 個。`;
     }
     return r.message || '上游尚無路網。';
   };
@@ -12759,9 +12767,11 @@
             :disabled="controlExecuteNextDisabled"
           >
             {{
-              currentLayer && currentLayer.layerId === 'schematic_milp_read'
-                ? '座標正規化'
-                : '執行下一步'
+              currentLayer && currentLayer.layerId === 'schematic_rma_milp_read'
+                ? '移除無用網格'
+                : currentLayer && currentLayer.layerId === 'schematic_milp_read'
+                  ? '座標正規化'
+                  : '執行下一步'
             }}
           </button>
         </div>
@@ -12809,13 +12819,13 @@
           </div>
         </div>
 
-        <!-- 路線正規化（RMA）：座標正規化 + 匯入下載的 MILP 結果 JSON / 從①②③（RMA）匯入 -->
+        <!-- 路線調整（RMA）：「站點與路線調整前置」圖層 — 移除無用網格 + 站點調整移除交叉 + 匯入 -->
         <div v-if="layer.layerId === 'schematic_rma_milp_read'" class="pb-3 mb-3 border-bottom">
-          <!-- 座標正規化前：以紅/黃/藍邊界重算粉紅點，不需者→棕色（獨立按鈕） -->
+          <!-- 移除無用網格前：以紅/黃/藍邊界重算粉紅點，不需者→棕色（獨立按鈕） -->
           <button
             type="button"
             class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
-            title="座標正規化前：以紅/黃/藍為邊界（參數同路線圖轉換骨架2）重算粉紅點，不再需要者改為棕色"
+            title="移除無用網格前：以紅/黃/藍為邊界（參數同路線圖轉換骨架2）重算粉紅點，不再需要者改為棕色"
             @click="recomputeMilpReadPinkToBrownClick()"
           >
             重算粉紅點（紅/黃/藍邊界）→ 棕色
@@ -12824,7 +12834,7 @@
           <button
             type="button"
             class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
-            title="把棕點改回一般黑點 → 拉直路線（紅/黃/藍/粉紅為錨點）→ 再以紅/黃/藍/粉紅/灰為邊界重算灰點配置（兩相鄰邊界點間 ≥5 黑點補灰，規則同路線圖轉換骨架2）"
+            title="把棕點改回一般黑點 → 拉直路線（紅/黃/藍/粉紅為錨點）→ 再以紅/黃/藍/粉紅/灰為邊界重算灰點配置（僅含棕點之路線；無棕點路線不變）"
             @click="recomputeMilpReadBrownToBlackGrayClick()"
           >
             棕點→黑點＋拉直，重算灰點配置
@@ -12835,7 +12845,15 @@
             :disabled="isExecuting"
             @click="executeLayerFunction"
           >
-            {{ isExecuting ? '計算中…' : '座標正規化' }}
+            {{ isExecuting ? '計算中…' : '移除無用網格' }}
+          </button>
+          <button
+            type="button"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            title="對有交叉／重疊之路線，以最小整數格位移其端點所屬共點（同格座標整點一併移動，不斷開路線）"
+            @click="recomputeMilpReadRemoveCrossingsClick()"
+          >
+            站點調整移除交叉
           </button>
           <div class="my-title-xs-gray pt-2 pb-1">從示意圖佈局（RMA）匯入排版結果</div>
           <button
@@ -12903,16 +12921,16 @@
           </button>
           <ControlLoadFeedback layer-id="schematic_rma_milp_read" />
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
-            匯入只顯示原始；按「座標正規化」才正規化。未匯入時，「座標正規化」會直接讀記憶體中的 ③
+            匯入只顯示原始；按「移除無用網格」才壓縮空白行列。若有交叉可再按「站點調整移除交叉」。未匯入時，「移除無用網格」會直接讀記憶體中的 ③
             MILP（RMA）結果。跨工作階段存檔請用上方「匯出／匯入 JSON（斷點存檔）」。
           </div>
         </div>
 
-        <!-- 站點與路線調整（RMA）#1–#8：讀「路線正規化」→ 八演算法重佈局（同示意圖佈局，獨立管線） -->
+        <!-- 站點與路線調整（RMA）#1–#8：讀「站點與路線調整前置」→ 八演算法重佈局（同示意圖佈局，獨立管線） -->
         <div v-if="layer.isRouteAdjustLayoutLayer" class="pb-3 mb-3 border-bottom">
           <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
           <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
-            輸入固定為上游「路線正規化」（{{ ROUTE_ADJUST_UPSTREAM_LAYER_ID }}）：讀取已正規化之路網
+            輸入固定為上游「{{ ROUTE_ADJUST_UPSTREAM_LAYER_NAME }}」（{{ ROUTE_ADJUST_UPSTREAM_LAYER_ID }}）：讀取已正規化之路網
             connect
             骨架，以與「示意圖佈局」相同的八演算法重新佈局，黑點沿新邊均分插回。不含⑨正規化。
           </div>

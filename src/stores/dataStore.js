@@ -161,6 +161,7 @@ import {
   ROUTE_ADJUST_MERRICK_LAYER_ID,
   ROUTE_ADJUST_SAT_LAYER_ID,
   SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
+  ROUTE_ADJUST_UPSTREAM_LAYER_NAME,
 } from '../utils/routeMapAdjust/routeAdjustLayout/layerIds.js';
 import { assignOsm2LayerViewerFields } from '../utils/layers/osm_2_geojson_2_json/layerMerge.js';
 import {
@@ -882,12 +883,12 @@ export const useDataStore = defineStore(
         ],
       },
       {
-        groupName: '路線正規化',
+        groupName: '路線調整',
         groupLayers: [
           {
             /** MILP結果正規化（RMA）：讀 ③ MILP（schematic_rma_milp）結果（或匯入下載 JSON）並做保拓樸座標正規化。 */
             layerId: 'schematic_rma_milp_read',
-            layerName: '路線正規化',
+            layerName: ROUTE_ADJUST_UPSTREAM_LAYER_NAME,
             visible: false,
             isLoading: false,
             isLoaded: false,
