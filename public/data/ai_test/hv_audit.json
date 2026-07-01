@@ -4,28 +4,28 @@
   "proposed": {
     "pass": true,
     "hvStatsBefore": {
-      "edgeCount": 58,
-      "hvEdges": 28,
-      "hvRatio": 0.4827586206896552
+      "edgeCount": 40,
+      "hvEdges": 9,
+      "hvRatio": 0.225
     },
     "hvStatsAfter": {
-      "edgeCount": 58,
-      "hvEdges": 37,
-      "hvRatio": 0.6379310344827587
+      "edgeCount": 40,
+      "hvEdges": 18,
+      "hvRatio": 0.45
     },
     "newCrossRouteGridKeys": []
   },
   "applied": {
     "pass": true,
     "hvStatsBefore": {
-      "edgeCount": 58,
-      "hvEdges": 28,
-      "hvRatio": 0.4827586206896552
+      "edgeCount": 40,
+      "hvEdges": 9,
+      "hvRatio": 0.225
     },
     "hvStatsAfter": {
-      "edgeCount": 58,
-      "hvEdges": 37,
-      "hvRatio": 0.6379310344827587
+      "edgeCount": 40,
+      "hvEdges": 18,
+      "hvRatio": 0.45
     },
     "newCrossRouteGridKeys": []
   },
@@ -33,8 +33,8 @@
     "acceptedCount": 8,
     "rejectedCount": 0
   },
-  "auditedAt": 1782928577864,
-  "routesFingerprint": "0:8:9,16:16,16|1:11:16,16:0,11|2:8:14,15:9,5|3:11:4,10:3,0|4:4:3,1:0,1|5:12:12,16:16,5|6:11:16,9:1,2",
+  "auditedAt": 1782929011108,
+  "routesFingerprint": "0:8:1,7:9,0|1:7:1,6:0,16|2:19:0,16:16,9|3:10:1,15:1,2",
   "responseModel": "Composer",
-  "writtenAt": 1782928577864
+  "writtenAt": 1782929011108
 }

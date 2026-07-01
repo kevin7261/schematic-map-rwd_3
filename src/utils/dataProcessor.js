@@ -24,6 +24,7 @@ import {
 } from './geojsonRouteHelpers.js';
 import { osmXmlStringToGeoJsonFeatureCollection } from './osmXmlToGeoJson.js';
 import { exportRouteSegmentsFromGeoJson } from './geojsonExportRouteSegments.js';
+import { attachUniformGridRouteMarkerKinds } from './uniformGridRouteMarkers.js';
 
 /**
  * 📊 數據處理核心模組 (Data Processing Core Module)
@@ -2236,6 +2237,7 @@ function generateGridAlignedMetroRoutes(gridX, gridY) {
 
   const routes = routeStates.map(({ color, path }) => ({ color, points: path }));
   assignRandomStationsToRoutes(routes);
+  attachUniformGridRouteMarkerKinds(routes);
   return routes;
 }
 

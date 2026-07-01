@@ -16,7 +16,10 @@
 
   import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
   import { useDataStore } from '@/stores/dataStore.js';
-  import { isUniformGridTurningPoint } from '@/utils/dataProcessor.js';
+  import {
+    collectUniformGridMarkerKeys,
+    isUniformGridRouteBreakPoint,
+  } from '@/utils/uniformGridRouteMarkers.js';
   import { fingerprintUniformGridRoutes } from '@/utils/uniformGridHvOptimize.js';
   import * as d3 from 'd3';
   const emit = defineEmits(['active-layer-change']);
@@ -807,7 +810,7 @@
     const routes = gridData.value?.routes;
     if (Array.isArray(routes) && routes.length > 0) {
       const toPixel = (p) => [margin.left + p.x * cellWidth, margin.top + p.y * cellHeight];
-      const markerInfo = computeUniformGridRouteMarkerInfo(routes);
+      const markerInfo = collectUniformGridMarkerKeys(routes);
       const tooltip = getUniformGridTooltip();
 
       const routeGroup = svg.append('g').attr('class', 'uniform-grid-routes');
@@ -876,62 +879,9 @@
   };
 
   /**
-   * 📋 計算路線標記共用資訊 (Compute Shared Route Marker Info)
-   * @param {{ points: { x: number, y: number }[] }[]} routes
-   * @returns {{
-   *   pointKey: (p: { x: number, y: number }) => string,
-   *   pointByKey: Map<string, { x: number, y: number }>,
-   *   routeCountByPoint: Map<string, number>,
-   *   endpointKeys: Set<string>,
-   * }}
-   */
-  const computeUniformGridRouteMarkerInfo = (routes) => {
-    const pointKey = (p) => `${p.x},${p.y}`;
-    const pointByKey = new Map();
-    const routeCountByPoint = new Map();
-
-    routes.forEach((route) => {
-      const seenInRoute = new Set();
-      route.points.forEach((p) => {
-        const k = pointKey(p);
-        pointByKey.set(k, p);
-        if (seenInRoute.has(k)) return;
-        seenInRoute.add(k);
-        routeCountByPoint.set(k, (routeCountByPoint.get(k) || 0) + 1);
-      });
-    });
-
-    const endpointKeys = new Set();
-    routes.forEach((route) => {
-      endpointKeys.add(pointKey(route.points[0]));
-      endpointKeys.add(pointKey(route.points[route.points.length - 1]));
-    });
-
-    return { pointKey, pointByKey, routeCountByPoint, endpointKeys };
-  };
-
-  /**
-   * 🩷 收集各路線的轉折點 key
-   * @param {{ points: { x: number, y: number }[] }[]} routes
-   * @param {(p: { x: number, y: number }) => string} pointKey
-   * @returns {Set<string>}
-   */
-  const computeUniformGridTurningPointKeys = (routes, pointKey) => {
-    const keys = new Set();
-    routes.forEach((route) => {
-      route.points.forEach((p, idx) => {
-        if (isUniformGridTurningPoint(route.points, idx)) {
-          keys.add(pointKey(p));
-        }
-      });
-    });
-    return keys;
-  };
-
-  /**
-   * ✂️ 依交叉點與轉折點切分路線座標 (Split Route Points at Crossings and Turning Points)
+   * ✂️ 依交叉點與轉折點切分路線座標
    * 斷點作為前後兩段的共同端點，讓畫出來的線條在視覺上仍完整銜接。
-   * @param {{ x: number, y: number }[]} points
+   * @param {{ x: number, y: number, markerKind?: string }[]} points
    * @param {(p: { x: number, y: number }) => string} pointKey
    * @param {Map<string, number>} routeCountByPoint
    * @returns {{ x: number, y: number }[][]}
@@ -941,9 +891,10 @@
     let current = [points[0]];
     for (let i = 1; i < points.length; i++) {
       current.push(points[i]);
-      const isCrossing = (routeCountByPoint.get(pointKey(points[i])) || 0) > 1;
-      const isTurn = isUniformGridTurningPoint(points, i);
-      if ((isCrossing || isTurn) && i < points.length - 1) {
+      if (
+        isUniformGridRouteBreakPoint(points[i], points, i, routeCountByPoint, pointKey) &&
+        i < points.length - 1
+      ) {
         segments.push(current);
         current = [points[i]];
       }
@@ -958,19 +909,19 @@
   /**
    * ⚫🔴🔵🩷 繪製路線車站（黑點）、交叉點（紅點）、端點（藍點）與轉折點（粉紅點）
    * 交叉點：被 2 條以上路線共用、且幾何上非轉折之點（例如直线穿过）；端點：各路線的起訖站；
-   * 轉折點：同一路線前後線段方向改變之頂點（含多路線交會但為轉折者，一律粉紅）；
+   * 轉折點：拓撲 markerKind=bend（拉直後仍顯示粉紅）；幾何 fallback 僅用於舊資料。
    * 車站：路線上其餘一般交點中隨機標記的站點。
    * 若同一點同時符合多種身份，優先順序為轉折點（粉紅）＞端點（藍）＞交叉點（紅）＞車站（黑）。
    * 點與線皆支援 hover 顯示屬性。
    * @param {Object} svg - D3 SVG 選擇器
    * @param {{ color: string, points: { x: number, y: number }[], stations?: { x: number, y: number }[] }[]} routes
    * @param {(p: { x: number, y: number }) => [number, number]} toPixel
-   * @param {ReturnType<typeof computeUniformGridRouteMarkerInfo>} markerInfo
+   * @param {ReturnType<typeof collectUniformGridMarkerKeys>} markerInfo
    * @param {Object} tooltip - D3 selection
    */
   const drawUniformGridRouteMarkers = (svg, routes, toPixel, markerInfo, tooltip) => {
-    const { pointKey, pointByKey, routeCountByPoint, endpointKeys } = markerInfo;
-    const turningPointKeys = computeUniformGridTurningPointKeys(routes, pointKey);
+    const { pointKey, pointByKey, routeCountByPoint, turningPointKeys, endpointKeys, crossingKeys } =
+      markerInfo;
 
     const stationKeys = new Set();
     routes.forEach((route) => {
@@ -1031,12 +982,19 @@
       drawMarker(k, UNIFORM_GRID_TURNING_MARKER_COLOR, '轉折點');
     });
 
-    // 交叉點（紅點）：僅非轉折之多路線共用點（直线穿过等）
-    routeCountByPoint.forEach((count, k) => {
-      if (count > 1 && !turningPointKeys.has(k)) {
-        drawMarker(k, '#f44336', `交叉點（${count} 條路線交會）`);
-      }
+    // 交叉點（紅點）：拓撲 crossing 或非轉折之多路線共用點
+    crossingKeys.forEach((k) => {
+      if (turningPointKeys.has(k)) return;
+      const count = routeCountByPoint.get(k) || 2;
+      drawMarker(k, '#f44336', `交叉點（${count} 條路線交會）`);
     });
+    if (!markerInfo.useStored) {
+      routeCountByPoint.forEach((count, k) => {
+        if (count > 1 && !turningPointKeys.has(k) && !crossingKeys.has(k)) {
+          drawMarker(k, '#f44336', `交叉點（${count} 條路線交會）`);
+        }
+      });
+    }
   };
 
   /**
