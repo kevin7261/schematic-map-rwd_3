@@ -1460,6 +1460,767 @@ export function processGridToDrawData(
   };
 }
 
+/** 均勻網格固定尺寸：16×16 */
+const UNIFORM_GRID_SIZE = 16;
+
+/** 捷運路線配色盤：每條路線各自不同顏色，循環使用 */
+const UNIFORM_GRID_ROUTE_COLORS = [
+  '#e6194b',
+  '#3cb44b',
+  '#4363d8',
+  '#f58231',
+  '#911eb4',
+  '#42d4f4',
+  '#f032e6',
+  '#bfef45',
+  '#fabed4',
+  '#469990',
+];
+
+/**
+ * 網格上可行走的方向（皆為最簡整數向量，gcd(|dx|,|dy|)=1，確保每一步都落於整數網格交點上，
+ * 且線段中間不會經過其他整數點）。除了原本水平／垂直／45 度的 8 個方向，額外加入斜率
+ * ±2、±1/2 的 8 個方向，讓路線可以有更多角度而不只是 45 度的倍數。
+ */
+const UNIFORM_GRID_DIRECTIONS = [
+  [1, 0],
+  [1, -1],
+  [0, -1],
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, 1],
+  [1, 1],
+  [2, 1],
+  [1, 2],
+  [2, -1],
+  [1, -2],
+  [-2, -1],
+  [-1, -2],
+  [-2, 1],
+  [-1, 2],
+];
+
+/**
+ * 🎲 從陣列中隨機取一個元素 (Pick Random Element from Array)
+ * @template T
+ * @param {T[]} arr
+ * @returns {T}
+ */
+function pickRandomElement(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** 有「直行」候選可選時，選擇直行（不轉彎）的機率；讓轉折點可以跨越多個網格，而非每步都轉彎 */
+const UNIFORM_GRID_STRAIGHT_BIAS_PROBABILITY = 0.85;
+
+/**
+ * 🎯 偏好直行的方向選擇 (Pick Next Direction, Biased Toward Continuing Straight)
+ *
+ * 若候選方向中包含「與前一步相同」的直行方向，以高機率選擇直行，讓路線的轉折點可以
+ * 跨越多個網格（一段直線可涵蓋多個格子），而不是每一步都轉彎；起點第一步（prevDir 為
+ * null）或候選中沒有直行選項時，則均勻隨機選擇。
+ *
+ * @param {[number, number][]} candidates
+ * @param {[number, number] | null} prevDir
+ * @returns {[number, number]}
+ */
+function pickNextDirectionPreferStraight(candidates, prevDir) {
+  if (!prevDir) return pickRandomElement(candidates);
+
+  const straight = candidates.find(([dx, dy]) => dx === prevDir[0] && dy === prevDir[1]);
+  if (!straight) return pickRandomElement(candidates);
+
+  const turning = candidates.filter(([dx, dy]) => dx !== prevDir[0] || dy !== prevDir[1]);
+  if (turning.length === 0) return straight;
+
+  return Math.random() < UNIFORM_GRID_STRAIGHT_BIAS_PROBABILITY
+    ? straight
+    : pickRandomElement(turning);
+}
+
+/**
+ * 🔑 無方向性邊索引鍵 (Undirected Edge Key)
+ * @param {{ x: number, y: number }} a
+ * @param {{ x: number, y: number }} b
+ * @returns {string}
+ */
+function edgeKey(a, b) {
+  const pa = `${a.x},${a.y}`;
+  const pb = `${b.x},${b.y}`;
+  return pa < pb ? `${pa}|${pb}` : `${pb}|${pa}`;
+}
+
+/**
+ * ✂️ 判斷兩線段是否在內部（非端點）相交，並回傳交點 (Segment Intersection, Interior Only)
+ *
+ * 只回傳「真正穿越」的交點，端點相接（共用一點）不算相交。
+ *
+ * @param {{ x: number, y: number }} a1
+ * @param {{ x: number, y: number }} a2
+ * @param {{ x: number, y: number }} b1
+ * @param {{ x: number, y: number }} b2
+ * @returns {{ x: number, y: number } | null}
+ */
+function segmentInteriorIntersection(a1, a2, b1, b2) {
+  const d1x = a2.x - a1.x;
+  const d1y = a2.y - a1.y;
+  const d2x = b2.x - b1.x;
+  const d2y = b2.y - b1.y;
+  const denom = d1x * d2y - d1y * d2x;
+  if (denom === 0) return null; // 平行或共線（共線由 usedEdgeKeys 另行處理）
+
+  const t = ((b1.x - a1.x) * d2y - (b1.y - a1.y) * d2x) / denom;
+  const u = ((b1.x - a1.x) * d1y - (b1.y - a1.y) * d1x) / denom;
+  const EPS = 1e-9;
+  if (t <= EPS || t >= 1 - EPS || u <= EPS || u >= 1 - EPS) return null; // 只接受內部交叉
+
+  return { x: a1.x + t * d1x, y: a1.y + t * d1y };
+}
+
+/**
+ * 🚧 判斷候選邊是否會造成不允許的交叉 (Check if a Candidate Edge Would Cause a Disallowed Crossing)
+ *
+ * 規則：同一路線本身的邊，不允許任何交叉（禁止路線自我交叉）；不同路線的邊，只有在交叉點
+ * 「不是整數網格交點」時才不允許（不同路線可以在網格交點上交叉，如同轉乘站）。
+ *
+ * @param {{ x: number, y: number }} current
+ * @param {{ x: number, y: number }} next
+ * @param {number} routeIndex - 目前正在建構的路線索引
+ * @param {{ a: { x: number, y: number }, b: { x: number, y: number }, routeIndex: number }[]} allEdgeSegments - 全域已存在的邊
+ * @returns {boolean}
+ */
+function wouldCreateDisallowedCrossing(current, next, routeIndex, allEdgeSegments) {
+  for (const edge of allEdgeSegments) {
+    const pt = segmentInteriorIntersection(current, next, edge.a, edge.b);
+    if (!pt) continue;
+    if (edge.routeIndex === routeIndex) return true; // 同一路線：任何交叉都不允許
+    if (!Number.isInteger(pt.x) || !Number.isInteger(pt.y)) return true; // 不同路線：僅禁止非格點交叉
+  }
+  return false;
+}
+
+/**
+ * 🚦 篩選下一步的合法方向 (Filter Valid Next-step Directions)
+ *
+ * 綜合套用：留在網格範圍內、同一路線內不重複經過同一交叉點、不與任何路線（含自己）
+ * 已使用過的邊重疊（不共線）、轉彎角度嚴格小於 90 度（只允許直行或角度更小的轉彎）、
+ * 不造成不允許的交叉（同一路線完全不可自我交叉；不同路線僅禁止交叉在非網格交點上）。
+ *
+ * @param {number} gridX
+ * @param {number} gridY
+ * @param {{ x: number, y: number }} current
+ * @param {Set<string>} visitedKeys - 本路線已走過的交叉點
+ * @param {Set<string>} usedEdgeKeys - 所有路線已使用過的邊
+ * @param {number} routeIndex - 目前正在建構的路線索引
+ * @param {{ a: { x: number, y: number }, b: { x: number, y: number }, routeIndex: number }[]} allEdgeSegments - 全域已存在的邊
+ * @param {[number, number] | null} prevDir - 前一步方向；null 表示起點第一步，無轉彎限制
+ * @returns {[number, number][]}
+ */
+function filterValidNextDirections(
+  gridX,
+  gridY,
+  current,
+  visitedKeys,
+  usedEdgeKeys,
+  routeIndex,
+  allEdgeSegments,
+  prevDir
+) {
+  return UNIFORM_GRID_DIRECTIONS.filter(([dx, dy]) => {
+    const nx = current.x + dx;
+    const ny = current.y + dy;
+    if (nx < 0 || nx > gridX || ny < 0 || ny > gridY) return false;
+    if (visitedKeys.has(`${nx},${ny}`)) return false;
+    if (usedEdgeKeys.has(edgeKey(current, { x: nx, y: ny }))) return false;
+    if (prevDir) {
+      const dot = prevDir[0] * dx + prevDir[1] * dy;
+      if (dot <= 0) return false; // 禁止 90 度（含）以下的角度，只允許更平緩的轉彎
+    }
+    if (wouldCreateDisallowedCrossing(current, { x: nx, y: ny }, routeIndex, allEdgeSegments)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/**
+ * ➕ 沿指定方向前進一步，更新路徑與相關已使用狀態 (Advance One Step Along a Chosen Direction)
+ * @param {{ x: number, y: number }} current
+ * @param {[number, number]} dir
+ * @param {{ x: number, y: number }[]} path - 就地 push 新節點
+ * @param {Set<string>} visitedKeys - 就地更新
+ * @param {Set<string>} usedEdgeKeys - 就地更新
+ * @param {number} routeIndex - 目前正在建構的路線索引
+ * @param {{ a: { x: number, y: number }, b: { x: number, y: number }, routeIndex: number }[]} allEdgeSegments - 就地新增這一步的邊
+ * @returns {{ x: number, y: number }} 新節點
+ */
+function advanceStep(current, [dx, dy], path, visitedKeys, usedEdgeKeys, routeIndex, allEdgeSegments) {
+  const next = { x: current.x + dx, y: current.y + dy };
+  usedEdgeKeys.add(edgeKey(current, next));
+  allEdgeSegments.push({ a: current, b: next, routeIndex });
+  path.push(next);
+  visitedKeys.add(`${next.x},${next.y}`);
+  return next;
+}
+
+/**
+ * 🧭 隨機產生一條網格對齊的連續路線 (Walk a Grid-aligned Random Continuous Route)
+ *
+ * 每一步沿允許方向之一移動，頂點永遠落在整數網格交點上；轉彎角度嚴格限制在 90 度以下，
+ * 且優先偏好直行，讓轉折點可以跨越多個網格（而非每步都轉彎）；同一路線內不重複經過
+ * 同一交叉點、不自我交叉；全域不與任何路線（含自己與其他路線）共用同一條邊，且不同路線
+ * 之間的交叉只允許發生在整數網格交點上。回傳路徑與其內部狀態，供後續延伸（如碰邊修補）沿用。
+ *
+ * @param {number} gridX - 網格 X 方向切分數
+ * @param {number} gridY - 網格 Y 方向切分數
+ * @param {{ x: number, y: number }} start - 起點座標（網格交點）
+ * @param {number} targetLength - 目標站點數
+ * @param {Set<string>} usedEdgeKeys - 所有路線已使用過的邊（就地更新）
+ * @param {number} routeIndex - 目前正在建構的路線索引
+ * @param {{ a: { x: number, y: number }, b: { x: number, y: number }, routeIndex: number }[]} allEdgeSegments - 全域已存在的邊（就地更新）
+ * @returns {{ path: { x: number, y: number }[], visitedKeys: Set<string> }}
+ */
+function walkGridAlignedRoute(
+  gridX,
+  gridY,
+  start,
+  targetLength,
+  usedEdgeKeys,
+  routeIndex,
+  allEdgeSegments
+) {
+  const path = [start];
+  const visitedKeys = new Set([`${start.x},${start.y}`]);
+  let prevDir = null;
+
+  while (path.length < targetLength) {
+    const current = path[path.length - 1];
+    const candidates = filterValidNextDirections(
+      gridX,
+      gridY,
+      current,
+      visitedKeys,
+      usedEdgeKeys,
+      routeIndex,
+      allEdgeSegments,
+      prevDir
+    );
+
+    if (candidates.length === 0) break;
+
+    const dir = pickNextDirectionPreferStraight(candidates, prevDir);
+    advanceStep(current, dir, path, visitedKeys, usedEdgeKeys, routeIndex, allEdgeSegments);
+    prevDir = dir;
+  }
+
+  return { path, visitedKeys };
+}
+
+/** 網格四個邊界方向 */
+const UNIFORM_GRID_BOUNDARIES = ['left', 'right', 'top', 'bottom'];
+
+/** @param {{x:number,y:number}} p @param {number} gridX @param {number} gridY @param {string} boundary */
+function isPointOnBoundary(p, gridX, gridY, boundary) {
+  if (boundary === 'left') return p.x === 0;
+  if (boundary === 'right') return p.x === gridX;
+  if (boundary === 'top') return p.y === 0;
+  return p.y === gridY; // bottom
+}
+
+/**
+ * 🧲 延伸路線直到碰到指定邊界 (Extend a Route's Tail Until It Touches a Boundary)
+ *
+ * 沿用與一般漫遊相同的規則（轉彎、共線、自我交叉限制），並優先挑選朝目標邊界前進的方向；
+ * 若某步已無合法方向可走則停止延伸（極少發生，網格夠大時幾乎必定能碰到邊界）。
+ *
+ * @param {number} gridX
+ * @param {number} gridY
+ * @param {{ path: {x:number,y:number}[], visitedKeys: Set<string>, routeIndex: number }} routeState
+ * @param {Set<string>} usedEdgeKeys
+ * @param {{ a: { x: number, y: number }, b: { x: number, y: number }, routeIndex: number }[]} allEdgeSegments - 就地更新
+ * @param {'left'|'right'|'top'|'bottom'} boundary
+ * @param {number} maxExtraSteps
+ * @returns {boolean} 是否成功碰到邊界
+ */
+function extendRouteTowardBoundary(
+  gridX,
+  gridY,
+  routeState,
+  usedEdgeKeys,
+  allEdgeSegments,
+  boundary,
+  maxExtraSteps
+) {
+  const { path, visitedKeys, routeIndex } = routeState;
+  let prevDir = null;
+  if (path.length >= 2) {
+    const a = path[path.length - 2];
+    const b = path[path.length - 1];
+    prevDir = [b.x - a.x, b.y - a.y];
+  }
+
+  if (isPointOnBoundary(path[path.length - 1], gridX, gridY, boundary)) return true;
+
+  for (let step = 0; step < maxExtraSteps; step++) {
+    const current = path[path.length - 1];
+    const candidates = filterValidNextDirections(
+      gridX,
+      gridY,
+      current,
+      visitedKeys,
+      usedEdgeKeys,
+      routeIndex,
+      allEdgeSegments,
+      prevDir
+    );
+    if (candidates.length === 0) return false;
+
+    const towardCandidates = candidates.filter(([dx, dy]) => {
+      if (boundary === 'left') return dx < 0;
+      if (boundary === 'right') return dx > 0;
+      if (boundary === 'top') return dy < 0;
+      return dy > 0; // bottom
+    });
+
+    const dir = pickRandomElement(towardCandidates.length > 0 ? towardCandidates : candidates);
+    const next = advanceStep(current, dir, path, visitedKeys, usedEdgeKeys, routeIndex, allEdgeSegments);
+    prevDir = dir;
+
+    if (isPointOnBoundary(next, gridX, gridY, boundary)) return true;
+  }
+
+  return false;
+}
+
+/**
+ * 🔁 由指定端點（尾端或頭端）延伸路線直到碰到邊界 (Extend Either End of a Route Toward a Boundary)
+ *
+ * 頭端延伸：暫時反轉路徑陣列，複用尾端延伸邏輯後再反轉回來，即可等效於向路線起點方向延伸
+ * （反轉不影響 visitedKeys，因其與路徑順序無關）。
+ *
+ * @param {number} gridX
+ * @param {number} gridY
+ * @param {{ path: {x:number,y:number}[], visitedKeys: Set<string>, routeIndex: number }} routeState
+ * @param {Set<string>} usedEdgeKeys
+ * @param {{ a: { x: number, y: number }, b: { x: number, y: number }, routeIndex: number }[]} allEdgeSegments
+ * @param {'left'|'right'|'top'|'bottom'} boundary
+ * @param {number} maxExtraSteps
+ * @param {boolean} fromHead - true 表示由路線起點端延伸，false 表示由終點端延伸
+ * @returns {boolean} 是否成功碰到邊界
+ */
+function extendRouteEndTowardBoundary(
+  gridX,
+  gridY,
+  routeState,
+  usedEdgeKeys,
+  allEdgeSegments,
+  boundary,
+  maxExtraSteps,
+  fromHead
+) {
+  if (!fromHead) {
+    return extendRouteTowardBoundary(
+      gridX,
+      gridY,
+      routeState,
+      usedEdgeKeys,
+      allEdgeSegments,
+      boundary,
+      maxExtraSteps
+    );
+  }
+  routeState.path.reverse();
+  const reached = extendRouteTowardBoundary(
+    gridX,
+    gridY,
+    routeState,
+    usedEdgeKeys,
+    allEdgeSegments,
+    boundary,
+    maxExtraSteps
+  );
+  routeState.path.reverse();
+  return reached;
+}
+
+/**
+ * 🧲 確保網格上下左右四個邊都至少有一條路線經過 (Ensure All Four Grid Boundaries Are Touched)
+ *
+ * 對尚未被任何路線碰到的邊界，依「端點距離該邊界之遠近」依序嘗試延伸每條路線的頭端或尾端，
+ * 直到碰到邊界為止（延伸沿用原路線既有狀態，維持連通性、不共線、不自我交叉）；若既有路線
+ * 因既有轉彎方向而怎麼延伸都無法轉向該邊界，最終備援為另開一條錨定於既有網路交叉點、
+ * 起點方向完全自由的新路線朝該邊界前進。
+ *
+ * @param {number} gridX
+ * @param {number} gridY
+ * @param {{ color: string, path: {x:number,y:number}[], visitedKeys: Set<string>, routeIndex: number }[]} routeStates - 就地新增備援路線
+ * @param {Set<string>} usedEdgeKeys
+ * @param {{ a: { x: number, y: number }, b: { x: number, y: number }, routeIndex: number }[]} allEdgeSegments
+ */
+function ensureAllBoundariesTouched(gridX, gridY, routeStates, usedEdgeKeys, allEdgeSegments) {
+  if (routeStates.length === 0) return;
+  const maxExtraSteps = gridX + gridY;
+
+  for (const boundary of UNIFORM_GRID_BOUNDARIES) {
+    const alreadyTouched = routeStates.some((r) =>
+      r.path.some((p) => isPointOnBoundary(p, gridX, gridY, boundary))
+    );
+    if (alreadyTouched) continue;
+
+    const distanceToBoundary = (p) => {
+      if (boundary === 'left') return p.x;
+      if (boundary === 'right') return gridX - p.x;
+      if (boundary === 'top') return p.y;
+      return gridY - p.y; // bottom
+    };
+
+    const attempts = [];
+    routeStates.forEach((routeState) => {
+      attempts.push({
+        routeState,
+        fromHead: false,
+        distance: distanceToBoundary(routeState.path[routeState.path.length - 1]),
+      });
+      attempts.push({
+        routeState,
+        fromHead: true,
+        distance: distanceToBoundary(routeState.path[0]),
+      });
+    });
+    attempts.sort((a, b) => a.distance - b.distance);
+
+    let resolved = false;
+    for (const { routeState, fromHead } of attempts) {
+      if (
+        extendRouteEndTowardBoundary(
+          gridX,
+          gridY,
+          routeState,
+          usedEdgeKeys,
+          allEdgeSegments,
+          boundary,
+          maxExtraSteps,
+          fromHead
+        )
+      ) {
+        resolved = true;
+        break;
+      }
+    }
+
+    if (!resolved) {
+      // 最終備援：由既有網路任一交叉點錨定，另開一條起點方向自由的新路線朝該邊界前進
+      const anchorPool = routeStates.flatMap((r) => r.path);
+      const anchor = pickRandomElement(anchorPool);
+      const fallbackState = {
+        path: [anchor],
+        visitedKeys: new Set([`${anchor.x},${anchor.y}`]),
+        routeIndex: routeStates.length,
+      };
+      const reached = extendRouteTowardBoundary(
+        gridX,
+        gridY,
+        fallbackState,
+        usedEdgeKeys,
+        allEdgeSegments,
+        boundary,
+        maxExtraSteps
+      );
+      if (reached && fallbackState.path.length >= 2) {
+        routeStates.push({
+          color: UNIFORM_GRID_ROUTE_COLORS[routeStates.length % UNIFORM_GRID_ROUTE_COLORS.length],
+          path: fallbackState.path,
+          visitedKeys: fallbackState.visitedKeys,
+          routeIndex: fallbackState.routeIndex,
+        });
+      }
+    }
+  }
+}
+
+/** 車站沿路線分布密度：平均每隔多少網格單位長度放置一個車站（數值越小車站越多） */
+const UNIFORM_GRID_STATION_SPACING = 0.8;
+/** 每條路線至少放置的車站數 */
+const UNIFORM_GRID_MIN_STATIONS_PER_ROUTE = 4;
+/** 任兩個車站之間的最小距離（網格單位），即 1/4 個網格寬 */
+const UNIFORM_GRID_MIN_STATION_DISTANCE = 0.25;
+/** 每個車站嘗試尋找合法（不過近）位置的最多重試次數 */
+const UNIFORM_GRID_STATION_PLACEMENT_MAX_ATTEMPTS = 30;
+
+/**
+ * 📏 計算路線總長度（沿線段累加之歐氏距離） (Compute Total Path Length of a Route)
+ * @param {{ x: number, y: number }[]} points
+ * @returns {number}
+ */
+function computeRoutePathLength(points) {
+  let total = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    total += Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
+  }
+  return total;
+}
+
+/**
+ * 📍 沿路線取得距起點指定弧長處的座標（可為線段中間任意一點，不限網格交點）
+ * @param {{ x: number, y: number }[]} points
+ * @param {number} distance
+ * @returns {{ x: number, y: number }}
+ */
+function pointAtDistanceAlongRoute(points, distance) {
+  let remaining = distance;
+  for (let i = 0; i < points.length - 1; i++) {
+    const dx = points[i + 1].x - points[i].x;
+    const dy = points[i + 1].y - points[i].y;
+    const segLen = Math.hypot(dx, dy);
+    if (segLen === 0) continue;
+    if (remaining <= segLen) {
+      const t = remaining / segLen;
+      return { x: points[i].x + dx * t, y: points[i].y + dy * t };
+    }
+    remaining -= segLen;
+  }
+  return points[points.length - 1];
+}
+
+/**
+ * 📍 收集所有路線的交叉點與端點座標 (Collect All Route Crossing and Endpoint Points)
+ *
+ * 與繪製端使用的判定邏輯一致：交叉點為被 2 條以上路線共用的交叉點；端點為各路線的起訖站。
+ *
+ * @param {{ points: { x: number, y: number }[] }[]} routes
+ * @returns {{ x: number, y: number }[]}
+ */
+function collectRouteCrossingAndEndpointMarkerPoints(routes) {
+  const pointKey = (p) => `${p.x},${p.y}`;
+  const pointByKey = new Map();
+  const routeCountByPoint = new Map();
+
+  routes.forEach((route) => {
+    const seenInRoute = new Set();
+    route.points.forEach((p) => {
+      const k = pointKey(p);
+      pointByKey.set(k, p);
+      if (seenInRoute.has(k)) return;
+      seenInRoute.add(k);
+      routeCountByPoint.set(k, (routeCountByPoint.get(k) || 0) + 1);
+    });
+  });
+
+  const markerKeys = new Set();
+  routes.forEach((route) => {
+    markerKeys.add(pointKey(route.points[0]));
+    markerKeys.add(pointKey(route.points[route.points.length - 1]));
+  });
+  routeCountByPoint.forEach((count, k) => {
+    if (count > 1) markerKeys.add(k);
+  });
+
+  return [...markerKeys].map((k) => pointByKey.get(k));
+}
+
+/**
+ * 🚉 為每條路線隨機標記車站 (Randomly Assign Stations Along Each Route)
+ *
+ * 車站只需落在路線的線段上即可，不必是網格交點；沿路線總長度隨機取樣多個位置
+ * （避開緊貼兩端，讓端點標記維持清楚），車站數量隨路線長度增加。任兩個車站
+ * （不論是否同一路線），以及車站與任何交叉點（紅點）／端點（藍點）之間，
+ * 至少相距 {@link UNIFORM_GRID_MIN_STATION_DISTANCE}（1/4 個網格寬），
+ * 過近的候選位置會重新取樣，多次仍無法安插則放棄該車站。
+ *
+ * @param {{ color: string, points: { x: number, y: number }[], stations?: { x: number, y: number }[] }[]} routes - 就地寫入 stations 欄位
+ */
+function assignRandomStationsToRoutes(routes) {
+  /** 已放置座標（跨路線車站 + 所有交叉點／端點），用來檢查最小間距 */
+  const placedStations = collectRouteCrossingAndEndpointMarkerPoints(routes);
+  const isFarEnoughFromAll = (p) =>
+    placedStations.every(
+      (q) => Math.hypot(p.x - q.x, p.y - q.y) >= UNIFORM_GRID_MIN_STATION_DISTANCE
+    );
+
+  routes.forEach((route) => {
+    const totalLength = computeRoutePathLength(route.points);
+    if (totalLength <= 0) {
+      route.stations = [];
+      return;
+    }
+
+    const stationCount = Math.max(
+      UNIFORM_GRID_MIN_STATIONS_PER_ROUTE,
+      Math.round(totalLength / UNIFORM_GRID_STATION_SPACING)
+    );
+    const edgeMargin = Math.min(0.4, totalLength / 4);
+
+    const stations = [];
+    for (let i = 0; i < stationCount; i++) {
+      let candidate = null;
+      for (let attempt = 0; attempt < UNIFORM_GRID_STATION_PLACEMENT_MAX_ATTEMPTS; attempt++) {
+        const distance = edgeMargin + Math.random() * (totalLength - 2 * edgeMargin);
+        const point = pointAtDistanceAlongRoute(route.points, distance);
+        if (isFarEnoughFromAll(point)) {
+          candidate = point;
+          break;
+        }
+      }
+      if (candidate) {
+        stations.push(candidate);
+        placedStations.push(candidate);
+      }
+    }
+    route.stations = stations;
+  });
+}
+
+/**
+ * 🚇 於網格上隨機產生 4～8 條連續捷運風格路線 (Generate 4~8 Grid-aligned Metro-style Routes)
+ *
+ * 每條路線頂點皆為整數網格交點、轉彎不含銳角、不自我交叉；每條路線都保證與至少一條
+ * 其他路線共用一個交叉點（如同轉乘站），但不會與任何路線共用同一條邊（不共線）；
+ * 網格上下左右四個邊界最終都保證至少有一條路線經過；並在路線上隨機標記車站。
+ *
+ * @param {number} gridX - 網格 X 方向切分數
+ * @param {number} gridY - 網格 Y 方向切分數
+ * @returns {{ color: string, points: { x: number, y: number }[], stations: { x: number, y: number }[] }[]} 路線陣列
+ */
+function generateGridAlignedMetroRoutes(gridX, gridY) {
+  // 4~8 條，偏向取較少路線數以拉長每條路線的長度（次方讓分佈偏向 4）
+  const routeCount = 4 + Math.floor(Math.pow(Math.random(), 1.5) * 5);
+  const routeStates = [];
+  /** 所有已產生路線之交叉點座標，供後續路線錨定共用站（轉乘站） */
+  const usedPoints = [];
+  /** 所有已產生路線用過的邊，避免不同路線共線重疊 */
+  const usedEdgeKeys = new Set();
+  /** 全域所有路線已使用的邊（含所屬路線索引），確保交叉只會落在網格交點上、且路線不會自我交叉 */
+  const allEdgeSegments = [];
+
+  for (let r = 0; r < routeCount; r++) {
+    const start =
+      usedPoints.length === 0
+        ? {
+            x: Math.floor(Math.random() * (gridX + 1)),
+            y: Math.floor(Math.random() * (gridY + 1)),
+          }
+        : pickRandomElement(usedPoints);
+
+    const targetLength = 8 + Math.floor(Math.random() * 9); // 8~16 站，盡量拉長
+    const { path, visitedKeys } = walkGridAlignedRoute(
+      gridX,
+      gridY,
+      start,
+      targetLength,
+      usedEdgeKeys,
+      r,
+      allEdgeSegments
+    );
+    if (path.length < 2) continue;
+
+    routeStates.push({
+      color: UNIFORM_GRID_ROUTE_COLORS[r % UNIFORM_GRID_ROUTE_COLORS.length],
+      path,
+      visitedKeys,
+      routeIndex: r,
+    });
+    usedPoints.push(...path);
+  }
+
+  ensureAllBoundariesTouched(gridX, gridY, routeStates, usedEdgeKeys, allEdgeSegments);
+
+  const routes = routeStates.map(({ color, path }) => ({ color, points: path }));
+  assignRandomStationsToRoutes(routes);
+  return routes;
+}
+
+/**
+ * 📐 載入均勻網格 JSON 數據 (Load Uniform Grid JSON Data)
+ *
+ * 固定產生 {@link UNIFORM_GRID_SIZE}×{@link UNIFORM_GRID_SIZE} 網格，用於平均切分繪製單一網格，
+ * 並在網格交叉點上以約 {@link UNIFORM_GRID_POINT_PROBABILITY} 的機率隨機產生點；
+ * 不讀取檔案內的 x/y 設定（與其他測試圖層共用同一 jsonFileName），
+ * 不含隨機數值、統計標籤、隱藏列/行等邏輯。
+ *
+ * @param {Object} layer - 圖層配置對象
+ * @param {string} layer.jsonFileName - JSON 文件名稱，相對於數據目錄
+ * @returns {Promise<Object>} - 包含處理後網格數據的對象
+ */
+export async function loadUniformGridJson(layer) {
+  try {
+    const response = await loadFile(
+      `${PATH_CONFIG.JSON}/${layer.jsonFileName}`,
+      `${PATH_CONFIG.FALLBACK_JSON}/${layer.jsonFileName}`
+    );
+
+    const jsonData = await response.json();
+    const gridX = UNIFORM_GRID_SIZE;
+    const gridY = UNIFORM_GRID_SIZE;
+    const gridSize = `${gridX} x ${gridY}`;
+    const routes = generateGridAlignedMetroRoutes(gridX, gridY);
+
+    return {
+      jsonData,
+      processedJsonData: {
+        gridX,
+        gridY,
+        type: 'grid',
+        uniform: true,
+        nodes: [],
+        routes,
+      },
+      dashboardData: {
+        gridSize,
+        gridX,
+        gridY,
+        totalNodes: gridX * gridY,
+        totalRoutes: routes.length,
+      },
+      dataTableData: [
+        {
+          '#': 1,
+          name: `均勻網格 (${gridSize})`,
+          gridSize,
+          totalNodes: gridX * gridY,
+          totalRoutes: routes.length,
+        },
+      ],
+      layerInfoData: {
+        gridX,
+        gridY,
+        gridSize,
+        totalNodes: gridX * gridY,
+        totalRoutes: routes.length,
+      },
+    };
+  } catch (error) {
+    console.error('❌ 均勻網格 JSON 數據載入失敗:', error);
+    throw error;
+  }
+}
+
+/**
+ * 🎨 均勻網格轉繪製數據 (Process Uniform Grid to Draw Data)
+ *
+ * 只依 gridX/gridY 平均切分，並沿用網格對齊之隨機路線；不含節點數值或統計標籤。
+ *
+ * @param {Object} processedData - 處理後的網格尺寸數據
+ * @returns {Object} 繪製用的數據結構
+ */
+export function processUniformGridToDrawData(processedData) {
+  const gridX = processedData?.gridX || UNIFORM_GRID_SIZE;
+  const gridY = processedData?.gridY || UNIFORM_GRID_SIZE;
+  const routes = Array.isArray(processedData?.routes) ? processedData.routes : [];
+
+  return {
+    type: 'grid',
+    uniform: true,
+    gridX,
+    gridY,
+    routes,
+    nodes: [],
+    links: [],
+    totalNodes: 0,
+    totalLinks: 0,
+  };
+}
+
 /**
  * 🎨 台北捷運轉繪製數據 (Process Metro to Draw Data)
  *

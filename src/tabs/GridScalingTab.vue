@@ -66,6 +66,36 @@
   // ResizeObserver 實例
   let resizeObserver = null;
 
+  /** 上次繪製所用的資料參考；資料變更（如「隨機產生」重新載入）時即使尺寸不變也需要重繪 */
+  let lastDrawnGridData = null;
+
+  /** 均勻網格路線／標記 hover 用 tooltip（懶建立、重複利用，避免每次重繪都新增 DOM） */
+  let uniformGridTooltip = null;
+
+  /**
+   * 🏷️ 取得（或懶建立）均勻網格 hover tooltip 元素
+   * @returns {Object} D3 selection
+   */
+  const getUniformGridTooltip = () => {
+    if (!uniformGridTooltip) {
+      d3.select('body').selectAll('.grid-scaling-uniform-grid-tooltip').remove();
+      uniformGridTooltip = d3
+        .select('body')
+        .append('div')
+        .attr('class', 'grid-scaling-uniform-grid-tooltip')
+        .style('position', 'absolute')
+        .style('padding', '8px 12px')
+        .style('background-color', 'rgba(0, 0, 0, 0.85)')
+        .style('color', '#FFFFFF')
+        .style('border-radius', '4px')
+        .style('font-size', '12px')
+        .style('pointer-events', 'none')
+        .style('opacity', 0)
+        .style('z-index', 1000);
+    }
+    return uniformGridTooltip;
+  };
+
   // 獲取所有開啟且有資料的圖層
   const visibleLayers = computed(() => {
     const allLayers = dataStore.getAllLayers();
@@ -235,9 +265,10 @@
     const width = dimensions.width - margin.left - margin.right;
     const height = dimensions.height - margin.top - margin.bottom;
 
-    // 檢查是否已存在 SVG，如果存在且尺寸相同則不需要重繪
+    // 檢查是否已存在 SVG，如果存在且尺寸相同「且資料未變」則不需要重繪
+    // （資料變更時，例如「隨機產生」重新載入，即使容器尺寸不變也必須重繪）
     const existingSvg = d3.select('#grid-scaling-container').select('svg');
-    if (existingSvg.size() > 0) {
+    if (existingSvg.size() > 0 && lastDrawnGridData === gridData.value) {
       const existingWidth = parseFloat(existingSvg.attr('width'));
       const existingHeight = parseFloat(existingSvg.attr('height'));
 
@@ -251,6 +282,8 @@
       }
     }
 
+    lastDrawnGridData = gridData.value;
+
     // 清除之前的圖表
     d3.select('#grid-scaling-container').selectAll('svg').remove();
 
@@ -262,6 +295,21 @@
       .attr('height', height + margin.top + margin.bottom)
       .style('background-color', COLOR_CONFIG.BACKGROUND)
       .style('transition', 'all 0.2s ease-in-out');
+
+    // 🎯 均勻網格：只平均切分繪製一個網格，不含數值/統計/隱藏列邏輯
+    if (gridData.value.uniform) {
+      drawUniformGridLines(svg, width, height, margin);
+
+      if (activeLayerTab.value) {
+        dataStore.updateComputedGridState(activeLayerTab.value, {
+          visibleX: gridDimensions.value.x,
+          visibleY: gridDimensions.value.y,
+          cellWidth: width / (gridDimensions.value.x || 1),
+          cellHeight: height / (gridDimensions.value.y || 1),
+        });
+      }
+      return;
+    }
 
     // 注意：現在使用實時計算的 columnMaxValues 和 rowMaxValues，不再需要預先計算的統計數據
 
@@ -628,6 +676,231 @@
         highlightRowIndices: [],
       },
     };
+  };
+
+  /**
+   * 📐 繪製均勻網格 (Draw Uniform Grid Lines)
+   * 依 gridDimensions 平均切分寬高，只畫格線，不含數值或統計標籤
+   * @param {Object} svg - D3 SVG 選擇器
+   * @param {number} width - 繪圖區域寬度
+   * @param {number} height - 繪圖區域高度
+   * @param {Object} margin - 邊距配置
+   */
+  const drawUniformGridLines = (svg, width, height, margin) => {
+    const gridX = gridDimensions.value.x || 1;
+    const gridY = gridDimensions.value.y || 1;
+    const cellWidth = width / gridX;
+    const cellHeight = height / gridY;
+
+    for (let i = 0; i <= gridX; i++) {
+      svg
+        .append('line')
+        .style('stroke', COLOR_CONFIG.GRID_LINE)
+        .style('stroke-width', 1)
+        .attr('x1', margin.left + i * cellWidth)
+        .attr('y1', margin.top)
+        .attr('x2', margin.left + i * cellWidth)
+        .attr('y2', margin.top + height);
+    }
+
+    for (let j = 0; j <= gridY; j++) {
+      svg
+        .append('line')
+        .style('stroke', COLOR_CONFIG.GRID_LINE)
+        .style('stroke-width', 1)
+        .attr('x1', margin.left)
+        .attr('y1', margin.top + j * cellHeight)
+        .attr('x2', margin.left + width)
+        .attr('y2', margin.top + j * cellHeight);
+    }
+
+    // 🚇 於網格上隨機產生的連續捷運風格路線（各自不同顏色，頂點皆為網格交點）
+    const routes = gridData.value?.routes;
+    if (Array.isArray(routes) && routes.length > 0) {
+      const toPixel = (p) => [margin.left + p.x * cellWidth, margin.top + p.y * cellHeight];
+      const markerInfo = computeUniformGridRouteMarkerInfo(routes);
+      const tooltip = getUniformGridTooltip();
+
+      const routeGroup = svg.append('g').attr('class', 'uniform-grid-routes');
+      routes.forEach((route, routeIdx) => {
+        const segments = splitUniformGridRouteAtCrossings(
+          route.points,
+          markerInfo.pointKey,
+          markerInfo.routeCountByPoint
+        );
+        segments.forEach((segPoints, segIdx) => {
+          const d = segPoints
+            .map(toPixel)
+            .map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`)
+            .join(' ');
+          const from = segPoints[0];
+          const to = segPoints[segPoints.length - 1];
+
+          routeGroup
+            .append('path')
+            .attr('d', d)
+            .attr('stroke', route.color)
+            .attr('stroke-width', 4)
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-linejoin', 'round')
+            .attr('fill', 'none')
+            .style('cursor', 'pointer')
+            .on('mouseover', function (event) {
+              d3.select(this).attr('stroke-width', 6);
+              tooltip
+                .html(
+                  `<strong>路線 ${routeIdx + 1}</strong><br>` +
+                    `區段：第 ${segIdx + 1} / ${segments.length} 段（交叉點斷開）<br>` +
+                    `站點數：${segPoints.length}<br>` +
+                    `起點：(${from.x.toFixed(2)}, ${from.y.toFixed(2)})<br>` +
+                    `終點：(${to.x.toFixed(2)}, ${to.y.toFixed(2)})`
+                )
+                .style('opacity', 1)
+                .style('left', event.pageX + 12 + 'px')
+                .style('top', event.pageY - 10 + 'px');
+            })
+            .on('mousemove', function (event) {
+              tooltip
+                .style('left', event.pageX + 12 + 'px')
+                .style('top', event.pageY - 10 + 'px');
+            })
+            .on('mouseout', function () {
+              d3.select(this).attr('stroke-width', 4);
+              tooltip.style('opacity', 0);
+            });
+        });
+      });
+
+      drawUniformGridRouteMarkers(svg, routes, toPixel, markerInfo, tooltip);
+    }
+  };
+
+  /**
+   * 📋 計算路線標記共用資訊 (Compute Shared Route Marker Info)
+   * @param {{ points: { x: number, y: number }[] }[]} routes
+   * @returns {{
+   *   pointKey: (p: { x: number, y: number }) => string,
+   *   pointByKey: Map<string, { x: number, y: number }>,
+   *   routeCountByPoint: Map<string, number>,
+   *   endpointKeys: Set<string>,
+   * }}
+   */
+  const computeUniformGridRouteMarkerInfo = (routes) => {
+    const pointKey = (p) => `${p.x},${p.y}`;
+    const pointByKey = new Map();
+    const routeCountByPoint = new Map();
+
+    routes.forEach((route) => {
+      const seenInRoute = new Set();
+      route.points.forEach((p) => {
+        const k = pointKey(p);
+        pointByKey.set(k, p);
+        if (seenInRoute.has(k)) return;
+        seenInRoute.add(k);
+        routeCountByPoint.set(k, (routeCountByPoint.get(k) || 0) + 1);
+      });
+    });
+
+    const endpointKeys = new Set();
+    routes.forEach((route) => {
+      endpointKeys.add(pointKey(route.points[0]));
+      endpointKeys.add(pointKey(route.points[route.points.length - 1]));
+    });
+
+    return { pointKey, pointByKey, routeCountByPoint, endpointKeys };
+  };
+
+  /**
+   * ✂️ 依交叉點切分路線座標 (Split Route Points at Crossing Points)
+   * 交叉點作為前後兩段的共同端點，讓畫出來的線條在視覺上仍完整銜接。
+   * @param {{ x: number, y: number }[]} points
+   * @param {(p: { x: number, y: number }) => string} pointKey
+   * @param {Map<string, number>} routeCountByPoint
+   * @returns {{ x: number, y: number }[][]}
+   */
+  const splitUniformGridRouteAtCrossings = (points, pointKey, routeCountByPoint) => {
+    const segments = [];
+    let current = [points[0]];
+    for (let i = 1; i < points.length; i++) {
+      current.push(points[i]);
+      const isCrossing = (routeCountByPoint.get(pointKey(points[i])) || 0) > 1;
+      if (isCrossing && i < points.length - 1) {
+        segments.push(current);
+        current = [points[i]];
+      }
+    }
+    segments.push(current);
+    return segments;
+  };
+
+  /**
+   * ⚫🔴🔵 繪製路線車站（黑點）、交叉點（紅點）與端點（藍點） (Draw Route Station,
+   * Crossing, and Endpoint Markers)
+   * 交叉點：被 2 條以上路線共用的交叉點（如同轉乘站）；端點：各路線的起訖站；
+   * 車站：路線上其餘一般交點中隨機標記的站點。若同一點同時符合多種身份，
+   * 優先順序為交叉點（紅）＞端點（藍）＞車站（黑）。點與線皆支援 hover 顯示屬性。
+   * @param {Object} svg - D3 SVG 選擇器
+   * @param {{ color: string, points: { x: number, y: number }[], stations?: { x: number, y: number }[] }[]} routes
+   * @param {(p: { x: number, y: number }) => [number, number]} toPixel
+   * @param {ReturnType<typeof computeUniformGridRouteMarkerInfo>} markerInfo
+   * @param {Object} tooltip - D3 selection
+   */
+  const drawUniformGridRouteMarkers = (svg, routes, toPixel, markerInfo, tooltip) => {
+    const { pointKey, pointByKey, routeCountByPoint, endpointKeys } = markerInfo;
+
+    const stationKeys = new Set();
+    routes.forEach((route) => {
+      (route.stations || []).forEach((p) => {
+        const k = pointKey(p);
+        pointByKey.set(k, p); // 車站可能落在網格線段中間，未必是既有頂點，需另外登記座標
+        stationKeys.add(k);
+      });
+    });
+
+    const markerGroup = svg.append('g').attr('class', 'uniform-grid-markers');
+
+    const drawMarker = (key, color, label) => {
+      const p = pointByKey.get(key);
+      const [x, y] = toPixel(p);
+      markerGroup
+        .append('circle')
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', 4)
+        .attr('fill', color)
+        .attr('stroke', COLOR_CONFIG.TEXT_FILL)
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('mouseover', function (event) {
+          d3.select(this).attr('r', 6);
+          tooltip
+            .html(`<strong>${label}</strong><br>座標：(${p.x.toFixed(2)}, ${p.y.toFixed(2)})`)
+            .style('opacity', 1)
+            .style('left', event.pageX + 12 + 'px')
+            .style('top', event.pageY - 10 + 'px');
+        })
+        .on('mousemove', function (event) {
+          tooltip.style('left', event.pageX + 12 + 'px').style('top', event.pageY - 10 + 'px');
+        })
+        .on('mouseout', function () {
+          d3.select(this).attr('r', 4);
+          tooltip.style('opacity', 0);
+        });
+    };
+
+    // 車站（黑點）
+    stationKeys.forEach((k) => drawMarker(k, '#000000', '車站'));
+
+    // 端點（藍點）：若同一點同時是交叉點，讓交叉點（紅點）優先顯示
+    endpointKeys.forEach((k) => {
+      if ((routeCountByPoint.get(k) || 0) > 1) return;
+      drawMarker(k, '#2196f3', '端點');
+    });
+
+    // 交叉點（紅點）
+    routeCountByPoint.forEach((count, k) => {
+      if (count > 1) drawMarker(k, '#f44336', `交叉點（${count} 條路線交會）`);
+    });
   };
 
   /**
@@ -1132,9 +1405,10 @@
     let xMax = d3.max(allPoints, (d) => d.x);
     let yMax = d3.max(allPoints, (d) => d.y);
 
-    // 檢查是否已存在 SVG，如果存在且尺寸相同則不需要重繪
+    // 檢查是否已存在 SVG，如果存在且尺寸相同「且資料未變」則不需要重繪
+    // （資料變更時，例如「隨機產生」重新載入，即使容器尺寸不變也必須重繪）
     const existingSvg = d3.select('#grid-scaling-container').select('svg');
-    if (existingSvg.size() > 0) {
+    if (existingSvg.size() > 0 && lastDrawnGridData === gridData.value) {
       const existingWidth = parseFloat(existingSvg.attr('width'));
       const existingHeight = parseFloat(existingSvg.attr('height'));
 
@@ -1147,6 +1421,8 @@
         return;
       }
     }
+
+    lastDrawnGridData = gridData.value;
 
     // 清除之前的圖表
     d3.select('#grid-scaling-container').selectAll('svg').remove();
@@ -1695,6 +1971,10 @@
       resizeObserver.disconnect();
       resizeObserver = null;
     }
+
+    // 清理均勻網格 hover tooltip
+    d3.select('body').selectAll('.grid-scaling-uniform-grid-tooltip').remove();
+    uniformGridTooltip = null;
   });
 
   // 暴露方法給父組件使用

@@ -108,6 +108,8 @@ import {
   loadDataLayerJson,
   loadGridSchematicJson,
   processGridToDrawData,
+  loadUniformGridJson,
+  processUniformGridToDrawData,
   processMetroToDrawData,
   loadGeoJsonForRoutes,
   loadOsmXmlAsGeoJsonForRoutes,
@@ -277,6 +279,47 @@ export const useDataStore = defineStore(
      * @since 1.0.0
      */
     const layers = ref([
+      {
+        groupName: 'AI測試',
+        groupLayers: [
+          {
+            layerId: 'ai_test_layer',
+            layerName: 'AI示意圖測試',
+            visible: false,
+            isLoading: false,
+            isLoaded: false,
+            colorName: 'green',
+            jsonData: null,
+            spaceNetworkGridJsonData: null,
+            layoutGridJsonData: null,
+            layoutGridJsonData_Test: null,
+            layoutGridJsonData_Test2: null,
+            layoutGridJsonData_Test3: null,
+            layoutGridJsonData_Test4: null,
+            geojsonData: null,
+            processedJsonData: null,
+            drawJsonData: null,
+            dashboardData: null,
+            dataTableData: null,
+            layerInfoData: null,
+            jsonLoader: loadUniformGridJson,
+            geojsonLoader: null,
+            processToDrawData: processUniformGridToDrawData,
+            jsonFileName: 'test/test.json',
+            isDataLayer: true,
+            hideFromMap: true,
+            display: true,
+            isGridSchematic: true, // 標記為網格示意圖類型
+            upperViewTabs: [
+              'grid-scaling',
+              'dashboard',
+              'processed-json-data',
+              'json-data',
+              'draw-json-data',
+            ],
+          },
+        ],
+      },
       {
         groupName: '路線圖處理',
         groupLayers: [
@@ -3741,6 +3784,10 @@ export const useDataStore = defineStore(
           layer.processedJsonDataM3Tab =
             result.processedJsonDataM3Tab ?? layer.processedJsonDataM3Tab;
           layer.drawJsonData = result.drawJsonData ?? layer.drawJsonData;
+          // 生成繪製數據（與 toggleLayerVisibility 的載入路徑一致）
+          if (layer.processToDrawData && layer.processedJsonData) {
+            layer.drawJsonData = layer.processToDrawData(layer.processedJsonData);
+          }
           layer.dashboardData = result.dashboardData ?? layer.dashboardData;
           layer.dataTableData = result.dataTableData ?? layer.dataTableData;
           if (

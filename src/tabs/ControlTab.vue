@@ -1700,6 +1700,12 @@
     lyr.squareGridCellsTaipeiTest3 = !!on;
   };
 
+  /** AI測試：重新隨機產生均勻網格交叉點、三角化與捷運風格路線 */
+  const regenerateAiTestLayer = async (layer) => {
+    if (!layer || layer.layerId !== 'ai_test_layer') return;
+    await dataStore.reloadLayer(layer.layerId);
+  };
+
   const taipeiFHighlightMatchesCurrentLayer = (h) =>
     h &&
     currentLayer.value &&
@@ -13365,6 +13371,20 @@
           </button>
           <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
             下載此圖層目前的 spaceNetworkGridJsonData（需先執行/匯入產生結果）。
+          </div>
+        </div>
+
+        <!-- AI測試：均勻網格三角化捷運風格路線圖 — 隨機產生按鈕 -->
+        <div v-if="layer.layerId === 'ai_test_layer'" class="pb-3 mb-3 border-bottom">
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+            @click="regenerateAiTestLayer(layer)"
+          >
+            隨機產生
+          </button>
+          <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
+            重新隨機產生交叉點、三角化與捷運風格路線。
           </div>
         </div>
 
