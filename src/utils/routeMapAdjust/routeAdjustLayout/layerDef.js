@@ -59,8 +59,9 @@ export function makeRouteAdjustAiLayer(spec) {
     ...base,
     isRouteAdjustLayoutLayer: false,
     isRouteAdjustAiLayer: true,
-    llmLayoutPayload: null,
-    llmLayoutLastValidation: null,
+  llmLayoutPayload: null,
+  llmLayoutLastValidation: null,
+  llmLayoutSession: null,
   };
 }
 

@@ -95,11 +95,15 @@
   import {
     ROUTE_ADJUST_UPSTREAM_LAYER_ID,
     ROUTE_ADJUST_UPSTREAM_LAYER_NAME,
+    ROUTE_ADJUST_LAYOUT_PLUS_AI_LAYER_IDS,
     resolveRouteAdjustLayoutInput,
     ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES,
     SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
     getLlmApiSettings,
     saveLlmApiSettings,
+    startRouteAdjustAiStepwise,
+    continueRouteAdjustAiStepwise,
+    stopRouteAdjustAiStepwise,
   } from '@/utils/routeMapAdjust/routeAdjustLayout/index.js';
   import { computeStationDataFromRoutes } from '@/utils/dataExecute/computeStationDataFromRoutes.js';
   import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
@@ -208,6 +212,7 @@
   const LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL = [
     ...ORTH_SPACE_LINE_IDS_MAIN,
     ...SCHEMATIC_TOWARD_CENTER_LAYER_IDS,
+    ...ROUTE_ADJUST_LAYOUT_PLUS_AI_LAYER_IDS,
   ];
 
   /** layout-network-grid k4：分配倍率 n（寫入 store ref；不依賴 setter 以免 HMR 未掛上） */
@@ -10221,6 +10226,70 @@
     saveLlmApiSettings({ apiKey: llmApiKeyInput.value });
   };
 
+  /** AI調整：預設逐步確認每輪；勾選後改為自動跑完 */
+  const llmAutoRunAll = ref(false);
+
+  const onRouteAdjustAiStart = async () => {
+    if (!routeAdjustLayoutInputReady() || isExecuting.value) return;
+    isExecuting.value = true;
+    try {
+      await nextTick();
+      if (llmAutoRunAll.value) {
+        if (currentLayer.value?.executeFunction) {
+          await Promise.resolve(currentLayer.value.executeFunction({ type: 'FeatureCollection', features: [] }));
+        }
+        return;
+      }
+      const res = await startRouteAdjustAiStepwise();
+      if (!res.ok) {
+        window.alert('[未產出]\n' + (res.message || 'AI 調整失敗'));
+        return;
+      }
+      if (res.phase === 'done' && res.finalMessage) {
+        window.alert(res.finalMessage);
+      }
+    } catch (e) {
+      console.error(e);
+      window.alert('[錯誤]\n' + (e?.message || e));
+    } finally {
+      setTimeout(() => {
+        isExecuting.value = false;
+      }, 300);
+    }
+  };
+
+  const onRouteAdjustAiContinue = async (layer) => {
+    if (isExecuting.value || layer?.llmLayoutSession?.phase !== 'awaiting_confirm') return;
+    isExecuting.value = true;
+    try {
+      await nextTick();
+      const res = await continueRouteAdjustAiStepwise();
+      if (!res.ok) {
+        window.alert('[錯誤]\n' + (res.message || '下一輪失敗'));
+        return;
+      }
+      if (res.phase === 'done' && res.finalMessage) {
+        window.alert(res.finalMessage);
+      }
+    } catch (e) {
+      console.error(e);
+      window.alert('[錯誤]\n' + (e?.message || e));
+    } finally {
+      setTimeout(() => {
+        isExecuting.value = false;
+      }, 300);
+    }
+  };
+
+  const onRouteAdjustAiStop = (layer) => {
+    if (layer?.llmLayoutSession?.phase !== 'awaiting_confirm') return;
+    const res = stopRouteAdjustAiStepwise();
+    if (res.message) window.alert(res.message);
+  };
+
+  const routeAdjustAiAwaitingConfirm = (layer) =>
+    layer?.isRouteAdjustAiLayer && layer?.llmLayoutSession?.phase === 'awaiting_confirm';
+
   const milpRoutePairAuditing = ref(false);
 
   /** ③ MILP（RMA）：按鈕觸發路線對 CCW 環序審計（不動佈局管線） */
@@ -12946,7 +13015,7 @@
           >
             自動讀上游「{{ ROUTE_ADJUST_UPSTREAM_LAYER_NAME }}」，以 skill
             <code class="my-font-size-xs">llm-octilinear-layout</code>
-            的 prompt 呼叫 LLM 產生整數格座標（優先水平/垂直），驗證通過後寫入本圖層。不需 HiGHS / SAT。
+            逐輪呼叫 LLM 調整座標（預設每輪確認後才繼續）。不需 HiGHS / SAT。
           </div>
           <div
             v-else
@@ -12975,14 +13044,55 @@
               @blur="onLlmApiKeyBlur"
             />
           </div>
+          <div v-if="layer.isRouteAdjustAiLayer" class="form-check mb-2">
+            <input
+              :id="`llm-auto-run-${layer.layerId}`"
+              v-model="llmAutoRunAll"
+              type="checkbox"
+              class="form-check-input"
+              :disabled="routeAdjustAiAwaitingConfirm(layer) || isExecuting"
+            />
+            <label
+              class="form-check-label my-font-size-xs text-muted"
+              :for="`llm-auto-run-${layer.layerId}`"
+            >
+              自動跑完所有輪（不逐步確認）
+            </label>
+          </div>
           <button
+            v-if="!routeAdjustAiAwaitingConfirm(layer)"
             type="button"
             class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
             :disabled="!routeAdjustLayoutInputReady() || isExecuting"
-            @click="executeLayerFunction"
+            @click="onRouteAdjustAiStart"
           >
             {{ isExecuting ? '計算中…' : '開始執行' }}
           </button>
+          <div v-if="routeAdjustAiAwaitingConfirm(layer)" class="mt-2">
+            <div
+              class="alert alert-info my-font-size-xs mb-2 py-2 px-2"
+              style="line-height: 1.45; white-space: pre-wrap"
+            >
+              {{ layer.llmLayoutSession.roundSummary }}
+              <div class="text-muted pt-1">請在圖上確認本輪結果，再按下方按鈕。</div>
+            </div>
+            <button
+              type="button"
+              class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+              :disabled="isExecuting"
+              @click="onRouteAdjustAiContinue(layer)"
+            >
+              {{ isExecuting ? '計算中…' : '確定，下一輪' }}
+            </button>
+            <button
+              type="button"
+              class="btn rounded-pill border-0 btn-outline-secondary my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+              :disabled="isExecuting"
+              @click="onRouteAdjustAiStop(layer)"
+            >
+              停止（保留目前結果）
+            </button>
+          </div>
           <div
             v-if="layer.isRouteAdjustAiLayer && layer.llmLayoutLastValidation?.pass"
             class="mt-2 my-font-size-xs"
@@ -13007,6 +13117,28 @@
               </div>
             </div>
             <div v-else class="text-muted">座標調整：無（與讀入初值相同）</div>
+          </div>
+          <div
+            v-if="layer.spaceNetworkGridJsonData?.length"
+            class="mt-3 pt-2 border-top"
+          >
+            <div class="my-title-xs-gray pb-1">整段水平／垂直線</div>
+            <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
+              本圖層下方「各列（y）／各欄（x）」表可<strong>整格共點平移</strong>整條 H/V
+              線（朝紅十字，每次最多 1 格），讓不同路線串成共線長直段。畫面預設只顯示紅／藍
+              connect，不顯示沿路黑點。
+            </div>
+            <button
+              type="button"
+              class="btn rounded-pill border-0 my-btn-orange my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+              :disabled="isExecuting"
+              @click="onMilpReadConnectStraighten(layer)"
+            >
+              紅／藍 connect 拉直（一鍵）
+            </button>
+            <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
+              在 connect 骨架上軸對齊跳格，增加水平／垂直邊後沿新弧長放回黑點。
+            </div>
           </div>
           <div
             v-if="

@@ -26,6 +26,13 @@ export {
   validateRouteAdjustAiResponse,
   applyRouteAdjustAiLayout,
   executeRouteAdjustAi,
+  startRouteAdjustAiStepwise,
+  continueRouteAdjustAiStepwise,
+  stopRouteAdjustAiStepwise,
+  resetRouteAdjustAiSession,
+  runOneRouteAdjustAiRound,
+  getRouteAdjustAiLayer,
+  MAX_LOOP_ROUNDS,
 } from './executeAi.js';
 export {
   getLlmApiSettings,

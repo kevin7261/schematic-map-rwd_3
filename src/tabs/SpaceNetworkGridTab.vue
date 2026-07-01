@@ -122,7 +122,7 @@
     isRmaLayoutNetworkGridFromVhDrawLayerId,
     isLayoutVhDrawSecondCopyLayerId,
     isSpaceGridVhDrawFamilyLayerId,
-    isRouteAdjustLayoutLayer,
+    isRouteAdjustLayoutOrAiLayer,
     LAYOUT_SEGMENT_TRAFFIC_WEIGHT_KEY,
     buildVhDrawStationRowsForLayoutMap,
     resolveLayoutNetworkGridDrawRoot,
@@ -163,8 +163,13 @@
     layoutVhDrawRouteAnimSnapshotHasMotion,
     buildPlotRemapFnsFromAnimRemap,
   } from '@/utils/layers/layout_network_grid_from_vh_draw/layoutVhDrawRouteWeightAnim.js';
+  import { scoreHv45ConnectivityAssignment } from '@/utils/layers/layout_network_grid_from_vh_draw/layoutVhDrawHv45JunctionScore.js';
   import { computeQuadtreePartitionFromGeojson } from '@/utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
   import { valueToNearestIndex } from '@/utils/taipeiTest4/c3ToD3CoordNormalize.js';
+
+  /** 列／欄整段 H/V 平移（含往中心聚集與站點與路線調整 #1–#8、AI調整） */
+  const isLineOrthoRowColEditLayerId = (id) =>
+    isLineOrthogonalTowardCenterLayerId(id) || isRouteAdjustLayoutOrAiLayer(id);
 
   /**
    * 均勻網格族路線 hover：本層 dataJson 若曾由路網重算，segment.stations 可能被清空；
@@ -2743,6 +2748,7 @@
       if (nodeProps.node_type === 'line') return false;
       return false;
     };
+    const routeAdjustSchematicTab = isRouteAdjustLayoutOrAiLayer(layerTab);
     /** 示意圖佈局：中段黑點 node_type=line 須繪製（非 bend 幾何轉折）。 */
     const isDrawableMidStation = (nodeProps) => {
       if (!nodeProps || typeof nodeProps !== 'object') return false;
@@ -2755,7 +2761,10 @@
       if (useSchematicVisualStyle && schematicNodeClassColor(nodeProps, nodeProps.tags || {})) {
         return true;
       }
-      if (useSchematicVisualStyle && nodeProps.node_type === 'line') return true;
+      if (useSchematicVisualStyle && nodeProps.node_type === 'line') {
+        if (routeAdjustSchematicTab && activeTabLayer?.showStationPlacement !== true) return false;
+        return true;
+      }
       return false;
     };
     /** 示意圖：以站名/id 為 key，同格不同站可並存（如轉乘＋端點 snap 共格）。 */
@@ -4316,9 +4325,9 @@
       layerTab === 'schematic_milp_read' || // MILP結果正規化：整數座標系，每格一線
       layerTab === 'schematic_rma_milp_read' || // MILP結果正規化（RMA）：整數座標系，每格一線
       layerTab === 'schematic_rma_normalize' || // ⑨ 座標正規化：整數座標系，每格一線
-      isRouteAdjustLayoutLayer(layerTab) || // 站點與路線調整 #1–#8
+      isRouteAdjustLayoutOrAiLayer(layerTab) || // 站點與路線調整 #1–#8、AI調整
       layerTab === 'schematic_milp_straighten' || // connect 拉直：整數座標系，每格一線
-      isLineOrthogonalTowardCenterLayerId(layerTab) ||
+      isLineOrthoRowColEditLayerId(layerTab) ||
       isSpaceGridVhDrawFamilyLayerId(layerTab) ||
       isTaipeiTest3I3OrJ3LayerTab(layerTab);
 
@@ -6422,9 +6431,11 @@
       };
 
       /**
-       * 在「不重疊」（硬性）前提下，於各候選間選出使「共用車站端點之相鄰 H/V 段共線連續長度」最大者；
-       * 轉折數為最末分手段。自既有 baseIdx（不重疊、轉折最少）出發做 overlap-preserving 局部搜尋。
-       * 端點相連對象＝端點座標相近（≤tol）之其他路線端邊；同朝向（H／V）且共線層級相同（同列 y／同行 x）即視為連續，加總長度。
+       * 在「不重疊」（硬性）前提下，於各候選間選出使 junction 接線最順者：
+       * — H/V 共線連續（原邏輯）＋ 45° 同向共線延續
+       * — 折線內部轉角過銳（含 45° 接 H/V 的小夾角）懲罰
+       * — 不同路線在共用端點離開方向夾角過小懲罰、近 90° 略加分
+       * 轉折數為最末分手段。自 baseIdx 做 overlap-preserving 局部搜尋。
        * @param {{ candidates: { bends:number; pts:number[][] }[] }[]} rows
        * @param {number[]} baseIdx
        * @param {number} tol
@@ -6464,67 +6475,7 @@
           const cand = rows[i].candidates[bi];
           return cand ? count45(cand.pts) : 0;
         });
-        /** 端邊：朝向＋共線層級（H 取 y、V 取 x）＋長度；非 H/V 不計 */
-        const terminalEdge = (pts, atStart) => {
-          const m = pts.length;
-          if (m < 2) return null;
-          const A = atStart ? pts[0] : pts[m - 1];
-          const B = atStart ? pts[1] : pts[m - 2];
-          const orient = classifyEdgeHV45(A, B, PATH_EPS);
-          if (orient !== 'H' && orient !== 'V') return null;
-          return {
-            orient,
-            level: orient === 'H' ? A[1] : A[0],
-            len: Math.hypot(B[0] - A[0], B[1] - A[1]),
-          };
-        };
-        const LEVEL_EPS = PATH_EPS;
-        const BEND_PENALTY = 1e-3;
-        const scoreOf = (idxArr) => {
-          /** @type {Map<number, {orient:string; level:number; len:number}[]>} */
-          const byJ = new Map();
-          let bendSum = 0;
-          for (let i = 0; i < n; i++) {
-            const rj = routeJ[i];
-            if (!rj) continue;
-            const cand = rows[i].candidates[idxArr[i]];
-            if (!cand) continue;
-            bendSum += Math.max(0, cand.bends);
-            const es = terminalEdge(cand.pts, true);
-            const ee = terminalEdge(cand.pts, false);
-            if (es) {
-              if (!byJ.has(rj[0])) byJ.set(rj[0], []);
-              byJ.get(rj[0]).push(es);
-            }
-            if (ee) {
-              if (!byJ.has(rj[1])) byJ.set(rj[1], []);
-              byJ.get(rj[1]).push(ee);
-            }
-          }
-          let s = 0;
-          for (const edges of byJ.values()) {
-            const used = new Array(edges.length).fill(false);
-            for (let a = 0; a < edges.length; a++) {
-              if (used[a]) continue;
-              let total = edges[a].len;
-              let cnt = 1;
-              for (let b = a + 1; b < edges.length; b++) {
-                if (used[b]) continue;
-                if (
-                  edges[b].orient === edges[a].orient &&
-                  Math.abs(edges[b].level - edges[a].level) < LEVEL_EPS
-                ) {
-                  used[b] = true;
-                  total += edges[b].len;
-                  cnt += 1;
-                }
-              }
-              used[a] = true;
-              if (cnt >= 2) s += total;
-            }
-          }
-          return s - BEND_PENALTY * bendSum;
-        };
+        const scoreOf = (idxArr) => scoreHv45ConnectivityAssignment(rows, idxArr, routeJ, PATH_EPS);
         const ptsAtIdx = (i, idxArr) => rows[i].candidates[idxArr[i]].pts;
         const cur = baseIdx.slice();
         let curScore = scoreOf(cur);
@@ -10801,7 +10752,7 @@
     if (
       layerTab === POINT_ORTHOGONAL_LAYER_ID ||
       layerTab === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
-      isLineOrthogonalTowardCenterLayerId(layerTab) ||
+      isLineOrthoRowColEditLayerId(layerTab) ||
       isSpaceGridVhDrawFamilyLayerId(layerTab)
     ) {
       const hlLayer = dataStore.findLayerById(layerTab);
@@ -10833,14 +10784,14 @@
           layerTab === JSON_GRID_COORD_NORMALIZED_LAYER_ID ||
           layerTab === POINT_ORTHOGONAL_LAYER_ID ||
           layerTab === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
-          isLineOrthogonalTowardCenterLayerId(layerTab)
+          isLineOrthoRowColEditLayerId(layerTab)
         ) {
           return rb;
         }
         return tabL;
       })();
       /** temp「朝紅十字」列／欄：列＝橘實線；欄＝藍虛線（便於區分水平／垂直階段）。 */
-      const towardCrossAxis = isLineOrthogonalTowardCenterLayerId(layerTab)
+      const towardCrossAxis = isLineOrthoRowColEditLayerId(layerTab)
         ? hlLayer?.lineOrthoTowardCrossHighlightTableAxis
         : null;
       const isColTowardCrossHl = towardCrossAxis === 'col';
@@ -10859,7 +10810,7 @@
         : towardCrossLineDash;
 
       if (
-        (isLineOrthogonalTowardCenterLayerId(layerTab) ||
+        (isLineOrthoRowColEditLayerId(layerTab) ||
           isSpaceGridVhDrawFamilyLayerId(layerTab)) &&
         hlLayer &&
         Array.isArray(hl) &&
@@ -10957,7 +10908,7 @@
       }
 
       if (
-        isLineOrthogonalTowardCenterLayerId(layerTab) &&
+        isLineOrthoRowColEditLayerId(layerTab) &&
         hlLayer &&
         Array.isArray(hl) &&
         hl[0] === 'ortho' &&
@@ -11025,7 +10976,7 @@
         (layerTab === JSON_GRID_COORD_NORMALIZED_LAYER_ID ||
           layerTab === POINT_ORTHOGONAL_LAYER_ID ||
           layerTab === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
-          isLineOrthogonalTowardCenterLayerId(layerTab))
+          isLineOrthoRowColEditLayerId(layerTab))
       ) {
         const fgx = Math.round(Number(rbMp.fromGx));
         const fgy = Math.round(Number(rbMp.fromGy));
@@ -11064,7 +11015,7 @@
         (layerTab === JSON_GRID_COORD_NORMALIZED_LAYER_ID ||
           layerTab === POINT_ORTHOGONAL_LAYER_ID ||
           layerTab === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
-          isLineOrthogonalTowardCenterLayerId(layerTab))
+          isLineOrthoRowColEditLayerId(layerTab))
       ) {
         const resolved = resolveB3InputSpaceNetwork(rbPrevLyr, { routeLineFromExportRows: 'full' });
         const flat =
@@ -11122,10 +11073,10 @@
           const gx = Array.isArray(pt) ? Number(pt[0]) : Number(pt?.x);
           const gy = Array.isArray(pt) ? Number(pt[1]) : Number(pt?.y);
           if (Number.isFinite(gx) && Number.isFinite(gy)) {
-            const ptFill = isLineOrthogonalTowardCenterLayerId(layerTab)
+            const ptFill = isLineOrthoRowColEditLayerId(layerTab)
               ? towardCrossPtFill
               : 'rgba(255, 152, 0, 0.28)';
-            const ptStroke = isLineOrthogonalTowardCenterLayerId(layerTab)
+            const ptStroke = isLineOrthoRowColEditLayerId(layerTab)
               ? towardCrossPtStroke
               : '#ff6600';
             zoomGroup
@@ -11161,7 +11112,7 @@
       }
 
       /** temp：最近一次「朝紅十字縮進」之格位移預覽（灰圈＝舊、青圈＝新；與線網資料一致） */
-      if (isLineOrthogonalTowardCenterLayerId(layerTab) && hlLayer) {
+      if (isLineOrthoRowColEditLayerId(layerTab) && hlLayer) {
         const mp = hlLayer.lineOrthoTowardCrossMovePreview;
         const fx = mp != null ? Number(mp.fromGx) : NaN;
         const fy = mp != null ? Number(mp.fromGy) : NaN;
@@ -11210,7 +11161,7 @@
       }
 
       /** temp：紅虛線十字 — 若有鎖定中心格則固定於該格，否則為繪區 bbox 幾何中點（四捨五入） */
-      if (isLineOrthogonalTowardCenterLayerId(layerTab)) {
+      if (isLineOrthoRowColEditLayerId(layerTab)) {
         const fc = hlLayer?.lineOrthoTowardCrossFrozenCenter;
         const useFrozen =
           fc != null && Number.isFinite(Number(fc.cx)) && Number.isFinite(Number(fc.cy));
@@ -11266,7 +11217,7 @@
 
     // 站點與路線調整 #1–#8：以「紅/藍/黃/紫 頂點（各 segment 端點，不含黑點）」之**中位數位置**畫紅色虛線十字
     // （純參考線，不改資料）。中位數中心由 getMedianAnchorCenterGrid 取得。
-    if (isRouteAdjustLayoutLayer(layerTab)) {
+    if (isRouteAdjustLayoutOrAiLayer(layerTab)) {
       const adjLayer = dataStore.findLayerById(layerTab);
       const med = layerStationsTowardSchematicCenter.getMedianAnchorCenterGrid(adjLayer);
       if (med) {
@@ -12068,17 +12019,17 @@
       if (
         layer.layerId === POINT_ORTHOGONAL_LAYER_ID ||
         layer.layerId === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
-        isLineOrthogonalTowardCenterLayerId(layer.layerId)
+        isLineOrthoRowColEditLayerId(layer.layerId)
       ) {
         const hl = layer.highlightedSegmentIndex;
         const sg = layer.jsonGridFromCoordSuggestTargetGrid;
-        const mp = isLineOrthogonalTowardCenterLayerId(layer.layerId)
+        const mp = isLineOrthoRowColEditLayerId(layer.layerId)
           ? (layer.lineOrthoTowardCrossMovePreview ?? null)
           : null;
-        const fz = isLineOrthogonalTowardCenterLayerId(layer.layerId)
+        const fz = isLineOrthoRowColEditLayerId(layer.layerId)
           ? (layer.lineOrthoTowardCrossFrozenCenter ?? null)
           : null;
-        const hxAxis = isLineOrthogonalTowardCenterLayerId(layer.layerId)
+        const hxAxis = isLineOrthoRowColEditLayerId(layer.layerId)
           ? (layer.lineOrthoTowardCrossHighlightTableAxis ?? null)
           : null;
         return JSON.stringify([
@@ -12135,7 +12086,7 @@
           lid === JSON_GRID_COORD_NORMALIZED_LAYER_ID ||
           lid === POINT_ORTHOGONAL_LAYER_ID ||
           lid === COORD_NORMALIZED_RED_BLUE_LIST_LAYER_ID ||
-          isLineOrthogonalTowardCenterLayerId(lid)
+          isLineOrthoRowColEditLayerId(lid)
         )
       ) {
         return;
