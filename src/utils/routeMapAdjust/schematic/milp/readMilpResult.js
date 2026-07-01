@@ -28,7 +28,6 @@ import {
 
 function fail(msg) {
   console.warn('[MILP結果正規化] ' + msg);
-  if (typeof window !== 'undefined' && typeof window.alert === 'function') window.alert('[未產出]\n' + msg);
   return { ok: false, message: msg };
 }
 
@@ -48,6 +47,11 @@ export function loadMilpJsonRaw(parsed) {
     console.warn('[MILP結果正規化] 匯入時重算 dp_ratio 失敗，沿用原 tags。', e);
   }
   readLayer.dataJson = JSON.parse(JSON.stringify(flat));
+  // 清除骨架 geojson／均勻格 overlay，避免 grid viewer 與 route-schematic 混用舊 lat/lon 點。
+  readLayer.geojsonData = null;
+  readLayer.layoutUniformGridGeoJson = null;
+  readLayer.layoutUniformGridMeta = null;
+  readLayer.networkDrawSketchMarkersPlot = null;
   const write = writeSchematicResultToLayer(SCHEMATIC_MILP_READ_LAYER_ID, flat, {
     algo: '已匯入 MILP JSON（原始，未正規化）。按「移除無用網格」壓縮空白行列。',
     sourceLayerId: SCHEMATIC_MILP_LAYER_ID,
@@ -229,18 +233,14 @@ export function executeReadMilpResult() {
 
   const introduced = after - before;
   if (introduced > 0) {
-    const msg =
-      `⚠ 移除無用網格後仍出現拓撲錯誤！\n` +
-      `新增交叉／重疊 ${introduced} 處（${before} → ${after}）。\n` +
-      `可再按「站點調整移除交叉」嘗試以最小端點位移消除。\n` +
-      `後果：「紅／藍 connect 拉直」可能因路網有交叉而拒跑。`;
-    console.warn('[MILP結果正規化] ' + msg);
-    if (typeof window !== 'undefined' && typeof window.alert === 'function') window.alert(msg);
+    console.warn(
+      `[MILP結果正規化] 移除無用網格後新增交叉／重疊 ${introduced} 處（${before} → ${after}）`
+    );
   }
 
   const snapNote = snappedGroups > 0 ? `；整數化 ${snappedGroups} 組共點` : '';
   const warn = introduced > 0
-    ? `；⚠ 拓撲錯誤：新增交叉/重疊 ${introduced}（${before}→${after}）`
+    ? `；⚠ 拓撲錯誤：新增交叉/重疊 ${introduced}（${before}→${after}，可再按「站點調整移除交叉」）`
     : after > 0
       ? `；交叉/重疊 ${after} 處（可再按「站點調整移除交叉」）`
       : `；交叉/重疊維持 ${after}（無新增）`;
@@ -248,6 +248,7 @@ export function executeReadMilpResult() {
     ok: true,
     message: `移除無用網格完成：移除空白 ${removedCols} 欄、${removedRows} 列${snapNote}${warn}`,
     stats: write.stats,
+    topologyWarning: introduced > 0,
   };
 }
 

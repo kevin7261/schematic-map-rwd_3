@@ -95,11 +95,19 @@ export function computeStationDataFromRoutes(routesData) {
 
   const connectPointKey = (props) => {
     if (!props) return null;
+    const x = props.x_grid ?? props.tags?.x_grid;
+    const y = props.y_grid ?? props.tags?.y_grid;
+    if (
+      x != null &&
+      y != null &&
+      Number.isFinite(Number(x)) &&
+      Number.isFinite(Number(y))
+    ) {
+      return `xy:${Number(x)},${Number(y)}`;
+    }
     const cn = props.connect_number ?? props.tags?.connect_number;
     if (cn != null) return `cn:${cn}`;
-    const x = props.x_grid ?? props.tags?.x_grid ?? '';
-    const y = props.y_grid ?? props.tags?.y_grid ?? '';
-    return `xy:${x},${y}`;
+    return null;
   };
   const connectPointMap = new Map();
   for (const seg of segments) {
@@ -135,6 +143,15 @@ export function computeStationDataFromRoutes(routesData) {
   const connectData = Array.from(connectPointMap.values());
 
   const stationMap = new Map();
+  const stationEntryKey = (sid, sname, node) => {
+    const gx = node.x_grid ?? node.tags?.x_grid;
+    const gy = node.y_grid ?? node.tags?.y_grid;
+    const hasGrid = gx != null && gy != null && Number.isFinite(Number(gx)) && Number.isFinite(Number(gy));
+    if (sid && hasGrid) return `id:${sid}@${Number(gx)},${Number(gy)}`;
+    if (sid) return `id:${sid}`;
+    if (sname && hasGrid) return `nm:${sname}@${Number(gx)},${Number(gy)}`;
+    return sname || '';
+  };
   for (const seg of segments) {
     for (const node of seg.nodes || []) {
       const sid = normalize(node.station_id ?? node.tags?.station_id ?? '');
@@ -142,18 +159,17 @@ export function computeStationDataFromRoutes(routesData) {
         node.station_name ?? node.tags?.station_name ?? node.tags?.name ?? ''
       );
       if (!sid && !sname) continue;
-      const key = sid || sname;
-      if (!stationMap.has(key)) {
-        stationMap.set(key, {
-          station_id: sid,
-          station_name: sname,
-          node_type: node.node_type ?? '',
-          connect_number: node.connect_number ?? node.tags?.connect_number ?? null,
-          x_grid: node.x_grid ?? node.tags?.x_grid ?? null,
-          y_grid: node.y_grid ?? node.tags?.y_grid ?? null,
-          tags: node.tags ? JSON.parse(JSON.stringify(node.tags)) : {},
-        });
-      }
+      const key = stationEntryKey(sid, sname, node);
+      if (!key || stationMap.has(key)) continue;
+      stationMap.set(key, {
+        station_id: sid,
+        station_name: sname,
+        node_type: node.node_type ?? '',
+        connect_number: node.connect_number ?? node.tags?.connect_number ?? null,
+        x_grid: node.x_grid ?? node.tags?.x_grid ?? null,
+        y_grid: node.y_grid ?? node.tags?.y_grid ?? null,
+        tags: node.tags ? JSON.parse(JSON.stringify(node.tags)) : {},
+      });
     }
   }
   if (raw.length > 0 && raw[0]?.segments && !raw[0]?.points) {
@@ -164,18 +180,17 @@ export function computeStationDataFromRoutes(routesData) {
           node.station_name ?? node.tags?.station_name ?? node.tags?.name ?? ''
         );
         if (!sid && !sname) continue;
-        const key = sid || sname;
-        if (!stationMap.has(key)) {
-          stationMap.set(key, {
-            station_id: sid,
-            station_name: sname,
-            node_type: node.node_type ?? '',
-            connect_number: node.connect_number ?? node.tags?.connect_number ?? null,
-            x_grid: node.x_grid ?? node.tags?.x_grid ?? null,
-            y_grid: node.y_grid ?? node.tags?.y_grid ?? null,
-            tags: node.tags ? JSON.parse(JSON.stringify(node.tags)) : {},
-          });
-        }
+        const key = stationEntryKey(sid, sname, node);
+        if (!key || stationMap.has(key)) continue;
+        stationMap.set(key, {
+          station_id: sid,
+          station_name: sname,
+          node_type: node.node_type ?? '',
+          connect_number: node.connect_number ?? node.tags?.connect_number ?? null,
+          x_grid: node.x_grid ?? node.tags?.x_grid ?? null,
+          y_grid: node.y_grid ?? node.tags?.y_grid ?? null,
+          tags: node.tags ? JSON.parse(JSON.stringify(node.tags)) : {},
+        });
       }
     }
   }

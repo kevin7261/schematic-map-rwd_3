@@ -45,6 +45,7 @@
   import { loadMilpJsonRaw } from '@/utils/layers/schematic_layout/milp/readMilpResult.js';
   import {
     loadMilpJsonRaw as loadMilpJsonRawRma,
+    executeReadMilpResult as executeReadMilpResultRma,
     recomputeMilpReadPinkToBrown as recomputeMilpReadPinkToBrownRma,
     recomputeMilpReadBrownToBlackGray as recomputeMilpReadBrownToBlackGrayRma,
     recomputeMilpReadRemoveCrossings as recomputeMilpReadRemoveCrossingsRma,
@@ -96,7 +97,6 @@
   import {
     ROUTE_ADJUST_UPSTREAM_LAYER_ID,
     ROUTE_ADJUST_UPSTREAM_LAYER_NAME,
-    ROUTE_ADJUST_LAYOUT_PLUS_AI_LAYER_IDS,
     resolveRouteAdjustLayoutInput,
     ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES,
     SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
@@ -211,7 +211,6 @@
   const LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL = [
     ...ORTH_SPACE_LINE_IDS_MAIN,
     ...SCHEMATIC_TOWARD_CENTER_LAYER_IDS,
-    ...ROUTE_ADJUST_LAYOUT_PLUS_AI_LAYER_IDS,
   ];
 
   /** layout-network-grid k4：分配倍率 n（寫入 store ref；不依賴 setter 以免 HMR 未掛上） */
@@ -4318,22 +4317,92 @@
     );
   };
 
+  /** 「站點與路線調整前置」四步驟按鈕區：inline 訊息鍵（取代 window.alert）。 */
+  const RMA_MILP_READ_FB = {
+    oneClick: 'schematic_rma_milp_read:oneClick',
+    pink: 'schematic_rma_milp_read:pink',
+    brown: 'schematic_rma_milp_read:brown',
+    grid: 'schematic_rma_milp_read:grid',
+    crossing: 'schematic_rma_milp_read:crossing',
+  };
+
+  const applyRmaMilpReadStepFeedback = (key, res) => {
+    const tone =
+      res?.ok === false ? 'danger' : res?.topologyWarning ? 'danger' : res?.ok ? 'success' : 'muted';
+    setControlLoadFeedback(key, res?.message || (res?.ok === false ? '執行失敗。' : '完成。'), tone);
+  };
+
+  const rmaMilpReadOneClickRunning = ref(false);
+
   /** 路線調整·「站點與路線調整前置」圖層：移除無用網格前，以紅/黃/藍為邊界重算粉紅點，不需者改棕色（獨立按鈕）。 */
   const recomputeMilpReadPinkToBrownClick = () => {
-    const res = recomputeMilpReadPinkToBrownRma();
-    if (res?.message) window.alert(res.message);
+    setControlLoadFeedback(RMA_MILP_READ_FB.pink, '計算中…', 'muted');
+    applyRmaMilpReadStepFeedback(RMA_MILP_READ_FB.pink, recomputeMilpReadPinkToBrownRma());
   };
 
   /** 路線調整·「站點與路線調整前置」圖層：把棕點改回黑點，再以紅/黃/藍/粉紅/灰為邊界重算灰點（獨立按鈕）。 */
   const recomputeMilpReadBrownToBlackGrayClick = () => {
-    const res = recomputeMilpReadBrownToBlackGrayRma();
-    if (res?.message) window.alert(res.message);
+    setControlLoadFeedback(RMA_MILP_READ_FB.brown, '計算中…', 'muted');
+    applyRmaMilpReadStepFeedback(RMA_MILP_READ_FB.brown, recomputeMilpReadBrownToBlackGrayRma());
+  };
+
+  /** 路線調整·「站點與路線調整前置」：整數格吸附 + 安全刪空欄列。 */
+  const executeMilpReadRemoveGridClick = async () => {
+    if (isExecuting.value || rmaMilpReadOneClickRunning.value) return;
+    isExecuting.value = true;
+    setControlLoadFeedback(RMA_MILP_READ_FB.grid, '計算中…', 'muted');
+    try {
+      await nextTick();
+      applyRmaMilpReadStepFeedback(RMA_MILP_READ_FB.grid, executeReadMilpResultRma());
+    } finally {
+      setTimeout(() => {
+        isExecuting.value = false;
+      }, 300);
+    }
   };
 
   /** 路線調整·「站點與路線調整前置」：有交叉之路線端點最小位移移除交叉。 */
   const recomputeMilpReadRemoveCrossingsClick = () => {
-    const res = recomputeMilpReadRemoveCrossingsRma();
-    if (res?.message) window.alert(res.message);
+    setControlLoadFeedback(RMA_MILP_READ_FB.crossing, '計算中…', 'muted');
+    applyRmaMilpReadStepFeedback(RMA_MILP_READ_FB.crossing, recomputeMilpReadRemoveCrossingsRma());
+  };
+
+  /** 依序執行：粉紅→棕、棕→黑+灰、移除無用網格、站點調整移除交叉。 */
+  const executeMilpReadPrepOneClick = async () => {
+    if (rmaMilpReadOneClickRunning.value || isExecuting.value) return;
+    rmaMilpReadOneClickRunning.value = true;
+    setControlLoadFeedback(RMA_MILP_READ_FB.oneClick, '一鍵執行中（1/4 重算粉紅點）…', 'muted');
+    const steps = [
+      { key: RMA_MILP_READ_FB.pink, label: '重算粉紅點', fn: recomputeMilpReadPinkToBrownRma },
+      { key: RMA_MILP_READ_FB.brown, label: '棕點→黑點＋灰點', fn: recomputeMilpReadBrownToBlackGrayRma },
+      { key: RMA_MILP_READ_FB.grid, label: '移除無用網格', fn: executeReadMilpResultRma },
+      { key: RMA_MILP_READ_FB.crossing, label: '站點調整移除交叉', fn: recomputeMilpReadRemoveCrossingsRma },
+    ];
+    try {
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        setControlLoadFeedback(
+          RMA_MILP_READ_FB.oneClick,
+          `一鍵執行中（${i + 1}/4 ${step.label}）…`,
+          'muted'
+        );
+        setControlLoadFeedback(step.key, '計算中…', 'muted');
+        await nextTick();
+        const res = step.fn();
+        applyRmaMilpReadStepFeedback(step.key, res);
+        if (res?.ok === false) {
+          setControlLoadFeedback(
+            RMA_MILP_READ_FB.oneClick,
+            `一鍵執行中斷：「${step.label}」失敗。`,
+            'danger'
+          );
+          return;
+        }
+      }
+      setControlLoadFeedback(RMA_MILP_READ_FB.oneClick, '一鍵執行完成（四步驟均已執行）。', 'success');
+    } finally {
+      rmaMilpReadOneClickRunning.value = false;
+    }
   };
 
   const executeLayerFunction = async () => {
@@ -12993,40 +13062,61 @@
             {{ rmaPrepLoading ? '讀取中…' : '載入預算結果' }}
           </button>
 
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-1"
+            title="依序執行：重算粉紅點 → 棕點→黑點＋灰點 → 移除無用網格 → 站點調整移除交叉"
+            :disabled="rmaMilpReadOneClickRunning || isExecuting"
+            @click="executeMilpReadPrepOneClick"
+          >
+            {{ rmaMilpReadOneClickRunning ? '一鍵執行中…' : '一鍵執行' }}
+          </button>
+          <ControlLoadFeedback :layer-id="RMA_MILP_READ_FB.oneClick" />
+
           <!-- 移除無用網格前：以紅/黃/藍邊界重算粉紅點，不需者→棕色（獨立按鈕） -->
           <button
             type="button"
-            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-1 mt-2"
             title="移除無用網格前：以紅/黃/藍為邊界（參數同路線圖轉換骨架2）重算粉紅點，不再需要者改為棕色"
+            :disabled="rmaMilpReadOneClickRunning"
             @click="recomputeMilpReadPinkToBrownClick()"
           >
             重算粉紅點（紅/黃/藍邊界）→ 棕色
           </button>
+          <ControlLoadFeedback :layer-id="RMA_MILP_READ_FB.pink" />
+
           <!-- 棕點還原為黑點 → 拉直路線 → 以紅/黃/藍/粉紅/灰為邊界重算灰點（≥5 黑點補灰，規則同骨架2） -->
           <button
             type="button"
-            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-1"
             title="把棕點改回一般黑點 → 拉直路線（紅/黃/藍/粉紅為錨點）→ 再以紅/黃/藍/粉紅/灰為邊界重算灰點配置（僅含棕點之路線；無棕點路線不變）"
+            :disabled="rmaMilpReadOneClickRunning"
             @click="recomputeMilpReadBrownToBlackGrayClick()"
           >
             棕點→黑點＋拉直，重算灰點配置
           </button>
+          <ControlLoadFeedback :layer-id="RMA_MILP_READ_FB.brown" />
+
           <button
             type="button"
-            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
-            :disabled="isExecuting"
-            @click="executeLayerFunction"
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-1"
+            :disabled="isExecuting || rmaMilpReadOneClickRunning"
+            @click="executeMilpReadRemoveGridClick"
           >
             {{ isExecuting ? '計算中…' : '移除無用網格' }}
           </button>
+          <ControlLoadFeedback :layer-id="RMA_MILP_READ_FB.grid" />
+
           <button
             type="button"
-            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
+            class="btn rounded-pill border my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-1"
             title="對有交叉／重疊之路線，以最小整數格位移其端點所屬共點（同格座標整點一併移動，不斷開路線）"
+            :disabled="rmaMilpReadOneClickRunning"
             @click="recomputeMilpReadRemoveCrossingsClick()"
           >
             站點調整移除交叉
           </button>
+          <ControlLoadFeedback :layer-id="RMA_MILP_READ_FB.crossing" />
           <div class="my-title-xs-gray pt-2 pb-1">從示意圖佈局（RMA）匯入排版結果</div>
           <button
             type="button"
@@ -13187,28 +13277,6 @@
               </div>
             </div>
             <div v-else class="text-muted">座標調整：無（與讀入初值相同）</div>
-          </div>
-          <div
-            v-if="layer.spaceNetworkGridJsonData?.length"
-            class="mt-3 pt-2 border-top"
-          >
-            <div class="my-title-xs-gray pb-1">整段水平／垂直線</div>
-            <div class="text-muted my-font-size-xs mb-2" style="line-height: 1.45">
-              本圖層下方「各列（y）／各欄（x）」表可<strong>整格共點平移</strong>整條 H/V
-              線（朝紅十字，每次最多 1 格），讓不同路線串成共線長直段。畫面預設只顯示紅／藍
-              connect，不顯示沿路黑點。
-            </div>
-            <button
-              type="button"
-              class="btn rounded-pill border-0 my-btn-orange my-font-size-xs text-nowrap w-100 my-cursor-pointer"
-              :disabled="isExecuting"
-              @click="onMilpReadConnectStraighten(layer)"
-            >
-              紅／藍 connect 拉直（一鍵）
-            </button>
-            <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
-              在 connect 骨架上軸對齊跳格，增加水平／垂直邊後沿新弧長放回黑點。
-            </div>
           </div>
           <div
             v-if="

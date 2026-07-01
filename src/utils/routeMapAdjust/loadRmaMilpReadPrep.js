@@ -142,8 +142,13 @@ export function useRmaMilpReadPrepCatalog(dataStore) {
       if (!lyr.visible) lyr.visible = true;
       lyr.jsonFileName = `rma_milp_read_prep_${city.id}.json`;
       loadedCityId.value = city.id;
+      dataStore.setRouteSchematicActiveLayer(SCHEMATIC_MILP_READ_LAYER_ID);
       dataStore.saveLayerState(SCHEMATIC_MILP_READ_LAYER_ID, {
         dataJson: lyr.dataJson,
+        geojsonData: null,
+        layoutUniformGridGeoJson: null,
+        layoutUniformGridMeta: null,
+        networkDrawSketchMarkersPlot: null,
         spaceNetworkGridJsonData: lyr.spaceNetworkGridJsonData,
         spaceNetworkGridJsonData_SectionData: lyr.spaceNetworkGridJsonData_SectionData,
         spaceNetworkGridJsonData_ConnectData: lyr.spaceNetworkGridJsonData_ConnectData,

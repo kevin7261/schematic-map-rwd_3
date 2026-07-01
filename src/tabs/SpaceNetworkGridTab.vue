@@ -167,9 +167,8 @@
   import { computeQuadtreePartitionFromGeojson } from '@/utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
   import { valueToNearestIndex } from '@/utils/taipeiTest4/c3ToD3CoordNormalize.js';
 
-  /** 列／欄整段 H/V 平移（含往中心聚集與站點與路線調整 #1–#8、AI調整） */
-  const isLineOrthoRowColEditLayerId = (id) =>
-    isLineOrthogonalTowardCenterLayerId(id) || isRouteAdjustLayoutOrAiLayer(id);
+  /** 列／欄整段 H/V 平移（僅「站點與路線往中心聚集」各層；不含站點與路線調整 #1–#8） */
+  const isLineOrthoRowColEditLayerId = (id) => isLineOrthogonalTowardCenterLayerId(id);
 
   /**
    * 均勻網格族路線 hover：本層 dataJson 若曾由路網重算，segment.stations 可能被清空；
@@ -2749,21 +2748,66 @@
       return false;
     };
     const routeAdjustSchematicTab = isRouteAdjustLayoutOrAiLayer(layerTab);
-    /** 示意圖佈局：中段黑點 node_type=line 須繪製（非 bend 幾何轉折）。 */
+    /** 示意圖佈局：只繪製彩色端點／具站名黑點／粉灰棕輔助點；略過無色 connect 與純幾何折點。 */
     const isDrawableMidStation = (nodeProps) => {
       if (!nodeProps || typeof nodeProps !== 'object') return false;
-      if (nodeProps.node_type === 'connect') return true;
-      if (nodeProps.station_name || nodeProps.station_id) return true;
-      if (nodeProps.tags?.station_name || nodeProps.tags?.station_id) return true;
-      if (nodeProps.tags?._forceDrawBlackDot) return true;
-      const kind = nodeProps.node_kind ?? nodeProps.tags?.node_kind;
-      if (kind === 'right_angle_pink' || kind === 'gray' || kind === 'brown') return true;
-      if (useSchematicVisualStyle && schematicNodeClassColor(nodeProps, nodeProps.tags || {})) {
-        return true;
+      const tags = nodeProps.tags || {};
+      const cc = schematicNodeClassColor(nodeProps, tags);
+      const kind = nodeProps.node_kind ?? tags.node_kind;
+      const nt = nodeProps.node_type ?? tags.node_type ?? 'line';
+      if (useSchematicVisualStyle) {
+        if (cc) return true;
+        if (kind === 'right_angle_pink' || kind === 'gray' || kind === 'brown') return true;
+        if (tags._forceDrawBlackDot) return true;
+        const sid = String(nodeProps.station_id ?? tags.station_id ?? '').trim();
+        const snm = String(nodeProps.station_name ?? tags.station_name ?? '').trim();
+        if (nt === 'line' && (sid || snm)) return true;
+        if (
+          routeAdjustSchematicTab &&
+          nt === 'line' &&
+          activeTabLayer?.showStationPlacement === true
+        ) {
+          return true;
+        }
+        return false;
       }
-      if (useSchematicVisualStyle && nodeProps.node_type === 'line') {
+      if (nt === 'connect') return true;
+      if (nodeProps.station_name || nodeProps.station_id) return true;
+      if (tags.station_name || tags.station_id) return true;
+      if (tags._forceDrawBlackDot) return true;
+      if (kind === 'right_angle_pink' || kind === 'gray' || kind === 'brown') return true;
+      if (schematicNodeClassColor(nodeProps, tags)) return true;
+      if (nodeProps.node_type === 'line') {
         if (routeAdjustSchematicTab && activeTabLayer?.showStationPlacement !== true) return false;
         return true;
+      }
+      return false;
+    };
+    /** ⑨／RMA：站點必須落在任一路段折線上（剔除 session 殘留或 metadata 幽靈點）。 */
+    const isPointOnSchematicRouteSegment = (px, py, segments, eps = 0.06) => {
+      if (!Number.isFinite(px) || !Number.isFinite(py) || !Array.isArray(segments)) return false;
+      for (const seg of segments) {
+        const pts = seg?.points;
+        if (!Array.isArray(pts) || pts.length < 2) continue;
+        for (let i = 0; i + 1 < pts.length; i++) {
+          const ax = Number(Array.isArray(pts[i]) ? pts[i][0] : pts[i]?.x);
+          const ay = Number(Array.isArray(pts[i]) ? pts[i][1] : pts[i]?.y);
+          const bx = Number(Array.isArray(pts[i + 1]) ? pts[i + 1][0] : pts[i + 1]?.x);
+          const by = Number(Array.isArray(pts[i + 1]) ? pts[i + 1][1] : pts[i + 1]?.y);
+          if (!Number.isFinite(ax) || !Number.isFinite(ay) || !Number.isFinite(bx) || !Number.isFinite(by)) {
+            continue;
+          }
+          const dx = bx - ax;
+          const dy = by - ay;
+          const len2 = dx * dx + dy * dy;
+          if (len2 < 1e-12) {
+            if (Math.hypot(px - ax, py - ay) <= eps) return true;
+            continue;
+          }
+          const t = ((px - ax) * dx + (py - ay) * dy) / len2;
+          if (t < -eps || t > 1 + eps) continue;
+          if (Math.hypot(px - (ax + t * dx), py - (ay + t * dy)) <= eps) return true;
+        }
       }
       return false;
     };
@@ -3676,6 +3720,13 @@
         }
       }
       stationFeatures = Array.from(stationMap.values());
+      if (useSchematicVisualStyle && flatSegments.length > 0) {
+        stationFeatures = stationFeatures.filter((f) => {
+          const c = f?.geometry?.coordinates;
+          if (!Array.isArray(c) || c.length < 2) return false;
+          return isPointOnSchematicRouteSegment(Number(c[0]), Number(c[1]), flatSegments);
+        });
+      }
 
       // taipei_d：路網／站點改在「縮減疊加網格」座標空間繪製（overlayRemovalMaps 由 execute_d_to_e_test 寫入 taipei_d）
       const tcLayerDraw = dataStore.findLayerById(layerTab);
@@ -11281,39 +11332,6 @@
           );
           crossG.raise();
         }
-      }
-    }
-
-    // 站點與路線調整 #1–#8：以「紅/藍/黃/紫 頂點（各 segment 端點，不含黑點）」之**中位數位置**畫紅色虛線十字
-    // （純參考線，不改資料）。中位數中心由 getMedianAnchorCenterGrid 取得。
-    if (isRouteAdjustLayoutOrAiLayer(layerTab)) {
-      const adjLayer = dataStore.findLayerById(layerTab);
-      const med = layerStationsTowardSchematicCenter.getMedianAnchorCenterGrid(adjLayer);
-      if (med) {
-        const crossG = zoomGroup
-          .append('g')
-          .attr('class', 'route-adjust-median-crosshair')
-          .style('pointer-events', 'none');
-        const xL = margin.left;
-        const xR = margin.left + width;
-        const yT = margin.top;
-        const yB = margin.top + height;
-        const xP = xScale(med.gx);
-        const yP = yScale(med.gy);
-        const applyStrokeAttrs = (el) =>
-          el
-            .attr('stroke', '#e53935')
-            .attr('stroke-width', 2)
-            .attr('stroke-dasharray', '8,5')
-            .attr('opacity', 0.92)
-            .attr('vector-effect', 'non-scaling-stroke');
-        applyStrokeAttrs(
-          crossG.append('line').attr('x1', xP).attr('y1', yT).attr('x2', xP).attr('y2', yB)
-        );
-        applyStrokeAttrs(
-          crossG.append('line').attr('x1', xL).attr('y1', yP).attr('x2', xR).attr('y2', yP)
-        );
-        crossG.raise();
       }
     }
 

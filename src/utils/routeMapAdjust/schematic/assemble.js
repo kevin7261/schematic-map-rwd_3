@@ -394,6 +394,11 @@ export function writeSchematicResultToLayer(layerId, fullFlat, meta = {}) {
   layer.spaceNetworkGridJsonData_ConnectData = computed.connectData;
   layer.spaceNetworkGridJsonData_StationData = computed.stationData;
   layer.showStationPlacement = false;
+  if (meta?.coordNormalize === true) {
+    layer.geojsonData = null;
+    layer.layoutUniformGridGeoJson = null;
+    layer.layoutUniformGridMeta = null;
+  }
 
   try {
     layer.processedJsonData = flatSegmentsToGeojsonStyleExportRows(fullFlat);

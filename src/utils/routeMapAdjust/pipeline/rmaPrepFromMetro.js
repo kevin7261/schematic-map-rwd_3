@@ -10,6 +10,7 @@ import {
   refreshPinkDpRatioInFlat,
 } from '../routeStations.js';
 import { normalizeSkeletonGeojsonToFlat } from '../schematic/normalize/executeNormalize.js';
+import { resolveSharedCorridorDrawing } from '../schematic/assemble.js';
 
 export const RMA_MILP_READ_PREP_KIND = 'rma-milp-read-prep';
 export const RMA_MILP_READ_PREP_VERSION = 1;
@@ -44,6 +45,10 @@ export function buildRmaMilpReadPrepFromMetroGeojson(metroFc, meta = {}) {
   }
 
   const fullFlat = JSON.parse(JSON.stringify(norm.fullFlat));
+  // 與 UI「⑨ 開始執行」writeSchematicResultToLayer 一致：共軌多色虛線標記
+  if (norm.graph) {
+    resolveSharedCorridorDrawing(fullFlat, norm.graph);
+  }
   try {
     refreshPinkDpRatioInFlat(fullFlat);
   } catch {
