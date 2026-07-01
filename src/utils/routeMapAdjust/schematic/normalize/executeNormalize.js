@@ -1,18 +1,17 @@
 /**
- * ⑨ 示意圖佈局（正規化）— 藍色網格 snap + 邊界切段 + 黑點均分
+ * ⑨ 示意圖佈局（正規化）
  *
- * 預覽 hover：layer.geojsonData 原始 LineString way 端點 snap（valueToNearestIndex）。
- * 「開始執行」：
- *   1. 各路線 snap 至藍色網格（allColorSplitNodes 四分樹）
- *   2. 在紅／黃／藍／粉紅／棕／灰（及紫）邊界點**切開**（buildConnectSkeleton）
- *   3. 純黑點抽離後沿邊均分插回
+ * 演算法（四步，無其他規則）：
+ *   1. GeoJSON → flat（與全站相同匯入管線）
+ *   2. 全點 snap 至藍色網格
+ *   3. 紅／黃／藍／粉紅／棕／灰 邊界點切開
+ *   4. 每段拉直；段內黑點 (j+1)/(K+1) 均分
  */
 
 import { useDataStore } from '@/stores/dataStore.js';
 import { buildTaipeiB3ExecuteLayerFieldsFromGeojson } from '@/utils/taipeiTest4/buildTaipeiA3StyleLayerFieldsFromGeojson.js';
 import { buildSchematicGraph, splitHighDegreeNodes } from '../graph.js';
-import { buildConnectSkeleton } from '../input.js';
-import { reinsertBlackStations, writeSchematicResultToLayer } from '../assemble.js';
+import { writeSchematicResultToLayer } from '../assemble.js';
 import { buildSnapLonLatFromC3Segments } from '@/utils/taipeiTest4/c3ToD3CoordNormalize.js';
 import {
   GRAY_DOT_HEX,
@@ -22,30 +21,31 @@ import {
 
 const LAYER_ID = 'schematic_rma_normalize';
 
-// ── 工具 ─────────────────────────────────────────────────────────────────────
+const readPt = (p) =>
+  Array.isArray(p) ? [Number(p[0]), Number(p[1])] : [Number(p?.x ?? 0), Number(p?.y ?? 0)];
 
-const num = (v) => Number(v);
-const coordKey = (lon, lat) => `${num(lon).toFixed(6)},${num(lat).toFixed(6)}`;
-/** way 頂點 ↔ Point 容差（度；≈2m），骨架 way 与 Point 常因投影略有偏差。 */
-const POINT_MATCH_TOL = 2e-5;
-/** 黑點投影到 way 的最大垂距（度）。 */
-const ON_WAY_TOL = 2.5e-5;
-
-/** 純黑點（單線中段站；非邊界切點）。 */
 function isBlackDotProps(props) {
   if (!props) return false;
-  const t = props?.tags || {};
-  if (t.node_kind === 'black') return true;
-  if (t.node_kind == null) {
+  const t = props.tags || {};
+  const kind = String(props.node_kind ?? t.node_kind ?? '').toLowerCase();
+  if (kind === 'black') return true;
+  if (kind === '') {
     const c = String(t.node_class_color ?? props.node_class_color ?? '').toLowerCase();
     if (c === '#000000' || c === '#000') return true;
   }
   return false;
 }
 
-/**
- * 邊界切點：紅／黃／藍／粉紅／棕／灰（及紫、交叉）—「開始執行」時在此切開路線。
- */
+function isBlackVertexNode(node) {
+  if (!node || typeof node !== 'object') return false;
+  const t = node.tags || {};
+  const kind = node.node_kind ?? t.node_kind;
+  if (kind === 'black') return true;
+  const cc = String(t.node_class_color ?? node.node_class_color ?? '').toLowerCase();
+  return cc === '#000000' || cc === '#000';
+}
+
+/** 邊界切點（非黑點）— 在此切開路線。 */
 function isBoundarySplitProps(props) {
   if (!props || typeof props !== 'object') return false;
   if (isBlackDotProps(props)) return false;
@@ -75,319 +75,225 @@ function isBoundarySplitProps(props) {
   );
 }
 
-function boundarySplitKey(props, lon, lat) {
-  const t = props?.tags || {};
-  const sid = String(t.station_id ?? props?.station_id ?? '').trim();
-  if (sid) return `id:${sid}`;
-  const nm = String(t.station_name ?? props?.station_name ?? '').trim();
-  if (nm) return `nm:${nm}`;
-  return coordKey(lon, lat);
+function isBoundaryNode(node) {
+  return node && isBoundarySplitProps(node);
 }
 
-function blackDotKey(props, lon, lat) {
-  const t = props?.tags || {};
-  const sid = String(t.station_id ?? props?.station_id ?? '').trim();
-  if (sid) return `id:${sid}`;
-  const nm = String(t.station_name ?? props?.station_name ?? '').trim();
-  if (nm) return `nm:${nm}`;
-  return coordKey(lon, lat);
-}
-
-/** 點 (lon,lat) 投影到折線 coords；回傳 { pos, perp } 或 null（pos=沿線弧長）。 */
-function projectOnWayLonLat(lon, lat, coords) {
-  let best = null;
-  let cum = 0;
-  for (let i = 0; i < coords.length - 1; i++) {
-    const [ax, ay] = coords[i];
-    const [bx, by] = coords[i + 1];
-    const dx = bx - ax;
-    const dy = by - ay;
-    const segLen = Math.hypot(dx, dy);
-    const len2 = dx * dx + dy * dy;
-    let t = len2 ? ((lon - ax) * dx + (lat - ay) * dy) / len2 : 0;
-    t = Math.max(0, Math.min(1, t));
-    const cx = ax + t * dx;
-    const cy = ay + t * dy;
-    const perp = Math.hypot(lon - cx, lat - cy);
-    if (!best || perp < best.perp) best = { pos: cum + segLen * t, perp };
-    cum += segLen;
+function enrichNodePropsFromTags(node) {
+  if (!node || typeof node !== 'object') return node;
+  const t = node.tags || {};
+  if (node.station_name == null && t.station_name != null) node.station_name = t.station_name;
+  if (node.station_id == null && t.station_id != null) node.station_id = t.station_id;
+  if (node.node_kind == null && t.node_kind != null) node.node_kind = t.node_kind;
+  if (node.node_class_color == null && t.node_class_color != null) {
+    node.node_class_color = t.node_class_color;
   }
-  return best;
+  if (node.node_type == null && t.node_type != null) node.node_type = t.node_type;
+  return node;
 }
-
-function wayTotalLen(coords) {
-  let s = 0;
-  for (let k = 0; k < coords.length - 1; k++) {
-    const [ax, ay] = coords[k];
-    const [bx, by] = coords[k + 1];
-    s += Math.hypot(bx - ax, by - ay);
-  }
-  return s;
-}
-
 
 function mkVertexNode(props, gx, gy, fallbackType = 'line') {
   const base = props ? JSON.parse(JSON.stringify(props)) : {};
   const t = base.tags || {};
-  const node_type = base.node_type ?? t.node_type ?? fallbackType;
-  return {
+  const node = {
     ...base,
-    node_type,
+    node_type: base.node_type ?? t.node_type ?? fallbackType,
     x_grid: gx,
     y_grid: gy,
     tags: { ...t, x_grid: gx, y_grid: gy },
   };
+  return enrichNodePropsFromTags(node);
 }
 
-/**
- * 自骨架 geojson 取彩色點排名作藍色網格（與預覽 hover、網格線同一組 xs/ys）。
- * @returns {{ snapLonLat:Function, sortedX:number[], sortedY:number[], bounds:object } | null}
- */
-function buildGridSnapFromGeojson(geojson) {
-  if (!geojson?.features?.length) return null;
-  let fields;
-  try {
-    fields = buildTaipeiB3ExecuteLayerFieldsFromGeojson(geojson, {});
-  } catch (e) {
-    console.error('buildGridSnapFromGeojson：GeoJSON → flat 失敗', e);
-    return null;
+function mkConnectEndpoint(node, propsFallback, x, y) {
+  const nd = mkVertexNode(node || propsFallback, x, y, 'connect');
+  nd.node_type = 'connect';
+  return nd;
+}
+
+function dedupeBlackNodesByKey(nodes) {
+  const seen = new Set();
+  const out = [];
+  for (const nd of nodes || []) {
+    const t = nd?.tags || {};
+    const sid = String(t.station_id ?? nd?.station_id ?? '').trim();
+    const snm = String(t.station_name ?? nd?.station_name ?? '').trim();
+    const k = sid ? `id:${sid}` : snm ? `nm:${snm}` : `${nd?.x_grid},${nd?.y_grid}`;
+    if (k && seen.has(k)) continue;
+    if (k) seen.add(k);
+    out.push(nd);
   }
-  const baseFlat = fields?.spaceNetworkGridJsonData;
-  if (!Array.isArray(baseFlat) || baseFlat.length === 0) return null;
-  return buildSnapLonLatFromC3Segments(baseFlat, { allColorSplitNodes: true });
+  return out;
 }
 
-/** geojson Point features → 精確 map + 全點列表（供容差匹配／沿 way 掃描）。 */
-function buildPointIndex(geojson) {
-  const byKey = new Map();
-  const all = [];
-  for (const f of geojson.features || []) {
-    if (f?.geometry?.type !== 'Point') continue;
-    const [lon, lat] = f.geometry.coordinates || [];
-    if (lon == null || lat == null) continue;
-    const props = f.properties || {};
-    byKey.set(coordKey(lon, lat), props);
-    all.push({ lon, lat, props });
+function geojsonToFlat(geojson) {
+  const fields = buildTaipeiB3ExecuteLayerFieldsFromGeojson(geojson, {
+    forceCoordinateRouteSegments: true,
+  });
+  return fields?.spaceNetworkGridJsonData || [];
+}
+
+function buildGridSnapFromFlat(flat) {
+  if (!Array.isArray(flat) || flat.length === 0) return null;
+  return buildSnapLonLatFromC3Segments(flat, { allColorSplitNodes: true });
+}
+
+/** ② 所有頂點 snap 至藍格。 */
+function snapFlatSegments(flat, snap) {
+  const out = [];
+  for (const seg of flat || []) {
+    const pts = seg?.points;
+    if (!Array.isArray(pts) || pts.length < 2) continue;
+    const nodes = Array.isArray(seg.nodes) ? seg.nodes : [];
+    const newPts = [];
+    const newNodes = [];
+    for (let i = 0; i < pts.length; i++) {
+      const [lon, lat] = readPt(pts[i]);
+      const [gx, gy] = snap.snapLonLat(lon, lat);
+      newPts.push([gx, gy]);
+      newNodes.push(mkVertexNode(nodes[i] || {}, gx, gy, nodes[i]?.node_type || 'line'));
+    }
+    const [sx, sy] = newPts[0];
+    const [ex, ey] = newPts[newPts.length - 1];
+    out.push({
+      route_name: seg.route_name,
+      name: seg.name,
+      points: newPts,
+      nodes: newNodes,
+      properties_start: { ...newNodes[0], x_grid: sx, y_grid: sy },
+      properties_end: { ...newNodes[newNodes.length - 1], x_grid: ex, y_grid: ey },
+      way_properties: seg.way_properties,
+      color: seg.color,
+      route_colors: seg.route_colors,
+    });
   }
-  return { byKey, all };
+  return out;
 }
 
-function lookupPointProps(lon, lat, byKey, all) {
-  const exact = byKey.get(coordKey(lon, lat));
-  if (exact) return exact;
-  let best = null;
-  let bd = POINT_MATCH_TOL;
-  for (const p of all) {
-    const d = Math.hypot(p.lon - lon, p.lat - lat);
-    if (d <= bd) {
-      bd = d;
-      best = p.props;
+/** ③ 段內邊界點切開（起訖已是邊界）。 */
+function splitFlatAtBoundaries(flat) {
+  const out = [];
+  for (const seg of flat || []) {
+    const pts = seg.points;
+    const nodes = seg.nodes || [];
+    const last = pts.length - 1;
+    const breaks = [0];
+    for (let i = 1; i < last; i++) {
+      if (isBoundaryNode(nodes[i])) breaks.push(i);
     }
-  }
-  return best;
-}
+    breaks.push(last);
 
-/**
- * geojson LineString way → snap 後 flat（保留邊界切點頂點 + 黑點 + 幾何轉折；供 buildConnectSkeleton 切段）。
- */
-function snapGeojsonWaysToFlat(geojson, snap, ptIndex) {
-  const { byKey: ptProps, all: pointAll } = ptIndex;
-  const flat = [];
+    for (let bi = 0; bi + 1 < breaks.length; bi++) {
+      const a = breaks[bi];
+      const b = breaks[bi + 1];
+      const subPts = pts.slice(a, b + 1).map((p) => [p[0], p[1]]);
+      const subNodes = nodes.slice(a, b + 1);
+      const x0 = subPts[0][0];
+      const y0 = subPts[0][1];
+      const x1 = subPts[subPts.length - 1][0];
+      const y1 = subPts[subPts.length - 1][1];
+      if (x0 === x1 && y0 === y1) continue;
 
-  for (const f of geojson.features || []) {
-    if (f?.geometry?.type !== 'LineString') continue;
-    const coords = f.geometry.coordinates;
-    if (!Array.isArray(coords) || coords.length < 2) continue;
-    const tags = f.properties?.tags || {};
-    const last = coords.length - 1;
-    const totalLen = wayTotalLen(coords);
-
-    /** @type {Array<{ kind:'split'|'black', pos:number, props:object, gxy?:[number,number] }>} */
-    const events = [];
-    const usedBoundary = new Set();
-    const usedBlack = new Set();
-
-    const pushSplit = (idx, props, lon, lat) => {
-      const bk = boundarySplitKey(props || {}, lon, lat);
-      if (usedBoundary.has(bk)) return;
-      usedBoundary.add(bk);
-      const pr = projectOnWayLonLat(lon, lat, coords);
-      events.push({
-        kind: 'split',
-        pos: pr ? pr.pos : idx,
-        props: props ? JSON.parse(JSON.stringify(props)) : {},
-        gxy: snap.snapLonLat(lon, lat),
-      });
-    };
-
-    const pushBlack = (props, lon, lat) => {
-      const bk = blackDotKey(props, lon, lat);
-      if (usedBlack.has(bk)) return;
-      usedBlack.add(bk);
-      const pr = projectOnWayLonLat(lon, lat, coords);
-      if (!pr || pr.perp > ON_WAY_TOL) return;
-      if (pr.pos <= totalLen * 1e-9 || pr.pos >= totalLen * (1 - 1e-9)) return;
-      events.push({
-        kind: 'black',
-        pos: pr.pos,
-        props: JSON.parse(JSON.stringify(props)),
-        gxy: snap.snapLonLat(lon, lat),
-      });
-    };
-
-    // way 頂點
-    for (let i = 0; i <= last; i++) {
-      const [lon, lat] = coords[i];
-      const props = lookupPointProps(lon, lat, ptProps, pointAll);
-      if (i === 0 || i === last) {
-        pushSplit(i, props, lon, lat);
-      } else if (props && isBoundarySplitProps(props)) {
-        pushSplit(i, props, lon, lat);
-      } else if (props && isBlackDotProps(props)) {
-        pushBlack(props, lon, lat);
-      }
-    }
-
-    // 沿 way 掃描 Point（頂點座標不完全重合時）
-    for (const p of pointAll) {
-      const pr = projectOnWayLonLat(p.lon, p.lat, coords);
-      if (!pr || pr.perp > ON_WAY_TOL) continue;
-      if (pr.pos <= totalLen * 1e-9 || pr.pos >= totalLen * (1 - 1e-9)) continue;
-      if (isBoundarySplitProps(p.props)) pushSplit(-1, p.props, p.lon, p.lat);
-      else if (isBlackDotProps(p.props)) pushBlack(p.props, p.lon, p.lat);
-    }
-
-    events.sort((a, b) => a.pos - b.pos);
-
-    // 相鄰 split 間建段（split 之間可含 black + 幾何轉折）
-    const splits = events.filter((e) => e.kind === 'split');
-    if (splits.length < 2) continue;
-
-    for (let si = 0; si + 1 < splits.length; si++) {
-      const a = splits[si];
-      const b = splits[si + 1];
-      if (a.gxy[0] === b.gxy[0] && a.gxy[1] === b.gxy[1]) continue;
-
-      /** @type {Array<{ pos:number, gxy:[number,number], node:object }>} */
-      const interior = [];
-
-      for (let i = 1; i < last; i++) {
-        const [lon, lat] = coords[i];
-        const pr = projectOnWayLonLat(lon, lat, coords);
-        if (!pr || pr.pos <= a.pos + 1e-9 || pr.pos >= b.pos - 1e-9) continue;
-        const props = lookupPointProps(lon, lat, ptProps, pointAll);
-        if (props && (isBoundarySplitProps(props) || isBlackDotProps(props))) continue;
-        const gxy = snap.snapLonLat(lon, lat);
-        interior.push({ pos: pr.pos, gxy, node: mkVertexNode(props, gxy[0], gxy[1], 'bend') });
-      }
-
-      for (const bl of events) {
-        if (bl.kind !== 'black' || bl.pos <= a.pos + 1e-9 || bl.pos >= b.pos - 1e-9) continue;
-        const nd = mkVertexNode(bl.props, bl.gxy[0], bl.gxy[1], 'line');
-        nd.node_kind = 'black';
-        nd.tags = { ...(nd.tags || {}), node_kind: 'black' };
-        interior.push({ pos: bl.pos, gxy: bl.gxy, node: nd });
-      }
-
-      interior.sort((x, y) => x.pos - y.pos);
-
-      const points = [a.gxy.slice()];
-      const nodes = [mkVertexNode(a.props, a.gxy[0], a.gxy[1], 'connect')];
-      for (const it of interior) {
-        points.push(it.gxy.slice());
-        nodes.push(it.node);
-      }
-      points.push(b.gxy.slice());
-      nodes.push(mkVertexNode(b.props, b.gxy[0], b.gxy[1], 'connect'));
-
-      const keepPts = [];
-      const keepNodes = [];
-      for (let pi = 0; pi < points.length; pi++) {
-        const p = points[pi];
-        const prev = keepPts[keepPts.length - 1];
-        if (prev && prev[0] === p[0] && prev[1] === p[1]) continue;
-        keepPts.push(p);
-        keepNodes.push(nodes[pi]);
-      }
-      if (keepPts.length < 2) continue;
-
-      flat.push({
-        route_name: tags.route_name ?? tags.route_id ?? '',
-        name: tags.route_name ?? tags.route_id ?? '',
-        points: keepPts,
-        nodes: keepNodes,
-        properties_start: {
-          x_grid: keepPts[0][0],
-          y_grid: keepPts[0][1],
-          tags: { x_grid: keepPts[0][0], y_grid: keepPts[0][1] },
-          ...(a.props || {}),
-        },
-        properties_end: {
-          x_grid: keepPts[keepPts.length - 1][0],
-          y_grid: keepPts[keepPts.length - 1][1],
-          tags: {
-            x_grid: keepPts[keepPts.length - 1][0],
-            y_grid: keepPts[keepPts.length - 1][1],
-          },
-          ...(b.props || {}),
-        },
-        way_properties: { tags: { ...tags } },
-        color: tags.color,
-        route_colors: tags.route_colors,
+      out.push({
+        route_name: seg.route_name,
+        name: seg.name,
+        points: subPts,
+        nodes: subNodes,
+        properties_start: { ...subNodes[0], x_grid: x0, y_grid: y0 },
+        properties_end: { ...subNodes[subNodes.length - 1], x_grid: x1, y_grid: y1 },
+        way_properties: seg.way_properties,
+        color: seg.color,
+        route_colors: seg.route_colors,
       });
     }
   }
-
-  return flat;
+  return out;
 }
 
-// ── 正規化網格預覽（載入骨架時計算，供「開始執行」前顯示藍色網格＋ hover snap） ───────
+/** ④ 拉直 + 黑點均分 (j+1)/(K+1)。 */
+function straightenAndEvenBlackDots(flat) {
+  const out = [];
+  for (const seg of flat || []) {
+    const pts = seg?.points;
+    const nodes = seg?.nodes;
+    if (!Array.isArray(pts) || pts.length < 2) continue;
+    const x0 = pts[0][0];
+    const y0 = pts[0][1];
+    const x1 = pts[pts.length - 1][0];
+    const y1 = pts[pts.length - 1][1];
+    if (x0 === x1 && y0 === y1) continue;
 
-/**
- * 回傳藍色網格線 xs/ys（彩色點經/緯度排名；與執行 snap 同一組），供「開始執行」前預覽。
- * @returns {{ xs:number[], ys:number[], bounds:object } | null}
- */
+    const startNode = mkConnectEndpoint(nodes?.[0], seg.properties_start, x0, y0);
+    const endNode = mkConnectEndpoint(nodes?.[nodes.length - 1], seg.properties_end, x1, y1);
+    const blacks = dedupeBlackNodesByKey(
+      (nodes || []).slice(1, -1).filter(isBlackVertexNode)
+    );
+
+    const points = [[x0, y0]];
+    const outNodes = [startNode];
+    for (let j = 0; j < blacks.length; j++) {
+      const t = (j + 1) / (blacks.length + 1);
+      const x = x0 + (x1 - x0) * t;
+      const y = y0 + (y1 - y0) * t;
+      const bn = mkVertexNode(blacks[j], x, y, 'line');
+      bn.node_kind = 'black';
+      bn.tags = { ...(bn.tags || {}), node_kind: 'black', _forceDrawBlackDot: true };
+      points.push([x, y]);
+      outNodes.push(bn);
+    }
+    points.push([x1, y1]);
+    outNodes.push(endNode);
+
+    out.push({
+      route_name: seg.route_name,
+      name: seg.name,
+      points,
+      nodes: outNodes,
+      properties_start: { ...startNode },
+      properties_end: { ...endNode },
+      way_properties: seg.way_properties,
+      color: seg.color,
+      route_colors: seg.route_colors,
+    });
+  }
+  return out;
+}
+
 export function computeQuadtreePartitionFromGeojson(geojson) {
-  const snap = buildGridSnapFromGeojson(geojson);
+  const flat = geojsonToFlat(geojson);
+  const snap = buildGridSnapFromFlat(flat);
   if (!snap || !Array.isArray(snap.sortedX) || !Array.isArray(snap.sortedY)) return null;
   return { xs: snap.sortedX.slice(), ys: snap.sortedY.slice(), bounds: snap.bounds };
 }
-
-// ── 主執行函式 ────────────────────────────────────────────────────────────────
 
 export function executeNormalizeRma() {
   const dataStore = useDataStore();
   const layer = dataStore.findLayerById(LAYER_ID);
   if (!layer) {
-    console.warn('executeNormalizeRma：找不到圖層 schematic_rma_normalize');
-    return false;
+    return { ok: false, message: '找不到圖層 schematic_rma_normalize' };
   }
 
   const geojson = layer.geojsonData;
   if (!geojson?.features?.length) {
-    console.warn('executeNormalizeRma：圖層尚無輸入資料，請先載入骨架。');
-    return false;
+    return { ok: false, message: '圖層尚無輸入資料，請先載入骨架。' };
   }
   layer.quadtreePartition = null;
 
-  const snap = buildGridSnapFromGeojson(geojson);
-  if (!snap) {
-    console.warn('executeNormalizeRma：藍色網格 snap 建立失敗。');
-    return false;
-  }
-  const ptIndex = buildPointIndex(geojson);
-  const snappedFlat = snapGeojsonWaysToFlat(geojson, snap, ptIndex);
-  if (!Array.isArray(snappedFlat) || snappedFlat.length === 0) {
-    console.warn('executeNormalizeRma：無 way 可正規化。');
-    return false;
+  const baseFlat = geojsonToFlat(geojson);
+  if (!baseFlat.length) {
+    return { ok: false, message: '無路網可正規化。' };
   }
 
-  // 紅／黃／藍／粉紅／棕／灰 邊界切開 → 黑點抽離 → 沿邊均分插回
-  const { skeletonFlat, sections } = buildConnectSkeleton(snappedFlat);
-  const fullFlat = reinsertBlackStations(skeletonFlat, sections);
-  if (!Array.isArray(fullFlat) || fullFlat.length === 0) {
-    console.warn('executeNormalizeRma：切段後無有效路網。');
-    return false;
+  const snap = buildGridSnapFromFlat(baseFlat);
+  if (!snap) {
+    return { ok: false, message: '藍色網格 snap 建立失敗。' };
+  }
+
+  const snapped = snapFlatSegments(baseFlat, snap);
+  const split = splitFlatAtBoundaries(snapped);
+  const fullFlat = straightenAndEvenBlackDots(split);
+  if (!fullFlat.length) {
+    return { ok: false, message: '正規化後無有效路段。' };
   }
 
   let graph = buildSchematicGraph(fullFlat);
@@ -401,11 +307,20 @@ export function executeNormalizeRma() {
     sourceLayerId: LAYER_ID,
     coordNormalize: true,
     splitAtBoundary: true,
-    segmentCountBeforeSplit: snappedFlat.length,
+    segmentCountBeforeSplit: split.length,
     segmentCountAfterSplit: fullFlat.length,
     _schematicGraph: graph,
     gridCols: snap.sortedX.length - 1,
     gridRows: snap.sortedY.length - 1,
   });
-  return result.ok !== false;
+
+  if (result.ok !== false && typeof window !== 'undefined' && typeof window.alert === 'function') {
+    window.alert(`正規化完成。\n路段 ${split.length} 段 → 拉直 ${fullFlat.length} 段。`);
+  }
+
+  return {
+    ok: result.ok !== false,
+    message: '正規化完成。',
+    stats: result.stats,
+  };
 }

@@ -57,7 +57,14 @@ export function buildConnectSkeleton(baseFlat) {
     return nodeIdentity(nodes[i] || null, x, y);
   };
   const isRealId = (id) => id.startsWith('n:') || id.startsWith('s:');
-  const addSet = (m, k, v) => { let s = m.get(k); if (!s) { s = new Set(); m.set(k, s); } s.add(v); };
+  const addSet = (m, k, v) => {
+    let s = m.get(k);
+    if (!s) {
+      s = new Set();
+      m.set(k, s);
+    }
+    s.add(v);
+  };
 
   // ---- pass 1: identity 拓撲（相鄰 identity = 鄰居；經過的 route 集合）----
   const nbr = new Map();
@@ -75,7 +82,10 @@ export function buildConnectSkeleton(baseFlat) {
       addSet(rts, id, rn);
       if (isSkeletonKeepNode(nodes[i])) keepIds.add(id);
       if (isBlackNode(nodes[i])) blackIds.add(id);
-      if (prev != null && prev !== id) { addSet(nbr, id, prev); addSet(nbr, prev, id); }
+      if (prev != null && prev !== id) {
+        addSet(nbr, id, prev);
+        addSet(nbr, prev, id);
+      }
       prev = id;
     }
   }
@@ -104,9 +114,12 @@ export function buildConnectSkeleton(baseFlat) {
       const c = b[bi + 1];
       atoms.push({
         seg,
-        headId: idAt(seg, a, nodes), tailId: idAt(seg, c, nodes),
-        headPt: clone(pts[a]), tailPt: clone(pts[c]),
-        headNode: clone(nodes[a]), tailNode: clone(nodes[c]),
+        headId: idAt(seg, a, nodes),
+        tailId: idAt(seg, c, nodes),
+        headPt: clone(pts[a]),
+        tailPt: clone(pts[c]),
+        headNode: clone(nodes[a]),
+        tailNode: clone(nodes[c]),
         blacks: nodes.slice(a + 1, c).map(clone),
         used: false,
       });
@@ -115,14 +128,49 @@ export function buildConnectSkeleton(baseFlat) {
 
   // ---- pass 3: 跨「非 connect 直通接點」串接 atom（重疊紅點 → 黑點、前後段合一）----
   const ends = new Map(); // id -> [{atom, end:'h'|'t'}]
-  const pushEnd = (id, atom, end) => { let l = ends.get(id); if (!l) { l = []; ends.set(id, l); } l.push({ atom, end }); };
-  for (const at of atoms) { pushEnd(at.headId, at, 'h'); pushEnd(at.tailId, at, 't'); }
+  const pushEnd = (id, atom, end) => {
+    let l = ends.get(id);
+    if (!l) {
+      l = [];
+      ends.set(id, l);
+    }
+    l.push({ atom, end });
+  };
+  for (const at of atoms) {
+    pushEnd(at.headId, at, 'h');
+    pushEnd(at.tailId, at, 't');
+  }
 
-  const mkBoundary = (nd) => { const o = clone(nd) || { node_type: 'connect' }; if (o.node_type === 'line' || o.node_type == null) o.node_type = 'connect'; return o; };
-  const mkBlack = (nd) => { const o = clone(nd) || { node_type: 'line' }; o.node_type = 'line'; return o; };
-  const trav = (at, end) => (end === 'h'
-    ? { startId: at.headId, farId: at.tailId, startPt: at.headPt, startNode: at.headNode, farPt: at.tailPt, farNode: at.tailNode, blacks: at.blacks }
-    : { startId: at.tailId, farId: at.headId, startPt: at.tailPt, startNode: at.tailNode, farPt: at.headPt, farNode: at.headNode, blacks: at.blacks.slice().reverse() });
+  const mkBoundary = (nd) => {
+    const o = clone(nd) || { node_type: 'connect' };
+    if (o.node_type === 'line' || o.node_type == null) o.node_type = 'connect';
+    return o;
+  };
+  const mkBlack = (nd) => {
+    const o = clone(nd) || { node_type: 'line' };
+    o.node_type = 'line';
+    return o;
+  };
+  const trav = (at, end) =>
+    end === 'h'
+      ? {
+          startId: at.headId,
+          farId: at.tailId,
+          startPt: at.headPt,
+          startNode: at.headNode,
+          farPt: at.tailPt,
+          farNode: at.tailNode,
+          blacks: at.blacks,
+        }
+      : {
+          startId: at.tailId,
+          farId: at.headId,
+          startPt: at.tailPt,
+          startNode: at.tailNode,
+          farPt: at.headPt,
+          farNode: at.headNode,
+          blacks: at.blacks.slice().reverse(),
+        };
 
   const skeletonFlat = [];
   const sections = [];
@@ -160,7 +208,9 @@ export function buildConnectSkeleton(baseFlat) {
         for (const bl of t.blacks) blacks.push(bl);
         // 抵達 connect 邊界、或快繞回起點（lollipop）、或防呆 → 收尾
         if (isConn(t.farId) || t.farId === chainStartId || guard++ > atoms.length + 2) {
-          endPt = t.farPt; endNode = t.farNode; break;
+          endPt = t.farPt;
+          endNode = t.farNode;
+          break;
         }
         blacks.push(mkBlack(t.farNode)); // 直通接點降為黑點
         let cands = (ends.get(t.farId) || []).filter((x) => !x.atom.used);
@@ -168,7 +218,11 @@ export function buildConnectSkeleton(baseFlat) {
           // 黑點被他線鄰近 snap 而出現多個候選 → 只沿「同一條路線」連續穿過，不接他線。
           const same = cands.filter((x) => sameRoute(x.atom.seg, start.seg));
           if (same.length === 1) cands = same;
-          else { endPt = t.farPt; endNode = t.farNode; break; }
+          else {
+            endPt = t.farPt;
+            endNode = t.farNode;
+            break;
+          }
         }
         cur = cands[0].atom;
         ce = cands[0].end;
@@ -323,14 +377,18 @@ function nodeIdentity(node, x, y) {
 
 /** 把整份 flat（含黑站）所有點等比例縮放到整數格（就地）。 */
 function scaleAllFlatToGrid(segments, targetSpan = 200) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const seg of segments) for (const p of seg.points) {
-    const [x, y] = readPt(p);
-    if (x < minX) minX = x;
-    if (y < minY) minY = y;
-    if (x > maxX) maxX = x;
-    if (y > maxY) maxY = y;
-  }
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+  for (const seg of segments)
+    for (const p of seg.points) {
+      const [x, y] = readPt(p);
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
   const scale = targetSpan / Math.max(1e-9, Math.max(maxX - minX, maxY - minY));
   for (const seg of segments) {
     for (let i = 0; i < seg.points.length; i++) {
@@ -351,7 +409,10 @@ export function resolveStrokeInput() {
   if (!src) return { ok: false, message: `找不到上游圖層「${SCHEMATIC_SOURCE_LAYER_ID}」` };
   const geojson = src.geojsonData;
   if (!geojson?.features?.length) {
-    return { ok: false, message: `請先開啟並載入圖層「OSM／GeoJSON → JSON」（geojsonData 尚無資料）。` };
+    return {
+      ok: false,
+      message: `請先開啟並載入圖層「OSM／GeoJSON → JSON」（geojsonData 尚無資料）。`,
+    };
   }
   let fields;
   try {
@@ -392,7 +453,8 @@ export function resolveStrokeInput() {
 
 function polylineLength(pts) {
   let L = 0;
-  for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  for (let i = 1; i < pts.length; i++)
+    L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
   return L;
 }
 
@@ -413,7 +475,10 @@ function chainSectionsIntoPolyline(segs) {
   }
   const used = new Set();
   // 找起點：某段一端 degree==1
-  let startSeg = segs.find((s) => deg.get(endKey(s, 0)) === 1) || segs.find((s) => deg.get(endKey(s, 1)) === 1) || segs[0];
+  let startSeg =
+    segs.find((s) => deg.get(endKey(s, 0)) === 1) ||
+    segs.find((s) => deg.get(endKey(s, 1)) === 1) ||
+    segs[0];
   let atKey = deg.get(endKey(startSeg, 0)) === 1 ? endKey(startSeg, 0) : endKey(startSeg, 0);
   const points = [];
   const nodes = [];
@@ -427,7 +492,8 @@ function chainSectionsIntoPolyline(segs) {
     const segNodes = fwd ? seg.nodes || [] : [...(seg.nodes || [])].reverse();
     for (let i = 0; i < segPts.length; i++) {
       const [x, y] = readPt(segPts[i]);
-      if (points.length && points[points.length - 1][0] === x && points[points.length - 1][1] === y) continue; // 接點去重
+      if (points.length && points[points.length - 1][0] === x && points[points.length - 1][1] === y)
+        continue; // 接點去重
       points.push([x, y]);
       const nd = segNodes[i];
       nodes.push({ node: nd || null, id: nodeIdentity(nd, x, y) });

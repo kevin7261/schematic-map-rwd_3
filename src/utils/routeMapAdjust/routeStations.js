@@ -328,7 +328,9 @@ const nodeIsRYBClass = (nd) => {
   if (cc) {
     if (RYB_NODE_COLORS.has(cc)) return true; // 🔴🟡🔵
     if (
-      cc === '#000000' || cc === '#000' || cc === '#9c27b0' || // 黑 / 紫
+      cc === '#000000' ||
+      cc === '#000' ||
+      cc === '#9c27b0' || // 黑 / 紫
       cc === RIGHT_ANGLE_PINK_HEX.toLowerCase() ||
       cc === GRAY_DOT_HEX.toLowerCase() ||
       cc === DEMOTED_PINK_BROWN_HEX.toLowerCase()
@@ -337,7 +339,13 @@ const nodeIsRYBClass = (nd) => {
     }
   }
   const kind = nd.node_kind ?? t.node_kind;
-  if (kind === 'right_angle_pink' || kind === 'gray' || kind === 'brown' || kind === 'black' || kind === 'purple') {
+  if (
+    kind === 'right_angle_pink' ||
+    kind === 'gray' ||
+    kind === 'brown' ||
+    kind === 'black' ||
+    kind === 'purple'
+  ) {
     return false;
   }
   if (kind === 'cross') return true; // 黃
@@ -473,11 +481,17 @@ const straightenAndRedistributeLeg = (ks, anchorA, anchorB, cloneNodeAtKey, stat
  * 錨點座標絕不改；支線 segment 不碰；折角格只刪不位移。
  * @returns {number} 拉直的路段數
  */
-const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn, affectedRouteKeys = null) => {
+const collapseBrownAnchorChainsInFlat = (
+  flat,
+  brownLegKeys,
+  isAnchorFn,
+  affectedRouteKeys = null
+) => {
   if (!brownLegKeys?.size) return 0;
   const pendingBrowns = new Set(brownLegKeys);
   const vkey = (a, b) => `${a.toFixed(6)},${b.toFixed(6)}`;
-  const segRouteKey = (seg, si) => String(seg?.route_name ?? seg?.name ?? '').trim() || `__idx_${si}`;
+  const segRouteKey = (seg, si) =>
+    String(seg?.route_name ?? seg?.name ?? '').trim() || `__idx_${si}`;
   const isAffectedSeg = (si) => {
     if (!affectedRouteKeys || affectedRouteKeys.size === 0) return true;
     return affectedRouteKeys.has(segRouteKey(flat[si], si));
@@ -488,7 +502,10 @@ const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn, affecte
     const coordOf = new Map();
     const anchor = new Map();
     const adj = new Map();
-    const addAdj = (x, y) => { if (!adj.has(x)) adj.set(x, new Set()); adj.get(x).add(y); };
+    const addAdj = (x, y) => {
+      if (!adj.has(x)) adj.set(x, new Set());
+      adj.get(x).add(y);
+    };
     flat.forEach((seg, si) => {
       const pts = seg?.points;
       if (!Array.isArray(pts) || pts.length < 2) return;
@@ -497,10 +514,17 @@ const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn, affecte
       for (let pi = 0; pi < pts.length; pi++) {
         const [a, b] = readFlatPt(pts[pi]);
         const k = vkey(a, b);
-        if (!occ.has(k)) { occ.set(k, []); coordOf.set(k, [a, b]); anchor.set(k, false); }
+        if (!occ.has(k)) {
+          occ.set(k, []);
+          coordOf.set(k, [a, b]);
+          anchor.set(k, false);
+        }
         occ.get(k).push({ si, pi });
         if (isAnchorFn(nodes[pi])) anchor.set(k, true);
-        if (prev != null && prev !== k) { addAdj(prev, k); addAdj(k, prev); }
+        if (prev != null && prev !== k) {
+          addAdj(prev, k);
+          addAdj(k, prev);
+        }
         prev = k;
       }
     });
@@ -555,12 +579,19 @@ const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn, affecte
       const nd = flat[si]?.nodes?.[pi];
       if (!nd) continue;
       const kind = nd.node_kind ?? nd.tags?.node_kind;
-      if (kind === 'black' || kind === 'brown' || brownLegKeys.has(key)) { pick = nd; break; }
+      if (kind === 'black' || kind === 'brown' || brownLegKeys.has(key)) {
+        pick = nd;
+        break;
+      }
       if (!pick) pick = nd;
     }
     return pick
       ? JSON.parse(JSON.stringify(pick))
-      : { node_type: 'line', node_kind: 'black', tags: { node_kind: 'black', _forceDrawBlackDot: true } };
+      : {
+          node_type: 'line',
+          node_kind: 'black',
+          tags: { node_kind: 'black', _forceDrawBlackDot: true },
+        };
   };
 
   const isStationKey = (k, occ) => {
@@ -587,7 +618,11 @@ const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn, affecte
     mergeLegPointsFromKeys(ks, coordOf, (k) => cloneNodeAtKey(k, occ));
 
     const final = straightenAndRedistributeLeg(
-      ks, anchorA, anchorB, (k) => cloneNodeAtKey(k, occ), stationKeys
+      ks,
+      anchorA,
+      anchorB,
+      (k) => cloneNodeAtKey(k, occ),
+      stationKeys
     );
     if (final.points.length < 2) break;
 
@@ -615,7 +650,10 @@ const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn, affecte
       const pts = seg?.points;
       if (!Array.isArray(pts) || pts.length < 2) continue;
       const keys = pts.map((p) => vkey(...readFlatPt(p)));
-      if (isConsecutiveLegSubpath(keys)) { fullSegs.push(si); continue; }
+      if (isConsecutiveLegSubpath(keys)) {
+        fullSegs.push(si);
+        continue;
+      }
       const iA = keys.indexOf(kStart);
       const iB = keys.indexOf(kEnd);
       if (iA >= 0 && iB >= 0 && iA !== iB) partialSegs.push({ si, iA, iB });
@@ -640,7 +678,8 @@ const collapseBrownAnchorChainsInFlat = (flat, brownLegKeys, isAnchorFn, affecte
       for (const si of fullSegs) segsToDrop.add(si);
       const shell = cloneSegShell(flat[fullSegs[0]]);
       const lastSeg = flat[fullSegs[fullSegs.length - 1]];
-      if (lastSeg?.properties_end) shell.properties_end = JSON.parse(JSON.stringify(lastSeg.properties_end));
+      if (lastSeg?.properties_end)
+        shell.properties_end = JSON.parse(JSON.stringify(lastSeg.properties_end));
       newSegs.push({ ...shell, points: final.points, nodes: final.nodes });
     }
 
@@ -667,7 +706,10 @@ const buildRYBBoundedPaths = (flat, planar) => {
   const vkey = (a, b) => `${a.toFixed(6)},${b.toFixed(6)}`;
   const vert = new Map(); // vkey -> {a,b,ryb}
   const adj = new Map();
-  const addAdj = (x, y) => { if (!adj.has(x)) adj.set(x, new Set()); adj.get(x).add(y); };
+  const addAdj = (x, y) => {
+    if (!adj.has(x)) adj.set(x, new Set());
+    adj.get(x).add(y);
+  };
   for (const seg of Array.isArray(flat) ? flat : []) {
     const pts = seg?.points;
     if (!Array.isArray(pts) || pts.length < 2) continue;
@@ -678,7 +720,10 @@ const buildRYBBoundedPaths = (flat, planar) => {
       const k = vkey(a, b);
       if (!vert.has(k)) vert.set(k, { a, b, ryb: false });
       if (nodeIsRYBClass(nodes[i])) vert.get(k).ryb = true;
-      if (prev != null && prev !== k) { addAdj(prev, k); addAdj(k, prev); }
+      if (prev != null && prev !== k) {
+        addAdj(prev, k);
+        addAdj(k, prev);
+      }
       prev = k;
     }
   }
@@ -700,13 +745,17 @@ const buildRYBBoundedPaths = (flat, planar) => {
       prev = cur;
       cur = next;
     }
-    return ks.map((k) => { const v = vert.get(k); return repr(v.a, v.b); });
+    return ks.map((k) => {
+      const v = vert.get(k);
+      return repr(v.a, v.b);
+    });
   };
   for (const [k] of vert) {
     if (!isRYB(k)) continue;
     for (const nb of adj.get(k) || []) if (!seen.has(ek(k, nb))) paths.push({ path: walk(k, nb) });
   }
-  for (const [k] of vert) { // 殘餘純環（無 RYB 邊界）
+  for (const [k] of vert) {
+    // 殘餘純環（無 RYB 邊界）
     for (const nb of adj.get(k) || []) if (!seen.has(ek(k, nb))) paths.push({ path: walk(k, nb) });
   }
   return paths;
@@ -794,14 +843,22 @@ export const measurePinkDpFromScreenAnchors = (pointP, anchorCoords) => {
   };
   const onRow = anchors.filter((a) => gridCell(a[1]) === py);
   if (onRow.length >= 2) {
-    const left = onRow.filter((a) => gridCell(a[0]) < px).sort((a, b) => gridCell(b[0]) - gridCell(a[0]))[0];
-    const right = onRow.filter((a) => gridCell(a[0]) > px).sort((a, b) => gridCell(a[0]) - gridCell(b[0]))[0];
+    const left = onRow
+      .filter((a) => gridCell(a[0]) < px)
+      .sort((a, b) => gridCell(b[0]) - gridCell(a[0]))[0];
+    const right = onRow
+      .filter((a) => gridCell(a[0]) > px)
+      .sort((a, b) => gridCell(a[0]) - gridCell(b[0]))[0];
     if (left && right) pickMin(measurePinkDpDetail(left, right, P));
   }
   const onCol = anchors.filter((a) => gridCell(a[0]) === px);
   if (onCol.length >= 2) {
-    const below = onCol.filter((a) => gridCell(a[1]) < py).sort((a, b) => gridCell(b[1]) - gridCell(a[1]))[0];
-    const above = onCol.filter((a) => gridCell(a[1]) > py).sort((a, b) => gridCell(a[1]) - gridCell(b[1]))[0];
+    const below = onCol
+      .filter((a) => gridCell(a[1]) < py)
+      .sort((a, b) => gridCell(b[1]) - gridCell(a[1]))[0];
+    const above = onCol
+      .filter((a) => gridCell(a[1]) > py)
+      .sort((a, b) => gridCell(a[1]) - gridCell(b[1]))[0];
     if (below && above) pickMin(measurePinkDpDetail(below, above, P));
   }
   return best;
@@ -813,7 +870,8 @@ export const isScreenDpAnchorFeature = (feature) => {
   if (!p) return false;
   const tags = p.tags || {};
   const cc = String(p.node_class_color ?? tags.node_class_color ?? '').toLowerCase();
-  if (cc === RIGHT_ANGLE_PINK_HEX.toLowerCase() || tags.node_kind === 'right_angle_pink') return false;
+  if (cc === RIGHT_ANGLE_PINK_HEX.toLowerCase() || tags.node_kind === 'right_angle_pink')
+    return false;
   if (cc === GRAY_DOT_HEX.toLowerCase() || tags.node_kind === 'gray') return false;
   if (cc === DEMOTED_PINK_BROWN_HEX.toLowerCase() || tags.node_kind === 'brown') return false;
   if (cc === '#ff0000' || cc === '#1565c0' || cc === '#ffd600' || cc === '#9c27b0') return true;
@@ -867,7 +925,11 @@ export const buildPinkDpRatioDetailMap = (flat) => {
       coordOf.set(k, P);
       const nd = nodeAtSegmentIndex(seg, pi);
       const cc = String(nd?.node_class_color ?? nd?.tags?.node_class_color ?? '').toLowerCase();
-      if (nodeIsPinkClass(nd) || nodeIsBrownClass(nd) || cc === RIGHT_ANGLE_PINK_HEX.toLowerCase()) {
+      if (
+        nodeIsPinkClass(nd) ||
+        nodeIsBrownClass(nd) ||
+        cc === RIGHT_ANGLE_PINK_HEX.toLowerCase()
+      ) {
         pinkKeys.add(k);
       }
       if (nodeIsDpRatioAnchor(nd)) addRybp(P);
@@ -886,14 +948,22 @@ export const buildPinkDpRatioDetailMap = (flat) => {
     const out = [];
     const onRow = anchors.filter((a) => gridCell(a[1]) === py);
     if (onRow.length >= 2) {
-      const left = onRow.filter((a) => gridCell(a[0]) < px).sort((a, b) => gridCell(b[0]) - gridCell(a[0]))[0];
-      const right = onRow.filter((a) => gridCell(a[0]) > px).sort((a, b) => gridCell(a[0]) - gridCell(b[0]))[0];
+      const left = onRow
+        .filter((a) => gridCell(a[0]) < px)
+        .sort((a, b) => gridCell(b[0]) - gridCell(a[0]))[0];
+      const right = onRow
+        .filter((a) => gridCell(a[0]) > px)
+        .sort((a, b) => gridCell(a[0]) - gridCell(b[0]))[0];
       if (left && right) out.push(measurePinkDpDetail(left, right, P));
     }
     const onCol = anchors.filter((a) => gridCell(a[0]) === px);
     if (onCol.length >= 2) {
-      const below = onCol.filter((a) => gridCell(a[1]) < py).sort((a, b) => gridCell(b[1]) - gridCell(a[1]))[0];
-      const above = onCol.filter((a) => gridCell(a[1]) > py).sort((a, b) => gridCell(a[1]) - gridCell(b[1]))[0];
+      const below = onCol
+        .filter((a) => gridCell(a[1]) < py)
+        .sort((a, b) => gridCell(b[1]) - gridCell(a[1]))[0];
+      const above = onCol
+        .filter((a) => gridCell(a[1]) > py)
+        .sort((a, b) => gridCell(a[1]) - gridCell(b[1]))[0];
       if (below && above) out.push(measurePinkDpDetail(below, above, P));
     }
     return out;
@@ -1067,17 +1137,20 @@ export const revalidatePinkToBrownInFlat = (flat, opts = {}) => {
  * @returns {{brownToBlack:number, straightened:number, gray:number, splitSegments:number}}
  */
 export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
-  if (!Array.isArray(flat) || !flat.length) return { brownToBlack: 0, straightened: 0, gray: 0, splitSegments: 0 };
+  if (!Array.isArray(flat) || !flat.length)
+    return { brownToBlack: 0, straightened: 0, gray: 0, splitSegments: 0 };
   const planar = !!opts.planar;
   const repr = (a, b) => (planar ? [a, b] : [b, a]);
   const kkey = (p) => `${Number(p[0]).toFixed(6)},${Number(p[1]).toFixed(6)}`;
-  const segRouteKey = (seg, si) => String(seg?.route_name ?? seg?.name ?? '').trim() || `__idx_${si}`;
+  const segRouteKey = (seg, si) =>
+    String(seg?.route_name ?? seg?.name ?? '').trim() || `__idx_${si}`;
   const isBrown = (nd) => {
     if (!nd) return false;
     const t = nd.tags || {};
     return (
       (nd.node_kind ?? t.node_kind) === 'brown' ||
-      String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase() === DEMOTED_PINK_BROWN_HEX.toLowerCase()
+      String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase() ===
+        DEMOTED_PINK_BROWN_HEX.toLowerCase()
     );
   };
   const isGray = (nd) => {
@@ -1085,7 +1158,8 @@ export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
     const t = nd.tags || {};
     return (
       (nd.node_kind ?? t.node_kind) === 'gray' ||
-      String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase() === GRAY_DOT_HEX.toLowerCase()
+      String(t.node_class_color ?? nd.node_class_color ?? '').toLowerCase() ===
+        GRAY_DOT_HEX.toLowerCase()
     );
   };
   // 0) 找出含棕點之路線；無棕點則整段不處理。
@@ -1125,14 +1199,14 @@ export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
         nd.tags._forceDrawBlackDot = true;
         nd.tags.node_type = 'line';
         brownToBlack++;
-      }
-      else if (isGray(nd)) setNodeClass(nd, 'black', '#000000');
+      } else if (isGray(nd)) setNodeClass(nd, 'black', '#000000');
     }
   }
   // 1.5) ① 合併 → ② 拉直 → ③ 黑點重分配（僅含棕點之路線的錨點鏈）。
-  const straightened = brownKeys.size > 0
-    ? collapseBrownAnchorChainsInFlat(flat, brownKeys, nodeIsRYBorPinkClass, routesWithBrown)
-    : 0;
+  const straightened =
+    brownKeys.size > 0
+      ? collapseBrownAnchorChainsInFlat(flat, brownKeys, nodeIsRYBorPinkClass, routesWithBrown)
+      : 0;
   // 2) 僅含棕點之路線：以紅/黃/藍為邊界建折線；粉紅為內部 flush 邊界。
   const affectedSegs = flat.filter((seg, si) => isAffectedRoute(seg, si));
   const paths = buildRYBBoundedPaths(affectedSegs, planar);
@@ -1165,7 +1239,10 @@ export const recomputeGrayAfterBrownToBlack = (flat, opts = {}) => {
     for (let i = 0; i < pts.length; i++) {
       if (!nodeIsBlackClass(nodes[i])) continue;
       const [a, b] = readFlatPt(pts[i]);
-      if (grayKeys.has(kkey(repr(a, b)))) { setNodeClass(nodes[i], 'gray', GRAY_DOT_HEX); gray++; }
+      if (grayKeys.has(kkey(repr(a, b)))) {
+        setNodeClass(nodes[i], 'gray', GRAY_DOT_HEX);
+        gray++;
+      }
     }
   }
   // 5) 灰點（及紅/黃/藍/粉紅等邊界）處切開路段；黑點沿邊均分插回（僅含棕點之路線）。
@@ -1400,8 +1477,10 @@ export const computeRouteMapAdjustSkeletonStations = (lines, blackDots, stationC
   stationCoords.forEach((s, si) => {
     if (!Array.isArray(s) || s.length < 2) return;
     const deg = neighbors[si].size;
-    if (deg >= 3) c.push(s); // 🔴 真正分歧
-    else if (deg <= 1) t.push(s); // 🔵 真端點（degree 1）
+    if (deg >= 3)
+      c.push(s); // 🔴 真正分歧
+    else if (deg <= 1)
+      t.push(s); // 🔵 真端點（degree 1）
     else b.push(s); // 🖤 degree-2「1-1 相連」直通（含共軌、被切段接點）→ 黑、串接成一條骨頭
   });
   return { terminals: dedupePoints(t), connects: dedupePoints(c), blacks: dedupePoints(b) };
@@ -1465,7 +1544,8 @@ export const computeRouteMapAdjustRouteStations = (lines, blackDots) => {
     }
     for (const b of blacks) {
       const pr = projectOnPolyline(pts, b);
-      if (pr && pr.perpDist <= ON_LINE_TOL) stations.push({ type: 'black', latlng: b, pos: pr.pos });
+      if (pr && pr.perpDist <= ON_LINE_TOL)
+        stations.push({ type: 'black', latlng: b, pos: pr.pos });
     }
 
     stations.sort((a, b) => a.pos - b.pos);
@@ -1807,20 +1887,17 @@ export const buildRouteMapAdjustSkeleton = (
 
   // 0) 骨架站點分類（degree 拓撲）：端點🔵(degree≤1)／真正分歧🔴(degree≥3) 保留為節點；
   //    degree-2 直通站（含共軌並行）不強制成節點 → 會被下方 degree-2 收縮成黑點（除頭尾外不冒紅）。
-  const { terminals: stationTerminals, connects: stationConnects } = computeRouteMapAdjustSkeletonStations(
-    safeLines,
-    blackDots,
-    stationCoords
-  );
+  const { terminals: stationTerminals, connects: stationConnects } =
+    computeRouteMapAdjustSkeletonStations(safeLines, blackDots, stationCoords);
   // 交點要插入「每條通過該點的路線」（切段），端點本就是路線頂點不需插入。
   const stationConnectPts = dedupePoints([
     ...(stationConnects || []).filter((p) => Array.isArray(p) && p.length >= 2),
-    ...((forcedAnchors?.connects || []).filter((p) => Array.isArray(p) && p.length >= 2)),
+    ...(forcedAnchors?.connects || []).filter((p) => Array.isArray(p) && p.length >= 2),
   ]);
   // 端點＋交點之鍵 → 強制視為真實節點（收縮時不可穿越）。
   const forcedNodeKeys = new Set([
     ...(stationTerminals || []).map((p) => key(p)),
-    ...((forcedAnchors?.terminals || []).map((p) => key(p))),
+    ...(forcedAnchors?.terminals || []).map((p) => key(p)),
     ...stationConnectPts.map((p) => key(p)),
   ]);
 
@@ -2065,7 +2142,13 @@ export const buildRouteMapAdjustSkeleton = (
   const finalEdges = [];
   const purpleNodes = [];
   for (const e of classified) {
-    const fractions = e.isMerged ? [] : e.isLoop ? [1 / 3, 2 / 3] : e.isHeadTailShared ? [1 / 2] : [];
+    const fractions = e.isMerged
+      ? []
+      : e.isLoop
+        ? [1 / 3, 2 / 3]
+        : e.isHeadTailShared
+          ? [1 / 2]
+          : [];
     const path = Array.isArray(e.path) ? e.path : [];
     const idxs = fractions.length ? turningIndicesAtFractions(path, fractions) : [];
     if (!idxs.length) {
@@ -2283,6 +2366,8 @@ export const routeMapAdjustSkeletonToGeoJson = (
   // 每個黑點指派到「投影最近」的骨架邊，記其沿邊弧長位置——稍後插進該 way 的頂點，
   // 使示意圖佈局讀 way 幾何轉 flat 時黑點即為中段頂點（不會在轉換時遺失而於佈局後消失）。
   const blackOnEdge = edges.map(() => []);
+  /** 黑點 → 所屬骨架邊路線名（正規化 way 歸屬用；淡海分支必須對線）。 */
+  const blackOwnerRoute = new Map();
   (Array.isArray(blackFeatures) ? blackFeatures : []).forEach((b) => {
     if (!Array.isArray(b) || b.length < 2) return;
     let bestE = -1;
@@ -2298,7 +2383,11 @@ export const routeMapAdjustSkeletonToGeoJson = (
         bestPos = pr.pos;
       }
     });
-    if (bestE >= 0) pushBlackOnEdge(bestE, edges[bestE].path, b[0], b[1], bestPos);
+    if (bestE >= 0) {
+      pushBlackOnEdge(bestE, edges[bestE].path, b[0], b[1], bestPos);
+      const rn = String(edges[bestE]?.routes?.[0]?.routeName ?? '').trim();
+      if (rn) blackOwnerRoute.set(llKey(b[0], b[1]), rn);
+    }
   });
   edges.forEach((e, i) => {
     const path = Array.isArray(e.path) ? e.path : [];
@@ -2347,6 +2436,7 @@ export const routeMapAdjustSkeletonToGeoJson = (
     const isPink = pinkKeys.has(pinkKey);
     const isGray = !isPink && grayKeys.has(pinkKey);
     const dpRatio = isPink ? pinkKeys.get(pinkKey) : null; // 轉折比例（垂線/頭尾直線）
+    const ownerRoute = blackOwnerRoute.get(llKey(lat, lng)) || '';
     features.push({
       type: 'Feature',
       properties: {
@@ -2361,6 +2451,7 @@ export const routeMapAdjustSkeletonToGeoJson = (
           node_class_color: isPink ? RIGHT_ANGLE_PINK_HEX : isGray ? GRAY_DOT_HEX : '#000000',
           node_class_r: 4, // 黑/紅/藍/黃/紫/灰/粉紅/棕骨架點同尺寸
           dp_ratio: dpRatio != null ? Number(dpRatio.toFixed(4)) : undefined, // 🩷 轉折比例
+          ...(ownerRoute ? { route_name: ownerRoute } : {}),
         },
       },
       geometry: { type: 'Point', coordinates: [lng, lat] },

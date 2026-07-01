@@ -32,7 +32,10 @@ function collectRouteColors(seg, into) {
   add(seg.way_properties?.tags?.color);
   add(seg.color);
   const rc = seg.route_colors ?? seg.way_properties?.tags?.route_colors;
-  if (rc) String(rc).split(',').forEach((c) => add(c));
+  if (rc)
+    String(rc)
+      .split(',')
+      .forEach((c) => add(c));
 }
 
 function applyRouteColorsToSeg(seg, colors) {
@@ -105,9 +108,11 @@ function axisCollinearRunKey(pts) {
 }
 
 function mergeCorridorSections(fullFlat, sis, edgeTag) {
-  const sorted = sis.slice().sort((a, b) =>
-    String(fullFlat[a]?.route_name ?? '').localeCompare(String(fullFlat[b]?.route_name ?? ''))
-  );
+  const sorted = sis
+    .slice()
+    .sort((a, b) =>
+      String(fullFlat[a]?.route_name ?? '').localeCompare(String(fullFlat[b]?.route_name ?? ''))
+    );
   const primary = sorted[0];
   const colors = collectCorridorColors(fullFlat, sis);
   const uniqRoutes = [...new Set(sorted.map((si) => routeNameOf(fullFlat[si])).filter(Boolean))];
@@ -215,7 +220,11 @@ export function findOutputOverlaps(fullFlat) {
  */
 export function injectEdgeBends(optimizedSkeleton, graph, edgePaths) {
   if (!edgePaths) return;
-  const d2 = (a, b) => { const dx = a[0] - b[0], dy = a[1] - b[1]; return dx * dx + dy * dy; };
+  const d2 = (a, b) => {
+    const dx = a[0] - b[0],
+      dy = a[1] - b[1];
+    return dx * dx + dy * dy;
+  };
   for (const e of graph.edges) {
     const path = edgePaths[e.id];
     if (!path || path.length < 3) continue; // 無中間彎折 → 維持直線
@@ -224,7 +233,10 @@ export function injectEdgeBends(optimizedSkeleton, graph, edgePaths) {
       if (!seg?.points || seg.points.length < 2) continue;
       const start = readXY(seg.points[0]);
       const interiorFwd = path.slice(1, -1);
-      const interior = d2(path[0], start) <= d2(path[path.length - 1], start) ? interiorFwd : interiorFwd.slice().reverse();
+      const interior =
+        d2(path[0], start) <= d2(path[path.length - 1], start)
+          ? interiorFwd
+          : interiorFwd.slice().reverse();
       const endPt = seg.points[seg.points.length - 1];
       seg.points = [seg.points[0], ...interior.map((p) => [p[0], p[1]]), endPt];
     }
@@ -260,7 +272,10 @@ function pointAtArc(poly, cum, total, t) {
     if (cum[i] >= target) {
       const seg = cum[i] - cum[i - 1] || 1;
       const f = (target - cum[i - 1]) / seg;
-      return [poly[i - 1][0] + (poly[i][0] - poly[i - 1][0]) * f, poly[i - 1][1] + (poly[i][1] - poly[i - 1][1]) * f];
+      return [
+        poly[i - 1][0] + (poly[i][0] - poly[i - 1][0]) * f,
+        poly[i - 1][1] + (poly[i][1] - poly[i - 1][1]) * f,
+      ];
     }
   }
   return poly[poly.length - 1].slice();
@@ -294,7 +309,11 @@ export function reinsertBlackStations(optimizedSkeleton, sections) {
     // 收集「沿邊」的所有插入點：bend 角點(幾何) + 黑點(車站)，依弧長排序
     const items = [];
     for (let k = 1; k < last; k++) {
-      items.push({ s: cum[k], xy: skPts[k], node: nodeWithGrid(null, skPts[k][0], skPts[k][1], 'bend') });
+      items.push({
+        s: cum[k],
+        xy: skPts[k],
+        node: nodeWithGrid(null, skPts[k][0], skPts[k][1], 'bend'),
+      });
     }
     for (let j = 0; j < K; j++) {
       const t = (j + 1) / (K + 1);
@@ -384,7 +403,8 @@ export function writeSchematicResultToLayer(layerId, fullFlat, meta = {}) {
   }
 
   const stats = schematicStats(fullFlat);
-  const prevDash = layer.dashboardData && typeof layer.dashboardData === 'object' ? layer.dashboardData : {};
+  const prevDash =
+    layer.dashboardData && typeof layer.dashboardData === 'object' ? layer.dashboardData : {};
   const { _schematicGraph, ...dashMeta } = meta;
   void _schematicGraph;
   layer.dashboardData = { ...prevDash, ...dashMeta, segmentCount: fullFlat.length, ...stats };

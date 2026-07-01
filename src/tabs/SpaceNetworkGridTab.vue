@@ -999,10 +999,7 @@
     if (!base) return null;
     /** @type {{ type:'FeatureCollection', features: unknown[] }} */
     let out = base;
-    if (
-      isLayoutNetworkGridFromVhDrawLayerId(layer.layerId) &&
-      layer.layoutVhDrawFineGrid
-    ) {
+    if (isLayoutNetworkGridFromVhDrawLayerId(layer.layerId) && layer.layoutVhDrawFineGrid) {
       const spec = computeLayoutVhDrawFineGridSpec(dataStore, base, layer);
       if (spec) {
         out = JSON.parse(JSON.stringify(base));
@@ -2728,7 +2725,8 @@
       const part = activeTabLayer?.quadtreePartition;
       const xs = part?.xs;
       const ys = part?.ys;
-      if (!Array.isArray(xs) || !Array.isArray(ys) || xs.length === 0 || ys.length === 0) return null;
+      if (!Array.isArray(xs) || !Array.isArray(ys) || xs.length === 0 || ys.length === 0)
+        return null;
       return (lon, lat) => [
         valueToNearestIndex(Number(lon), xs),
         valueToNearestIndex(Number(lat), ys),
@@ -2752,8 +2750,27 @@
       if (nodeProps.station_name || nodeProps.station_id) return true;
       if (nodeProps.tags?.station_name || nodeProps.tags?.station_id) return true;
       if (nodeProps.tags?._forceDrawBlackDot) return true;
+      const kind = nodeProps.node_kind ?? nodeProps.tags?.node_kind;
+      if (kind === 'right_angle_pink' || kind === 'gray' || kind === 'brown') return true;
+      if (useSchematicVisualStyle && schematicNodeClassColor(nodeProps, nodeProps.tags || {})) {
+        return true;
+      }
       if (useSchematicVisualStyle && nodeProps.node_type === 'line') return true;
       return false;
+    };
+    /** 示意圖：以站名/id 為 key，同格不同站可並存（如轉乘＋端點 snap 共格）。 */
+    const stationMapKeyFromProps = (nodeProps, x, y, idx = 0) => {
+      const t = nodeProps?.tags || {};
+      const sid = String(nodeProps?.station_id ?? t.station_id ?? '').trim();
+      const snm = String(nodeProps?.station_name ?? t.station_name ?? '').trim();
+      if (sid) return `id:${sid}`;
+      if (snm) return `nm:${snm}`;
+      if (nodeProps?.node_type === 'connect') {
+        const cc = String(nodeProps?.node_class_color ?? t.node_class_color ?? '').trim();
+        return cc ? `connect:${cc}:${x},${y}` : `connect:${x},${y}`;
+      }
+      if (nodeProps?.tags?._forceDrawBlackDot) return `blk:${x},${y},${idx}`;
+      return `${x},${y}`;
     };
     const layoutUniformGridTooltipJr = uniformGridRouteFamilyTab
       ? buildEnrichedMapDrawnRowsForUniformGridTooltip(dataStore, layerTab, activeTabLayer)
@@ -3086,9 +3103,7 @@
               tags: {
                 ...(props.way_properties?.tags || props.properties?.tags || {}),
                 ...(seg.route_colors ? { route_colors: seg.route_colors } : {}),
-                ...(seg._schematicCorridorSkipDraw
-                  ? { _schematicCorridorSkipDraw: true }
-                  : {}),
+                ...(seg._schematicCorridorSkipDraw ? { _schematicCorridorSkipDraw: true } : {}),
               },
               name: seg.route_name || props.name || props.route_name,
               color: seg.route_color,
@@ -3116,9 +3131,7 @@
               tags: {
                 ...(seg.way_properties?.tags || {}),
                 ...(seg.route_colors ? { route_colors: seg.route_colors } : {}),
-                ...(seg._schematicCorridorSkipDraw
-                  ? { _schematicCorridorSkipDraw: true }
-                  : {}),
+                ...(seg._schematicCorridorSkipDraw ? { _schematicCorridorSkipDraw: true } : {}),
               },
               name: seg.name,
               station_weights: seg.station_weights, // 傳遞 station_weights
@@ -3271,7 +3284,19 @@
                   const midFromNode =
                     seg.nodes?.[i] && typeof seg.nodes[i] === 'object' ? seg.nodes[i] : {};
                   const midProps = { ...midFromNode, ...midFromPt };
-                  const key = `${x},${y}`;
+                  const sid = String(
+                    midProps.tags?.station_id ?? midProps.station_id ?? ''
+                  ).trim();
+                  const sname = String(
+                    midProps.tags?.station_name ?? midProps.station_name ?? ''
+                  ).trim();
+                  const key = useSchematicVisualStyle
+                    ? stationMapKeyFromProps(midProps, x, y, i)
+                    : sid || sname
+                      ? `st:${sid || sname}`
+                      : midProps.tags?._forceDrawBlackDot
+                        ? `blk:${x},${y},${i}`
+                        : `${x},${y}`;
 
                   // 判斷是否為真正的車站（不是幾何轉折點）
                   // 真正的車站：node_type === 'connect' 或有 station_name
@@ -3528,7 +3553,9 @@
               // flip 後紅點位移：若有 display_x/display_y 則用於繪製紅點，線仍用 points
               const drawX = nodeProps.display_x ?? x;
               const drawY = nodeProps.display_y ?? y;
-              const key = `${drawX},${drawY}`;
+              const key = useSchematicVisualStyle
+                ? stationMapKeyFromProps(nodeProps, drawX, drawY, index)
+                : `${drawX},${drawY}`;
 
               // 判斷是否為真正的車站（不是幾何轉折點）
               // 真正的車站：node_type === 'connect' 或有 station_name
@@ -3537,12 +3564,13 @@
               const isRealStation = isDrawableMidStation(nodeProps);
 
               // 只添加真正的車站（避免重複），不添加 node_type === 'line' 的幾何轉折點
-              // connect 端點優先於同格中段(line)黑點，避免終點藍點被蓋掉。
+              // connect 端點優先於同 key 中段(line)；示意圖以站名 key，同格不同站可並存。
               const exNode = stationMap.get(key);
               const thisNodeType = nodeProps.node_type || 'line';
               const canPlace =
                 isRealStation &&
-                (!exNode || (exNode.nodeType !== 'connect' && thisNodeType === 'connect'));
+                (!exNode ||
+                  (thisNodeType === 'connect' && exNode.nodeType !== 'connect'));
               if (canPlace) {
                 stationMap.set(key, {
                   geometry: {
@@ -4498,7 +4526,11 @@
       activeTabLayer?.geojsonData?.type === 'FeatureCollection' &&
       Array.isArray(activeTabLayer.geojsonData.features)
     ) {
-      const subdivSpec = computeLayoutVhDrawFineGridSpec(dataStore, activeTabLayer.geojsonData, activeTabLayer);
+      const subdivSpec = computeLayoutVhDrawFineGridSpec(
+        dataStore,
+        activeTabLayer.geojsonData,
+        activeTabLayer
+      );
       if (subdivSpec && Number.isFinite(subdivSpec.m)) {
         layoutVhDrawSubdivM = Math.max(0, Math.floor(subdivSpec.m));
       }
@@ -4868,7 +4900,9 @@
 
     /** 軸刻度：一般為資料域 xScale(tick)；layout-grid-viewer 為繪區 px：X 由左向右、**Y 線位仍由上往下量**，唯 Y 刻度字為「距底往上」之 pt（原點在左下）。fisheye 啟用時套用變形。 */
     const svgXFromAxisTick = (tick) =>
-      layoutVhDrawPixelAxisMode ? margin.left + fisheyeWarpRelX(Number(tick)) : xScale(Number(tick));
+      layoutVhDrawPixelAxisMode
+        ? margin.left + fisheyeWarpRelX(Number(tick))
+        : xScale(Number(tick));
     const svgYFromAxisTick = (tick) =>
       layoutVhDrawPixelAxisMode ? margin.top + fisheyeWarpRelY(Number(tick)) : yScale(Number(tick));
 
@@ -5336,9 +5370,7 @@
     if (isTaipeiTest3I3OrJ3LayerTab(layerTab)) {
       const tab = layerTab;
       const h3LayerId =
-        typeof tab === 'string' && tab.endsWith('_dp')
-          ? 'taipei_h3_dp'
-          : 'taipei_h3';
+        typeof tab === 'string' && tab.endsWith('_dp') ? 'taipei_h3_dp' : 'taipei_h3';
       const h3Layer = dataStore.findLayerById(h3LayerId);
       const h3Data = h3Layer?.spaceNetworkGridJsonData;
       if (Array.isArray(h3Data) && h3Data.length > 0) {
@@ -5863,10 +5895,7 @@
                 const g0 = coords[0];
                 const g1 = coords[coords.length - 1];
                 const eps = 1e-3;
-                const epXY = (ep) => [
-                  Number(ep?.x_grid ?? ep?.lon),
-                  Number(ep?.y_grid ?? ep?.lat),
-                ];
+                const epXY = (ep) => [Number(ep?.x_grid ?? ep?.lon), Number(ep?.y_grid ?? ep?.lat)];
                 for (const r of jr) {
                   const sm = r?.segment;
                   if (!sm?.start || !sm?.end) continue;
@@ -6892,9 +6921,7 @@
       };
       const layoutRouteNameOfFeature = (feat) => {
         const p = feat?.properties || {};
-        return String(
-          p.name ?? p.route_name ?? p.tags?.name ?? p.tags?.route_name ?? ''
-        ).trim();
+        return String(p.name ?? p.route_name ?? p.tags?.name ?? p.tags?.route_name ?? '').trim();
       };
       // 嚴格依 route_name 配對：端點相符且同路線名才採用；端點相符但屬別條路線（不同 route_name）
       // 絕不採用——即使兩線端點座標重疊，不相關的兩站仍各自獨立，不可互相借用車站。
@@ -7041,11 +7068,7 @@
       /** layout_network_grid_from_vh_draw：中段黑點段落抬頭（路線名／起迄站） */
       const layoutVhDrawRouteSegmentHoverHeadHtml = (exportRow) => {
         const r = exportRow && typeof exportRow === 'object' ? exportRow : null;
-        if (
-          !isLayoutNetworkGridFromVhDrawLayerId(layerTab) ||
-          !r
-        )
-          return '';
+        if (!isLayoutNetworkGridFromVhDrawLayerId(layerTab) || !r) return '';
         const seg = r.segment;
         if (!seg || typeof seg !== 'object') return '';
         const routeNm = escapeLayoutTooltipHtml(
@@ -8504,7 +8527,10 @@
                   return false;
                 }
                 // 僅納入可對應 weight_差值 的黑點；無 matchKey 者不應阻擋間距達標判斷
-                if (activeTabLayer?.layoutVhDrawAutoHideMidBlackDots === true && !d.copyMidMatchKey) {
+                if (
+                  activeTabLayer?.layoutVhDrawAutoHideMidBlackDots === true &&
+                  !d.copyMidMatchKey
+                ) {
                   return false;
                 }
                 return true;
@@ -8513,54 +8539,54 @@
             // 僅當圖層「自動隱藏黑點」開關開啟才計算此迴圈；關閉時黑點全顯示。
             if (activeTabLayer?.layoutVhDrawAutoHideMidBlackDots === true)
               for (let step = 0; step < nStepMax; step++) {
-              const dotsEff = filterDotsForAutoHideSpacing();
-              recomputeLayoutPxBandMaxFromDots(dotsEff);
-              if (
-                layoutPxBandMaxColVals.length !== nColSlabs ||
-                layoutPxBandMaxRowVals.length !== nRowSlabs
-              )
-                break;
-              const ratXt = slabRatiosBlackMaxWithMinPtForZeros(
-                ratioSrcColVals(),
-                width,
-                ptToPxForRatioFloor
-              );
-              const ratYt = slabRatiosBlackMaxWithMinPtForZeros(
-                ratioSrcRowVals(),
-                height,
-                ptToPxForRatioFloor
-              );
-              if (!ratXt.length || !ratYt.length) break;
-              const wGapT = [];
-              for (let xi = 0; xi < ratXt.length; xi++) {
-                const slabW = width * ratXt[xi];
-                const nSub = Math.max(0, Math.round(Number(layoutPxBandMaxColVals[xi]) || 0));
-                const gapPx = nSub >= 1 ? slabW / (nSub + 1) : slabW;
-                wGapT.push(pxToPtDashSubgrid(gapPx));
-              }
-              const hGapT = [];
-              for (let yi = 0; yi < ratYt.length; yi++) {
-                const slabH = height * ratYt[yi];
-                const nSubH = Math.max(0, Math.round(Number(layoutPxBandMaxRowVals[yi]) || 0));
-                const gapPx = nSubH >= 1 ? slabH / (nSubH + 1) : slabH;
-                hGapT.push(pxToPtDashSubgrid(gapPx));
-              }
-              const wMnRawT = Math.min(...wGapT);
-              const hMnRawT = Math.min(...hGapT);
-              if (wMnRawT >= ptThrNei && hMnRawT >= ptThrNei) break;
-              // 間距仍不足時至少保留一顆可隱藏黑點，避免全隱藏後才判定達標
-              if (visibleKeyedCount() <= 1) break;
-              let added = false;
-              for (let oi = 0; oi < orderedKeys.length; oi++) {
-                const mk = orderedKeys[oi];
-                if (!copyWeightedHideForSubgrid.has(mk)) {
-                  copyWeightedHideForSubgrid.add(mk);
-                  added = true;
+                const dotsEff = filterDotsForAutoHideSpacing();
+                recomputeLayoutPxBandMaxFromDots(dotsEff);
+                if (
+                  layoutPxBandMaxColVals.length !== nColSlabs ||
+                  layoutPxBandMaxRowVals.length !== nRowSlabs
+                )
                   break;
+                const ratXt = slabRatiosBlackMaxWithMinPtForZeros(
+                  ratioSrcColVals(),
+                  width,
+                  ptToPxForRatioFloor
+                );
+                const ratYt = slabRatiosBlackMaxWithMinPtForZeros(
+                  ratioSrcRowVals(),
+                  height,
+                  ptToPxForRatioFloor
+                );
+                if (!ratXt.length || !ratYt.length) break;
+                const wGapT = [];
+                for (let xi = 0; xi < ratXt.length; xi++) {
+                  const slabW = width * ratXt[xi];
+                  const nSub = Math.max(0, Math.round(Number(layoutPxBandMaxColVals[xi]) || 0));
+                  const gapPx = nSub >= 1 ? slabW / (nSub + 1) : slabW;
+                  wGapT.push(pxToPtDashSubgrid(gapPx));
                 }
+                const hGapT = [];
+                for (let yi = 0; yi < ratYt.length; yi++) {
+                  const slabH = height * ratYt[yi];
+                  const nSubH = Math.max(0, Math.round(Number(layoutPxBandMaxRowVals[yi]) || 0));
+                  const gapPx = nSubH >= 1 ? slabH / (nSubH + 1) : slabH;
+                  hGapT.push(pxToPtDashSubgrid(gapPx));
+                }
+                const wMnRawT = Math.min(...wGapT);
+                const hMnRawT = Math.min(...hGapT);
+                if (wMnRawT >= ptThrNei && hMnRawT >= ptThrNei) break;
+                // 間距仍不足時至少保留一顆可隱藏黑點，避免全隱藏後才判定達標
+                if (visibleKeyedCount() <= 1) break;
+                let added = false;
+                for (let oi = 0; oi < orderedKeys.length; oi++) {
+                  const mk = orderedKeys[oi];
+                  if (!copyWeightedHideForSubgrid.has(mk)) {
+                    copyWeightedHideForSubgrid.add(mk);
+                    added = true;
+                    break;
+                  }
+                }
+                if (!added) break;
               }
-              if (!added) break;
-            }
             const dotsFinal = layoutDotsForBandMaxRealtime.filter(
               (d) => !d.copyMidMatchKey || !copyWeightedHideForSubgrid.has(d.copyMidMatchKey)
             );
@@ -8770,12 +8796,7 @@
               }
             }
 
-            if (
-              animRun?.active &&
-              animRun.layerId === layerTab &&
-              animRun.from &&
-              animRun.to
-            ) {
+            if (animRun?.active && animRun.layerId === layerTab && animRun.from && animRun.to) {
               const blendedRemap = interpolateLayoutVhDrawRouteAnimRemap(
                 animRun.from,
                 animRun.to,
@@ -9070,17 +9091,14 @@
           !isConnect &&
           hbL3 &&
           hbL3.layerId === layerTab &&
-          (layerTab === 'taipei_l3' ||
-            layerTab === 'taipei_l3_dp') &&
+          (layerTab === 'taipei_l3' || layerTab === 'taipei_l3_dp') &&
           (hbSidL3 != null && String(hbSidL3).trim() !== ''
             ? String(sidLine ?? '').trim() === String(hbSidL3).trim()
             : Math.abs(Number(gxLine) - Number(hbL3.x)) < coordEpsL3 &&
               Math.abs(Number(gyLine) - Number(hbL3.y)) < coordEpsL3);
         isHighlighted = isConnectHl || isH2ConnectHl;
         isOnOtherRoute = isHighlighted || isH2BlackHl || isL3ReductionBlackHl;
-        radius = isHighlighted || isH2BlackHl || isL3ReductionBlackHl
-          ? 5
-          : SCHEMATIC_COLORED_DOT_R;
+        radius = isHighlighted || isH2BlackHl || isL3ReductionBlackHl ? 5 : SCHEMATIC_COLORED_DOT_R;
         strokeWidth = isHighlighted || isH2BlackHl || isL3ReductionBlackHl ? 2.5 : 1;
         strokeColor =
           isHighlighted || isH2BlackHl || isL3ReductionBlackHl
@@ -9159,8 +9177,7 @@
           const selR = Math.max(Number(radius) * 2.2, 7);
           circleElement.attr('r', selR).attr('stroke', '#e0651a').attr('stroke-width', 3).raise();
           // 顯示起／迄站名（強制顯示，與名稱開關無關）。
-          let selName =
-            props.station_name !== undefined ? props.station_name : tags.station_name;
+          let selName = props.station_name !== undefined ? props.station_name : tags.station_name;
           if (selName == null || String(selName).trim() === '') selName = tags.name;
           selName = selName != null ? String(selName).trim() : '';
           zoomGroup
@@ -9383,11 +9400,11 @@
           const isPinkHoverNode =
             props.node_kind === 'right_angle_pink' ||
             tags.node_kind === 'right_angle_pink' ||
-            String(props.node_class_color ?? tags.node_class_color ?? '').toLowerCase() === '#e377c2';
+            String(props.node_class_color ?? tags.node_class_color ?? '').toLowerCase() ===
+              '#e377c2';
           const isMilpPinkLayer =
             layerTab === SCHEMATIC_MILP_READ_LAYER_ID || layerTab === SCHEMATIC_MILP_LAYER_ID;
-          const dpLookupKey = (gx, gy) =>
-            `${Number(gx).toFixed(6)},${Number(gy).toFixed(6)}`;
+          const dpLookupKey = (gx, gy) => `${Number(gx).toFixed(6)},${Number(gy).toFixed(6)}`;
           const pinkGx = Number(props.x_grid ?? gridGx ?? drawX ?? x);
           const pinkGy = Number(props.y_grid ?? gridGy ?? drawY ?? y);
           let dpDetail = null;
@@ -9411,7 +9428,9 @@
             }
           } else if (livePinkDpDetail && isPinkHoverNode) {
             dpDetail =
-              liveDpDetailAt(pinkGx, pinkGy) ?? liveDpDetailAt(x, y) ?? liveDpDetailAt(drawX, drawY);
+              liveDpDetailAt(pinkGx, pinkGy) ??
+              liveDpDetailAt(x, y) ??
+              liveDpDetailAt(drawX, drawY);
           }
           if (dpDetail) {
             tooltipParts.push(
@@ -10735,22 +10754,45 @@
         const mp = mLyr.connectStraightenMovePreview;
         if (
           mp &&
-          Number.isFinite(Number(mp.fromGx)) && Number.isFinite(Number(mp.fromGy)) &&
-          Number.isFinite(Number(mp.toGx)) && Number.isFinite(Number(mp.toGy))
+          Number.isFinite(Number(mp.fromGx)) &&
+          Number.isFinite(Number(mp.fromGy)) &&
+          Number.isFinite(Number(mp.toGx)) &&
+          Number.isFinite(Number(mp.toGy))
         ) {
-          zoomGroup.append('g').style('pointer-events', 'none').append('circle')
-            .attr('cx', xScale(Math.round(Number(mp.fromGx)))).attr('cy', yScale(Math.round(Number(mp.fromGy))))
-            .attr('r', 12).attr('fill', 'rgba(120,120,120,0.2)').attr('stroke', '#616161')
-            .attr('stroke-width', 3).attr('stroke-dasharray', '6,4');
-          zoomGroup.append('g').style('pointer-events', 'none').append('circle')
-            .attr('cx', xScale(Math.round(Number(mp.toGx)))).attr('cy', yScale(Math.round(Number(mp.toGy))))
-            .attr('r', 12).attr('fill', 'rgba(0,137,123,0.22)').attr('stroke', '#00695c').attr('stroke-width', 3);
+          zoomGroup
+            .append('g')
+            .style('pointer-events', 'none')
+            .append('circle')
+            .attr('cx', xScale(Math.round(Number(mp.fromGx))))
+            .attr('cy', yScale(Math.round(Number(mp.fromGy))))
+            .attr('r', 12)
+            .attr('fill', 'rgba(120,120,120,0.2)')
+            .attr('stroke', '#616161')
+            .attr('stroke-width', 3)
+            .attr('stroke-dasharray', '6,4');
+          zoomGroup
+            .append('g')
+            .style('pointer-events', 'none')
+            .append('circle')
+            .attr('cx', xScale(Math.round(Number(mp.toGx))))
+            .attr('cy', yScale(Math.round(Number(mp.toGy))))
+            .attr('r', 12)
+            .attr('fill', 'rgba(0,137,123,0.22)')
+            .attr('stroke', '#00695c')
+            .attr('stroke-width', 3);
         }
         const hc = mLyr.connectStraightenHighlightCell;
         if (hc && Number.isFinite(Number(hc.gx)) && Number.isFinite(Number(hc.gy))) {
-          zoomGroup.append('g').style('pointer-events', 'none').append('circle')
-            .attr('cx', xScale(Math.round(Number(hc.gx)))).attr('cy', yScale(Math.round(Number(hc.gy)))).attr('r', 13)
-            .attr('fill', 'rgba(255,136,0,0.28)').attr('stroke', '#ff8800').attr('stroke-width', 4);
+          zoomGroup
+            .append('g')
+            .style('pointer-events', 'none')
+            .append('circle')
+            .attr('cx', xScale(Math.round(Number(hc.gx))))
+            .attr('cy', yScale(Math.round(Number(hc.gy))))
+            .attr('r', 13)
+            .attr('fill', 'rgba(255,136,0,0.28)')
+            .attr('stroke', '#ff8800')
+            .attr('stroke-width', 4);
         }
       }
     }
@@ -11267,14 +11309,21 @@
         !nmLayer?.spaceNetworkGridJsonData
       ) {
         try {
-          nmLayer.quadtreePartition = computeQuadtreePartitionFromGeojson(nmLayer.geojsonData) || null;
+          nmLayer.quadtreePartition =
+            computeQuadtreePartitionFromGeojson(nmLayer.geojsonData) || null;
         } catch (e) {
           // eslint-disable-next-line no-console
           console.error('⑨ 四分樹切割就地補算失敗', e);
         }
       }
       const part = nmLayer?.quadtreePartition;
-      if (part && Array.isArray(part.xs) && Array.isArray(part.ys) && part.xs.length && part.ys.length) {
+      if (
+        part &&
+        Array.isArray(part.xs) &&
+        Array.isArray(part.ys) &&
+        part.xs.length &&
+        part.ys.length
+      ) {
         const MAX_LINES = 4000; // 防呆：格線過多時不畫（避免凍住）
         if (part.xs.length + part.ys.length <= MAX_LINES) {
           const qtG = zoomGroup
@@ -11294,16 +11343,22 @@
               .attr('vector-effect', 'non-scaling-stroke');
           for (const xv of part.xs) {
             const xp = xScale(xv);
-            lineAttrs(qtG.append('line').attr('x1', xp).attr('y1', yT).attr('x2', xp).attr('y2', yB));
+            lineAttrs(
+              qtG.append('line').attr('x1', xp).attr('y1', yT).attr('x2', xp).attr('y2', yB)
+            );
           }
           for (const yv of part.ys) {
             const yp = yScale(yv);
-            lineAttrs(qtG.append('line').attr('x1', xL).attr('y1', yp).attr('x2', xR).attr('y2', yp));
+            lineAttrs(
+              qtG.append('line').attr('x1', xL).attr('y1', yp).attr('x2', xR).attr('y2', yp)
+            );
           }
           qtG.lower(); // 置於路線/站點之下，當背景格
         } else {
           // eslint-disable-next-line no-console
-          console.warn(`[⑨四分樹預覽] 格線過多（${part.xs.length}×${part.ys.length}），略過顯示以免凍住。`);
+          console.warn(
+            `[⑨四分樹預覽] 格線過多（${part.xs.length}×${part.ys.length}），略過顯示以免凍住。`
+          );
         }
       }
     }
@@ -11423,9 +11478,13 @@
 
     // 一般（瀏覽）模式才讓線／點可互動，hover 顯示屬性（與 osm／geojson 圖層一致）；
     // 編輯模式（line／point）維持不可互動，以利在其上繼續繪製。
-    const isEditing = () => dataStore.leafletDrawMode === 'line' || dataStore.leafletDrawMode === 'point';
+    const isEditing = () =>
+      dataStore.leafletDrawMode === 'line' || dataStore.leafletDrawMode === 'point';
     const esc = (s) =>
-      String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+      String(s == null ? '' : s).replace(
+        /[&<>]/g,
+        (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]
+      );
     const llKey = (lat, lng) => `${(+lat).toFixed(6)},${(+lng).toFixed(6)}`;
     const rowHtml = (k, v) =>
       v == null || v === '' ? '' : `<div><span style="color:#888">${esc(k)}</span> ${esc(v)}</div>`;
@@ -11470,7 +11529,9 @@
         rowHtml('station_id', meta.id) +
         rowHtml('osm_id', meta.osmId) +
         rowHtml('type', typeLabel(type)) +
-        (routes.length ? `<div><span style="color:#888">route_name_list</span> ${esc(routes.join('、'))}</div>` : '') +
+        (routes.length
+          ? `<div><span style="color:#888">route_name_list</span> ${esc(routes.join('、'))}</div>`
+          : '') +
         `</div>`
       );
     };
@@ -11509,7 +11570,8 @@
           fillOpacity: 1,
           interactive: !editing,
         });
-        if (!editing) m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
+        if (!editing)
+          m.bindTooltip(stationTooltipHtml(latlng, type, routesAtCoord), { sticky: true });
         m.addTo(stationGroup);
       };
       // 繪製順序：黑點 → 端點(藍) → 交點(紅)，讓交點顯示在最上層
