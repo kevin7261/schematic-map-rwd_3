@@ -1,0 +1,5498 @@
+{
+  "exportedAt": "2026-05-15T15:49:05.009Z",
+  "layerId": "orthogonal_toward_center_vh_draw",
+  "mapDrawnRoutes": [
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R01",
+          "station_name": "廣慈/奉天宮站",
+          "route_name_list": [
+            "淡水信義線"
+          ],
+          "x_grid": 8,
+          "y_grid": 7,
+          "type": "terminal"
+        },
+        "stations": [
+          {
+            "station_id": "R02",
+            "station_name": "象山",
+            "lon": 121.56833543301,
+            "lat": 25.03285424664,
+            "type": "normal"
+          },
+          {
+            "station_id": "R03",
+            "station_name": "台北101/世貿",
+            "lon": 121.56244396627,
+            "lat": 25.03295631252,
+            "type": "normal"
+          },
+          {
+            "station_id": "R04",
+            "station_name": "信義安和",
+            "lon": 121.55272363543,
+            "lat": 25.03315559809,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R05",
+          "station_name": "大安",
+          "route_name_list": [
+            "淡水信義線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          8,
+          7
+        ],
+        [],
+        [
+          7,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R05",
+          "station_name": "大安",
+          "route_name_list": [
+            "淡水信義線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R06",
+            "station_name": "大安森林公園",
+            "lon": 121.53526781917,
+            "lat": 25.03352499561,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R07",
+          "station_name": "東門",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          7
+        ],
+        [],
+        [
+          6,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R07",
+          "station_name": "東門",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          7
+        ],
+        [],
+        [
+          5,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R09",
+            "station_name": "台大醫院",
+            "lon": 121.51614367425,
+            "lat": 25.04165145495,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R10",
+          "station_name": "台北車站",
+          "route_name_list": [
+            "淡水信義線",
+            "板南線"
+          ],
+          "x_grid": 5,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          7
+        ],
+        [],
+        [
+          5,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R10",
+          "station_name": "台北車站",
+          "route_name_list": [
+            "淡水信義線",
+            "板南線"
+          ],
+          "x_grid": 5,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R11",
+          "station_name": "中山",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線"
+          ],
+          "x_grid": 5,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          8
+        ],
+        [],
+        [
+          5,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R11",
+          "station_name": "中山",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線"
+          ],
+          "x_grid": 5,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R12",
+            "station_name": "雙連",
+            "lon": 121.52064978808,
+            "lat": 25.05765492964,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R13",
+          "station_name": "民權西路",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 10,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          9
+        ],
+        [],
+        [
+          5,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R13",
+          "station_name": "民權西路",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R14",
+            "station_name": "圓山",
+            "lon": 121.52013480127,
+            "lat": 25.07139205343,
+            "type": "normal"
+          },
+          {
+            "station_id": "R15",
+            "station_name": "劍潭",
+            "lon": 121.52497350633,
+            "lat": 25.08428712112,
+            "type": "normal"
+          },
+          {
+            "station_id": "R16",
+            "station_name": "士林",
+            "lon": 121.52559309929,
+            "lat": 25.09529592441,
+            "type": "normal"
+          },
+          {
+            "station_id": "R17",
+            "station_name": "芝山",
+            "lon": 121.52251928777,
+            "lat": 25.10299566977,
+            "type": "normal"
+          },
+          {
+            "station_id": "R18",
+            "station_name": "明德",
+            "lon": 121.51876419514,
+            "lat": 25.1098521643,
+            "type": "normal"
+          },
+          {
+            "station_id": "R19",
+            "station_name": "石牌",
+            "lon": 121.51549994409,
+            "lat": 25.1145905254,
+            "type": "normal"
+          },
+          {
+            "station_id": "R20",
+            "station_name": "唭哩岸",
+            "lon": 121.50608271092,
+            "lat": 25.12088295421,
+            "type": "normal"
+          },
+          {
+            "station_id": "R21",
+            "station_name": "奇岩",
+            "lon": 121.50111257493,
+            "lat": 25.12558203301,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R22",
+          "station_name": "北投",
+          "route_name_list": [
+            "淡水信義線",
+            "新北投支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 11,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          10
+        ],
+        [],
+        [
+          5,
+          11
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R22",
+          "station_name": "北投",
+          "route_name_list": [
+            "淡水信義線",
+            "新北投支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 11,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R23",
+            "station_name": "復興崗",
+            "lon": 121.48548602521,
+            "lat": 25.13749040723,
+            "type": "normal"
+          },
+          {
+            "station_id": "R24",
+            "station_name": "忠義",
+            "lon": 121.47337048978,
+            "lat": 25.13094385663,
+            "type": "normal"
+          },
+          {
+            "station_id": "R25",
+            "station_name": "關渡",
+            "lon": 121.46713971823,
+            "lat": 25.12569859452,
+            "type": "normal"
+          },
+          {
+            "station_id": "R26",
+            "station_name": "竹圍",
+            "lon": 121.45951419801,
+            "lat": 25.13696591684,
+            "type": "normal"
+          },
+          {
+            "station_id": "V01",
+            "station_name": "紅樹林",
+            "lon": 121.4588275525,
+            "lat": 25.15440150558,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R28",
+          "station_name": "淡水",
+          "route_name_list": [
+            "淡水信義線"
+          ],
+          "x_grid": 4,
+          "y_grid": 11,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          11
+        ],
+        [],
+        [
+          4,
+          11
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL01",
+          "station_name": "頂埔",
+          "route_name_list": [
+            "板南線",
+            "三鶯線"
+          ],
+          "x_grid": 1,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BL02",
+            "station_name": "永寧",
+            "lon": 121.43626748979,
+            "lat": 24.96686963553,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL03",
+            "station_name": "土城",
+            "lon": 121.44429802626,
+            "lat": 24.97320855186,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL04",
+            "station_name": "海山",
+            "lon": 121.44876524672,
+            "lat": 24.98531529383,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL05",
+            "station_name": "亞東醫院",
+            "lon": 121.45236074656,
+            "lat": 24.99751322261,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL06",
+            "station_name": "府中",
+            "lon": 121.45925268397,
+            "lat": 25.00875101756,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL07",
+          "station_name": "板橋",
+          "route_name_list": [
+            "板南線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          1,
+          7
+        ],
+        [],
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL07",
+          "station_name": "板橋",
+          "route_name_list": [
+            "板南線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BL08",
+            "station_name": "新埔",
+            "lon": 121.46828233927,
+            "lat": 25.02342205128,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL09",
+            "station_name": "江子翠",
+            "lon": 121.47276699007,
+            "lat": 25.03042396119,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL10",
+            "station_name": "龍山寺",
+            "lon": 121.49956225812,
+            "lat": 25.03528447424,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL11",
+          "station_name": "西門",
+          "route_name_list": [
+            "板南線",
+            "松山新店線"
+          ],
+          "x_grid": 4,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          7
+        ],
+        [
+          [
+            3,
+            8
+          ]
+        ],
+        [
+          4,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL11",
+          "station_name": "西門",
+          "route_name_list": [
+            "板南線",
+            "松山新店線"
+          ],
+          "x_grid": 4,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R10",
+          "station_name": "台北車站",
+          "route_name_list": [
+            "淡水信義線",
+            "板南線"
+          ],
+          "x_grid": 5,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          8
+        ],
+        [],
+        [
+          5,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "R10",
+          "station_name": "台北車站",
+          "route_name_list": [
+            "淡水信義線",
+            "板南線"
+          ],
+          "x_grid": 5,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BL13",
+            "station_name": "善導寺",
+            "lon": 121.52342855394,
+            "lat": 25.04479594104,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL14",
+          "station_name": "忠孝新生",
+          "route_name_list": [
+            "板南線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          8
+        ],
+        [],
+        [
+          6,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL14",
+          "station_name": "忠孝新生",
+          "route_name_list": [
+            "板南線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "BL15",
+          "station_name": "忠孝復興",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          8
+        ],
+        [],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL15",
+          "station_name": "忠孝復興",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BL16",
+            "station_name": "忠孝敦化",
+            "lon": 121.54939770162,
+            "lat": 25.04151537027,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL17",
+            "station_name": "國父紀念館",
+            "lon": 121.5573960489,
+            "lat": 25.04135012438,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL18",
+            "station_name": "市政府",
+            "lon": 121.566102494,
+            "lat": 25.04112656092,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL19",
+            "station_name": "永春",
+            "lon": 121.57783850893,
+            "lat": 25.04092485456,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL20",
+            "station_name": "後山埤",
+            "lon": 121.58231377065,
+            "lat": 25.04473762055,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL21",
+            "station_name": "昆陽",
+            "lon": 121.59331082761,
+            "lat": 25.05049177544,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL22",
+            "station_name": "南港",
+            "lon": 121.60754799306,
+            "lat": 25.05220241805,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL23",
+          "station_name": "南港展覽館",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 9,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          8
+        ],
+        [],
+        [
+          9,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "BR01",
+          "station_name": "動物園",
+          "route_name_list": [
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 6,
+          "type": "terminal"
+        },
+        "stations": [
+          {
+            "station_id": "BR03",
+            "station_name": "萬芳社區",
+            "lon": 121.5681356138,
+            "lat": 24.99860228856,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR04",
+            "station_name": "萬芳醫院",
+            "lon": 121.55814170703,
+            "lat": 24.99942879989,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR05",
+            "station_name": "辛亥",
+            "lon": 121.55705809325,
+            "lat": 25.00546462277,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR06",
+            "station_name": "麟光",
+            "lon": 121.55890881747,
+            "lat": 25.01841766646,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR07",
+            "station_name": "六張犁",
+            "lon": 121.55312329262,
+            "lat": 25.02381335203,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR08",
+            "station_name": "科技大樓",
+            "lon": 121.54346197575,
+            "lat": 25.02609794021,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R05",
+          "station_name": "大安",
+          "route_name_list": [
+            "淡水信義線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          6
+        ],
+        [],
+        [
+          7,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "R05",
+          "station_name": "大安",
+          "route_name_list": [
+            "淡水信義線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "BL15",
+          "station_name": "忠孝復興",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          7
+        ],
+        [],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "BL15",
+          "station_name": "忠孝復興",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G16",
+          "station_name": "南京復興",
+          "route_name_list": [
+            "文湖線",
+            "松山新店線"
+          ],
+          "x_grid": 7,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          8
+        ],
+        [],
+        [
+          7,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "G16",
+          "station_name": "南京復興",
+          "route_name_list": [
+            "文湖線",
+            "松山新店線"
+          ],
+          "x_grid": 7,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BR12",
+            "station_name": "中山國中",
+            "lon": 121.54420494497,
+            "lat": 25.06066294426,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR13",
+            "station_name": "松山機場",
+            "lon": 121.55161320627,
+            "lat": 25.06303431377,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR14",
+            "station_name": "大直",
+            "lon": 121.54738604486,
+            "lat": 25.07989012366,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR15",
+            "station_name": "劍南路",
+            "lon": 121.55311122403,
+            "lat": 25.08559403986,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR16",
+            "station_name": "西湖",
+            "lon": 121.56731754273,
+            "lat": 25.08215423025,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR17",
+            "station_name": "港墘",
+            "lon": 121.57531856954,
+            "lat": 25.08003102437,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR18",
+            "station_name": "文德",
+            "lon": 121.58493965596,
+            "lat": 25.07854426834,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR19",
+            "station_name": "內湖",
+            "lon": 121.59445344865,
+            "lat": 25.08367981043,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR20",
+            "station_name": "大湖公園",
+            "lon": 121.60231768817,
+            "lat": 25.08376726092,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR21",
+            "station_name": "葫洲",
+            "lon": 121.60736560553,
+            "lat": 25.07261893862,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BR22",
+          "station_name": "東湖",
+          "route_name_list": [
+            "文湖線",
+            "民生汐止線"
+          ],
+          "x_grid": 8,
+          "y_grid": 10,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          9
+        ],
+        [
+          [
+            7,
+            10
+          ]
+        ],
+        [
+          8,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "BR22",
+          "station_name": "東湖",
+          "route_name_list": [
+            "文湖線",
+            "民生汐止線"
+          ],
+          "x_grid": 8,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BR23",
+            "station_name": "南港軟體園區",
+            "lon": 121.61590039194,
+            "lat": 25.05994374935,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL23",
+          "station_name": "南港展覽館",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 9,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          8,
+          10
+        ],
+        [
+          [
+            9,
+            9
+          ]
+        ],
+        [
+          9,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G01",
+          "station_name": "新店",
+          "route_name_list": [
+            "松山新店線"
+          ],
+          "x_grid": 6,
+          "y_grid": 3,
+          "type": "terminal"
+        },
+        "stations": [
+          {
+            "station_id": "G02",
+            "station_name": "新店區公所",
+            "lon": 121.54135107458,
+            "lat": 24.96737053627,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "G03",
+          "station_name": "七張",
+          "route_name_list": [
+            "松山新店線",
+            "小碧潭支線"
+          ],
+          "x_grid": 6,
+          "y_grid": 4,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          3
+        ],
+        [],
+        [
+          6,
+          4
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G03",
+          "station_name": "七張",
+          "route_name_list": [
+            "松山新店線",
+            "小碧潭支線"
+          ],
+          "x_grid": 6,
+          "y_grid": 4,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G04",
+          "station_name": "大坪林",
+          "route_name_list": [
+            "松山新店線",
+            "環狀線"
+          ],
+          "x_grid": 6,
+          "y_grid": 5,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          4
+        ],
+        [],
+        [
+          6,
+          5
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G04",
+          "station_name": "大坪林",
+          "route_name_list": [
+            "松山新店線",
+            "環狀線"
+          ],
+          "x_grid": 6,
+          "y_grid": 5,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "G05",
+            "station_name": "景美",
+            "lon": 121.54079853952,
+            "lat": 24.99296725303,
+            "type": "normal"
+          },
+          {
+            "station_id": "G06",
+            "station_name": "萬隆",
+            "lon": 121.53901218832,
+            "lat": 25.00188886814,
+            "type": "normal"
+          },
+          {
+            "station_id": "G07",
+            "station_name": "公館",
+            "lon": 121.53421103418,
+            "lat": 25.01487874813,
+            "type": "normal"
+          },
+          {
+            "station_id": "G08",
+            "station_name": "台電大樓",
+            "lon": 121.52840136945,
+            "lat": 25.02049819556,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "G09",
+          "station_name": "古亭",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 6,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          5
+        ],
+        [
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G09",
+          "station_name": "古亭",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 6,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          6
+        ],
+        [],
+        [
+          5,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "G11",
+            "station_name": "小南門",
+            "lon": 121.51087044597,
+            "lat": 25.03594549399,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL11",
+          "station_name": "西門",
+          "route_name_list": [
+            "板南線",
+            "松山新店線"
+          ],
+          "x_grid": 4,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          7
+        ],
+        [],
+        [
+          4,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "BL11",
+          "station_name": "西門",
+          "route_name_list": [
+            "板南線",
+            "松山新店線"
+          ],
+          "x_grid": 4,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "G13",
+            "station_name": "北門",
+            "lon": 121.51028572977,
+            "lat": 25.0493983124,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R11",
+          "station_name": "中山",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線"
+          ],
+          "x_grid": 5,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          8
+        ],
+        [
+          [
+            4,
+            9
+          ]
+        ],
+        [
+          5,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "R11",
+          "station_name": "中山",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線"
+          ],
+          "x_grid": 5,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G15/O08",
+          "station_name": "松江南京",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          9
+        ],
+        [],
+        [
+          6,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G15/O08",
+          "station_name": "松江南京",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G16",
+          "station_name": "南京復興",
+          "route_name_list": [
+            "文湖線",
+            "松山新店線"
+          ],
+          "x_grid": 7,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          9
+        ],
+        [],
+        [
+          7,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G16",
+          "station_name": "南京復興",
+          "route_name_list": [
+            "文湖線",
+            "松山新店線"
+          ],
+          "x_grid": 7,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "G17",
+            "station_name": "台北小巨蛋",
+            "lon": 121.55147909582,
+            "lat": 25.05167756434,
+            "type": "normal"
+          },
+          {
+            "station_id": "G18",
+            "station_name": "南京三民",
+            "lon": 121.56431077838,
+            "lat": 25.05142000127,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "G19",
+          "station_name": "松山",
+          "route_name_list": [
+            "松山新店線"
+          ],
+          "x_grid": 8,
+          "y_grid": 9,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          9
+        ],
+        [],
+        [
+          8,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O01",
+          "station_name": "南勢角",
+          "route_name_list": [
+            "中和新蘆線"
+          ],
+          "x_grid": 4,
+          "y_grid": 5,
+          "type": "terminal"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "O02",
+          "station_name": "景安",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 4,
+          "y_grid": 6,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          5
+        ],
+        [],
+        [
+          4,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O02",
+          "station_name": "景安",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 4,
+          "y_grid": 6,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O03",
+            "station_name": "永安市場",
+            "lon": 121.51083022222,
+            "lat": 25.00240542319,
+            "type": "normal"
+          },
+          {
+            "station_id": "O04",
+            "station_name": "頂溪",
+            "lon": 121.515473122,
+            "lat": 25.01359051676,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "G09",
+          "station_name": "古亭",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 6,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          6
+        ],
+        [],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "G09",
+          "station_name": "古亭",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 6,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R07",
+          "station_name": "東門",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          6
+        ],
+        [],
+        [
+          6,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "R07",
+          "station_name": "東門",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "BL14",
+          "station_name": "忠孝新生",
+          "route_name_list": [
+            "板南線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          7
+        ],
+        [],
+        [
+          6,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "BL14",
+          "station_name": "忠孝新生",
+          "route_name_list": [
+            "板南線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G15/O08",
+          "station_name": "松江南京",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          8
+        ],
+        [],
+        [
+          6,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "G15/O08",
+          "station_name": "松江南京",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O09",
+            "station_name": "行天宮",
+            "lon": 121.53313903746,
+            "lat": 25.05794377078,
+            "type": "normal"
+          },
+          {
+            "station_id": "O10",
+            "station_name": "中山國小",
+            "lon": 121.52665256381,
+            "lat": 25.06266501,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R13",
+          "station_name": "民權西路",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 10,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          9
+        ],
+        [
+          [
+            6,
+            10
+          ]
+        ],
+        [
+          5,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "R13",
+          "station_name": "民權西路",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "O10",
+          "station_name": "大橋頭",
+          "route_name_list": [
+            "中和新蘆線",
+            "中和新蘆線(蘆洲線)"
+          ],
+          "x_grid": 4,
+          "y_grid": 10,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          10
+        ],
+        [],
+        [
+          4,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O10",
+          "station_name": "大橋頭",
+          "route_name_list": [
+            "中和新蘆線",
+            "中和新蘆線(蘆洲線)"
+          ],
+          "x_grid": 4,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O11",
+            "station_name": "台北橋",
+            "lon": 121.50051712956,
+            "lat": 25.06314941422,
+            "type": "normal"
+          },
+          {
+            "station_id": "O12",
+            "station_name": "菜寮",
+            "lon": 121.49211376637,
+            "lat": 25.06027175864,
+            "type": "normal"
+          },
+          {
+            "station_id": "O13",
+            "station_name": "三重",
+            "lon": 121.48244708508,
+            "lat": 25.05536606961,
+            "type": "normal"
+          },
+          {
+            "station_id": "O14",
+            "station_name": "先嗇宮",
+            "lon": 121.47163241833,
+            "lat": 25.04640703124,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O15",
+          "station_name": "頭前庄",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          10
+        ],
+        [],
+        [
+          2,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O15",
+          "station_name": "頭前庄",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O16",
+            "station_name": "新莊",
+            "lon": 121.45334779948,
+            "lat": 25.0363221664,
+            "type": "normal"
+          },
+          {
+            "station_id": "O17",
+            "station_name": "輔大",
+            "lon": 121.43524825037,
+            "lat": 25.03271814734,
+            "type": "normal"
+          },
+          {
+            "station_id": "O18",
+            "station_name": "丹鳳",
+            "lon": 121.4226499173,
+            "lat": 25.02893417296,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O19",
+          "station_name": "迴龍",
+          "route_name_list": [
+            "中和新蘆線"
+          ],
+          "x_grid": 1,
+          "y_grid": 8,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          8
+        ],
+        [],
+        [
+          1,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線(蘆洲線)",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O10",
+          "station_name": "大橋頭",
+          "route_name_list": [
+            "中和新蘆線",
+            "中和新蘆線(蘆洲線)"
+          ],
+          "x_grid": 4,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O50",
+            "station_name": "三重國小",
+            "lon": 121.49730920523,
+            "lat": 25.06999751431,
+            "type": "normal"
+          },
+          {
+            "station_id": "O51",
+            "station_name": "三和國中",
+            "lon": 121.48636042535,
+            "lat": 25.07679998454,
+            "type": "normal"
+          },
+          {
+            "station_id": "O52",
+            "station_name": "徐匯中學",
+            "lon": 121.4796254012,
+            "lat": 25.08067236105,
+            "type": "normal"
+          },
+          {
+            "station_id": "O53",
+            "station_name": "三民高中",
+            "lon": 121.47330879629,
+            "lat": 25.08550659188,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O54",
+          "station_name": "蘆洲",
+          "route_name_list": [
+            "中和新蘆線(蘆洲線)"
+          ],
+          "x_grid": 3,
+          "y_grid": 10,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          10
+        ],
+        [],
+        [
+          3,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "萬大中和樹林線(第一期)",
+      "color": "#B2D235",
+      "segment": {
+        "start": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "LG02",
+            "station_name": "植物園",
+            "lon": 121.50880515039,
+            "lat": 25.03061352481,
+            "type": "normal"
+          },
+          {
+            "station_id": "LG03",
+            "station_name": "廈安",
+            "lon": 121.50260924757,
+            "lat": 25.02977263781,
+            "type": "normal"
+          },
+          {
+            "station_id": "LG04",
+            "station_name": "加蚋",
+            "lon": 121.49845718265,
+            "lat": 25.02121762668,
+            "type": "normal"
+          },
+          {
+            "station_id": "LG05",
+            "station_name": "永和永平國小",
+            "lon": 121.50625703573,
+            "lat": 25.00772769262,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "Y12/LG06",
+          "station_name": "中和",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)",
+            "環狀線"
+          ],
+          "x_grid": 3,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          7
+        ],
+        [],
+        [
+          3,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "萬大中和樹林線(第一期)",
+      "color": "#B2D235",
+      "segment": {
+        "start": {
+          "station_id": "Y12/LG06",
+          "station_name": "中和",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)",
+            "環狀線"
+          ],
+          "x_grid": 3,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "LG07",
+            "station_name": "雙和醫院",
+            "lon": 121.49153708875,
+            "lat": 24.99644846166,
+            "type": "normal"
+          },
+          {
+            "station_id": "LG08",
+            "station_name": "中和高中",
+            "lon": 121.48015647858,
+            "lat": 24.99487074491,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "莒光",
+          "station_name": "LG08A",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 3,
+          "y_grid": 6,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          7
+        ],
+        [],
+        [
+          3,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "小碧潭支線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G03",
+          "station_name": "七張",
+          "route_name_list": [
+            "松山新店線",
+            "小碧潭支線"
+          ],
+          "x_grid": 6,
+          "y_grid": 4,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G03A",
+          "station_name": "小碧潭",
+          "route_name_list": [
+            "小碧潭支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 4,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          4
+        ],
+        [],
+        [
+          5,
+          4
+        ]
+      ]
+    },
+    {
+      "routeName": "新北投支線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R22",
+          "station_name": "北投",
+          "route_name_list": [
+            "淡水信義線",
+            "新北投支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 11,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R22A",
+          "station_name": "新北投",
+          "route_name_list": [
+            "新北投支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 12,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          11
+        ],
+        [],
+        [
+          5,
+          12
+        ]
+      ]
+    },
+    {
+      "routeName": "三鶯線",
+      "color": "#79BCE8",
+      "segment": {
+        "start": {
+          "station_id": "BL01",
+          "station_name": "頂埔",
+          "route_name_list": [
+            "板南線",
+            "三鶯線"
+          ],
+          "x_grid": 1,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "LB02",
+            "station_name": "媽祖田",
+            "lon": 121.41209274262,
+            "lat": 24.95335913332,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB03",
+            "station_name": "挖子",
+            "lon": 121.402742562,
+            "lat": 24.94426375751,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB04",
+            "station_name": "橫溪",
+            "lon": 121.39116614789,
+            "lat": 24.93745394561,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB05",
+            "station_name": "龍埔",
+            "lon": 121.3844096607,
+            "lat": 24.93983742502,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB06",
+            "station_name": "三峽",
+            "lon": 121.37642874777,
+            "lat": 24.93895700318,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB07",
+            "station_name": "臺北大學",
+            "lon": 121.36690824956,
+            "lat": 24.93899105033,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB08",
+            "station_name": "鶯歌車站",
+            "lon": 121.35630815953,
+            "lat": 24.95312810936,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB09",
+            "station_name": "陶瓷老街",
+            "lon": 121.34876042336,
+            "lat": 24.95279494773,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB10",
+            "station_name": "國華",
+            "lon": 121.34234725893,
+            "lat": 24.95467231634,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB11",
+            "station_name": "永吉公園",
+            "lon": 121.33446693152,
+            "lat": 24.96089027697,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "LB12",
+          "station_name": "鶯桃福德",
+          "route_name_list": [
+            "三鶯線"
+          ],
+          "x_grid": 0,
+          "y_grid": 7,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          1,
+          7
+        ],
+        [],
+        [
+          0,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "民生汐止線",
+      "color": "#A4B6D8",
+      "segment": {
+        "start": {
+          "station_id": "BR22",
+          "station_name": "東湖",
+          "route_name_list": [
+            "文湖線",
+            "民生汐止線"
+          ],
+          "x_grid": 8,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "SB11",
+            "station_name": "下社后",
+            "lon": 121.62296265096,
+            "lat": 25.06633131338,
+            "type": "normal"
+          },
+          {
+            "station_id": "SB12",
+            "station_name": "社后",
+            "lon": 121.63375853956,
+            "lat": 25.06551254023,
+            "type": "normal"
+          },
+          {
+            "station_id": "SB13",
+            "station_name": "樟樹灣",
+            "lon": 121.64099245996,
+            "lat": 25.06044912757,
+            "type": "normal"
+          },
+          {
+            "station_id": "SB14",
+            "station_name": "汐科",
+            "lon": 121.6515389058,
+            "lat": 25.06363079102,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "SB15",
+          "station_name": "汐止區公所",
+          "route_name_list": [
+            "民生汐止線"
+          ],
+          "x_grid": 9,
+          "y_grid": 10,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          8,
+          10
+        ],
+        [],
+        [
+          9,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "G04",
+          "station_name": "大坪林",
+          "route_name_list": [
+            "松山新店線",
+            "環狀線"
+          ],
+          "x_grid": 6,
+          "y_grid": 5,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "K09",
+            "station_name": "十四張",
+            "lon": 121.52759268746,
+            "lat": 24.98446437181,
+            "type": "normal"
+          },
+          {
+            "station_id": "Y09",
+            "station_name": "秀朗橋",
+            "lon": 121.52490109071,
+            "lat": 24.99032710504,
+            "type": "normal"
+          },
+          {
+            "station_id": "Y10",
+            "station_name": "景平",
+            "lon": 121.51617586479,
+            "lat": 24.9921346133,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O02",
+          "station_name": "景安",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 4,
+          "y_grid": 6,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          5
+        ],
+        [
+          [
+            5,
+            5
+          ]
+        ],
+        [
+          4,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "O02",
+          "station_name": "景安",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 4,
+          "y_grid": 6,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "Y12/LG06",
+          "station_name": "中和",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)",
+            "環狀線"
+          ],
+          "x_grid": 3,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          6
+        ],
+        [],
+        [
+          3,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "Y12/LG06",
+          "station_name": "中和",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)",
+            "環狀線"
+          ],
+          "x_grid": 3,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "Y13",
+            "station_name": "橋和",
+            "lon": 121.49026035994,
+            "lat": 25.00459682454,
+            "type": "normal"
+          },
+          {
+            "station_id": "Y14",
+            "station_name": "中原",
+            "lon": 121.48427367143,
+            "lat": 25.00817432402,
+            "type": "normal"
+          },
+          {
+            "station_id": "Y15",
+            "station_name": "板新",
+            "lon": 121.4724263522,
+            "lat": 25.01452144515,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL07",
+          "station_name": "板橋",
+          "route_name_list": [
+            "板南線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          7
+        ],
+        [],
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "BL07",
+          "station_name": "板橋",
+          "route_name_list": [
+            "板南線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "Y17",
+            "station_name": "新埔民生",
+            "lon": 121.46671593055,
+            "lat": 25.0260444704,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O15",
+          "station_name": "頭前庄",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          7
+        ],
+        [],
+        [
+          2,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "O15",
+          "station_name": "頭前庄",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "Y19",
+            "station_name": "幸福",
+            "lon": 121.45997553796,
+            "lat": 25.04997906155,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "Y20",
+          "station_name": "新北產業園區",
+          "route_name_list": [
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 9,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          8
+        ],
+        [],
+        [
+          2,
+          9
+        ]
+      ]
+    }
+  ],
+  "dataJson": [
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R01",
+          "station_name": "廣慈/奉天宮站",
+          "route_name_list": [
+            "淡水信義線"
+          ],
+          "x_grid": 8,
+          "y_grid": 7,
+          "type": "terminal"
+        },
+        "stations": [
+          {
+            "station_id": "R02",
+            "station_name": "象山",
+            "lon": 121.56833543301,
+            "lat": 25.03285424664,
+            "type": "normal"
+          },
+          {
+            "station_id": "R03",
+            "station_name": "台北101/世貿",
+            "lon": 121.56244396627,
+            "lat": 25.03295631252,
+            "type": "normal"
+          },
+          {
+            "station_id": "R04",
+            "station_name": "信義安和",
+            "lon": 121.55272363543,
+            "lat": 25.03315559809,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R05",
+          "station_name": "大安",
+          "route_name_list": [
+            "淡水信義線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          8,
+          7
+        ],
+        [],
+        [
+          7,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R05",
+          "station_name": "大安",
+          "route_name_list": [
+            "淡水信義線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R06",
+            "station_name": "大安森林公園",
+            "lon": 121.53526781917,
+            "lat": 25.03352499561,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R07",
+          "station_name": "東門",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          7
+        ],
+        [],
+        [
+          6,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R07",
+          "station_name": "東門",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          7
+        ],
+        [],
+        [
+          5,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R09",
+            "station_name": "台大醫院",
+            "lon": 121.51614367425,
+            "lat": 25.04165145495,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R10",
+          "station_name": "台北車站",
+          "route_name_list": [
+            "淡水信義線",
+            "板南線"
+          ],
+          "x_grid": 5,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          7
+        ],
+        [],
+        [
+          5,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R10",
+          "station_name": "台北車站",
+          "route_name_list": [
+            "淡水信義線",
+            "板南線"
+          ],
+          "x_grid": 5,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R11",
+          "station_name": "中山",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線"
+          ],
+          "x_grid": 5,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          8
+        ],
+        [],
+        [
+          5,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R11",
+          "station_name": "中山",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線"
+          ],
+          "x_grid": 5,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R12",
+            "station_name": "雙連",
+            "lon": 121.52064978808,
+            "lat": 25.05765492964,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R13",
+          "station_name": "民權西路",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 10,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          9
+        ],
+        [],
+        [
+          5,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R13",
+          "station_name": "民權西路",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R14",
+            "station_name": "圓山",
+            "lon": 121.52013480127,
+            "lat": 25.07139205343,
+            "type": "normal"
+          },
+          {
+            "station_id": "R15",
+            "station_name": "劍潭",
+            "lon": 121.52497350633,
+            "lat": 25.08428712112,
+            "type": "normal"
+          },
+          {
+            "station_id": "R16",
+            "station_name": "士林",
+            "lon": 121.52559309929,
+            "lat": 25.09529592441,
+            "type": "normal"
+          },
+          {
+            "station_id": "R17",
+            "station_name": "芝山",
+            "lon": 121.52251928777,
+            "lat": 25.10299566977,
+            "type": "normal"
+          },
+          {
+            "station_id": "R18",
+            "station_name": "明德",
+            "lon": 121.51876419514,
+            "lat": 25.1098521643,
+            "type": "normal"
+          },
+          {
+            "station_id": "R19",
+            "station_name": "石牌",
+            "lon": 121.51549994409,
+            "lat": 25.1145905254,
+            "type": "normal"
+          },
+          {
+            "station_id": "R20",
+            "station_name": "唭哩岸",
+            "lon": 121.50608271092,
+            "lat": 25.12088295421,
+            "type": "normal"
+          },
+          {
+            "station_id": "R21",
+            "station_name": "奇岩",
+            "lon": 121.50111257493,
+            "lat": 25.12558203301,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R22",
+          "station_name": "北投",
+          "route_name_list": [
+            "淡水信義線",
+            "新北投支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 11,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          10
+        ],
+        [],
+        [
+          5,
+          11
+        ]
+      ]
+    },
+    {
+      "routeName": "淡水信義線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R22",
+          "station_name": "北投",
+          "route_name_list": [
+            "淡水信義線",
+            "新北投支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 11,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "R23",
+            "station_name": "復興崗",
+            "lon": 121.48548602521,
+            "lat": 25.13749040723,
+            "type": "normal"
+          },
+          {
+            "station_id": "R24",
+            "station_name": "忠義",
+            "lon": 121.47337048978,
+            "lat": 25.13094385663,
+            "type": "normal"
+          },
+          {
+            "station_id": "R25",
+            "station_name": "關渡",
+            "lon": 121.46713971823,
+            "lat": 25.12569859452,
+            "type": "normal"
+          },
+          {
+            "station_id": "R26",
+            "station_name": "竹圍",
+            "lon": 121.45951419801,
+            "lat": 25.13696591684,
+            "type": "normal"
+          },
+          {
+            "station_id": "V01",
+            "station_name": "紅樹林",
+            "lon": 121.4588275525,
+            "lat": 25.15440150558,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R28",
+          "station_name": "淡水",
+          "route_name_list": [
+            "淡水信義線"
+          ],
+          "x_grid": 4,
+          "y_grid": 11,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          11
+        ],
+        [],
+        [
+          4,
+          11
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL01",
+          "station_name": "頂埔",
+          "route_name_list": [
+            "板南線",
+            "三鶯線"
+          ],
+          "x_grid": 1,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BL02",
+            "station_name": "永寧",
+            "lon": 121.43626748979,
+            "lat": 24.96686963553,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL03",
+            "station_name": "土城",
+            "lon": 121.44429802626,
+            "lat": 24.97320855186,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL04",
+            "station_name": "海山",
+            "lon": 121.44876524672,
+            "lat": 24.98531529383,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL05",
+            "station_name": "亞東醫院",
+            "lon": 121.45236074656,
+            "lat": 24.99751322261,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL06",
+            "station_name": "府中",
+            "lon": 121.45925268397,
+            "lat": 25.00875101756,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL07",
+          "station_name": "板橋",
+          "route_name_list": [
+            "板南線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          1,
+          7
+        ],
+        [],
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL07",
+          "station_name": "板橋",
+          "route_name_list": [
+            "板南線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BL08",
+            "station_name": "新埔",
+            "lon": 121.46828233927,
+            "lat": 25.02342205128,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL09",
+            "station_name": "江子翠",
+            "lon": 121.47276699007,
+            "lat": 25.03042396119,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL10",
+            "station_name": "龍山寺",
+            "lon": 121.49956225812,
+            "lat": 25.03528447424,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL11",
+          "station_name": "西門",
+          "route_name_list": [
+            "板南線",
+            "松山新店線"
+          ],
+          "x_grid": 4,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          7
+        ],
+        [
+          [
+            3,
+            8
+          ]
+        ],
+        [
+          4,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL11",
+          "station_name": "西門",
+          "route_name_list": [
+            "板南線",
+            "松山新店線"
+          ],
+          "x_grid": 4,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R10",
+          "station_name": "台北車站",
+          "route_name_list": [
+            "淡水信義線",
+            "板南線"
+          ],
+          "x_grid": 5,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          8
+        ],
+        [],
+        [
+          5,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "R10",
+          "station_name": "台北車站",
+          "route_name_list": [
+            "淡水信義線",
+            "板南線"
+          ],
+          "x_grid": 5,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BL13",
+            "station_name": "善導寺",
+            "lon": 121.52342855394,
+            "lat": 25.04479594104,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL14",
+          "station_name": "忠孝新生",
+          "route_name_list": [
+            "板南線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          8
+        ],
+        [],
+        [
+          6,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL14",
+          "station_name": "忠孝新生",
+          "route_name_list": [
+            "板南線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "BL15",
+          "station_name": "忠孝復興",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          8
+        ],
+        [],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "板南線",
+      "color": "#0070BD",
+      "segment": {
+        "start": {
+          "station_id": "BL15",
+          "station_name": "忠孝復興",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BL16",
+            "station_name": "忠孝敦化",
+            "lon": 121.54939770162,
+            "lat": 25.04151537027,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL17",
+            "station_name": "國父紀念館",
+            "lon": 121.5573960489,
+            "lat": 25.04135012438,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL18",
+            "station_name": "市政府",
+            "lon": 121.566102494,
+            "lat": 25.04112656092,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL19",
+            "station_name": "永春",
+            "lon": 121.57783850893,
+            "lat": 25.04092485456,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL20",
+            "station_name": "後山埤",
+            "lon": 121.58231377065,
+            "lat": 25.04473762055,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL21",
+            "station_name": "昆陽",
+            "lon": 121.59331082761,
+            "lat": 25.05049177544,
+            "type": "normal"
+          },
+          {
+            "station_id": "BL22",
+            "station_name": "南港",
+            "lon": 121.60754799306,
+            "lat": 25.05220241805,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL23",
+          "station_name": "南港展覽館",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 9,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          8
+        ],
+        [],
+        [
+          9,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "BR01",
+          "station_name": "動物園",
+          "route_name_list": [
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 6,
+          "type": "terminal"
+        },
+        "stations": [
+          {
+            "station_id": "BR03",
+            "station_name": "萬芳社區",
+            "lon": 121.5681356138,
+            "lat": 24.99860228856,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR04",
+            "station_name": "萬芳醫院",
+            "lon": 121.55814170703,
+            "lat": 24.99942879989,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR05",
+            "station_name": "辛亥",
+            "lon": 121.55705809325,
+            "lat": 25.00546462277,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR06",
+            "station_name": "麟光",
+            "lon": 121.55890881747,
+            "lat": 25.01841766646,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR07",
+            "station_name": "六張犁",
+            "lon": 121.55312329262,
+            "lat": 25.02381335203,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR08",
+            "station_name": "科技大樓",
+            "lon": 121.54346197575,
+            "lat": 25.02609794021,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R05",
+          "station_name": "大安",
+          "route_name_list": [
+            "淡水信義線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          6
+        ],
+        [],
+        [
+          7,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "R05",
+          "station_name": "大安",
+          "route_name_list": [
+            "淡水信義線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "BL15",
+          "station_name": "忠孝復興",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          7
+        ],
+        [],
+        [
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "BL15",
+          "station_name": "忠孝復興",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 7,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G16",
+          "station_name": "南京復興",
+          "route_name_list": [
+            "文湖線",
+            "松山新店線"
+          ],
+          "x_grid": 7,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          8
+        ],
+        [],
+        [
+          7,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "G16",
+          "station_name": "南京復興",
+          "route_name_list": [
+            "文湖線",
+            "松山新店線"
+          ],
+          "x_grid": 7,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BR12",
+            "station_name": "中山國中",
+            "lon": 121.54420494497,
+            "lat": 25.06066294426,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR13",
+            "station_name": "松山機場",
+            "lon": 121.55161320627,
+            "lat": 25.06303431377,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR14",
+            "station_name": "大直",
+            "lon": 121.54738604486,
+            "lat": 25.07989012366,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR15",
+            "station_name": "劍南路",
+            "lon": 121.55311122403,
+            "lat": 25.08559403986,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR16",
+            "station_name": "西湖",
+            "lon": 121.56731754273,
+            "lat": 25.08215423025,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR17",
+            "station_name": "港墘",
+            "lon": 121.57531856954,
+            "lat": 25.08003102437,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR18",
+            "station_name": "文德",
+            "lon": 121.58493965596,
+            "lat": 25.07854426834,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR19",
+            "station_name": "內湖",
+            "lon": 121.59445344865,
+            "lat": 25.08367981043,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR20",
+            "station_name": "大湖公園",
+            "lon": 121.60231768817,
+            "lat": 25.08376726092,
+            "type": "normal"
+          },
+          {
+            "station_id": "BR21",
+            "station_name": "葫洲",
+            "lon": 121.60736560553,
+            "lat": 25.07261893862,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BR22",
+          "station_name": "東湖",
+          "route_name_list": [
+            "文湖線",
+            "民生汐止線"
+          ],
+          "x_grid": 8,
+          "y_grid": 10,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          9
+        ],
+        [
+          [
+            7,
+            10
+          ]
+        ],
+        [
+          8,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "文湖線",
+      "color": "#C48C31",
+      "segment": {
+        "start": {
+          "station_id": "BR22",
+          "station_name": "東湖",
+          "route_name_list": [
+            "文湖線",
+            "民生汐止線"
+          ],
+          "x_grid": 8,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "BR23",
+            "station_name": "南港軟體園區",
+            "lon": 121.61590039194,
+            "lat": 25.05994374935,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL23",
+          "station_name": "南港展覽館",
+          "route_name_list": [
+            "板南線",
+            "文湖線"
+          ],
+          "x_grid": 9,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          8,
+          10
+        ],
+        [
+          [
+            9,
+            9
+          ]
+        ],
+        [
+          9,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G01",
+          "station_name": "新店",
+          "route_name_list": [
+            "松山新店線"
+          ],
+          "x_grid": 6,
+          "y_grid": 3,
+          "type": "terminal"
+        },
+        "stations": [
+          {
+            "station_id": "G02",
+            "station_name": "新店區公所",
+            "lon": 121.54135107458,
+            "lat": 24.96737053627,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "G03",
+          "station_name": "七張",
+          "route_name_list": [
+            "松山新店線",
+            "小碧潭支線"
+          ],
+          "x_grid": 6,
+          "y_grid": 4,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          3
+        ],
+        [],
+        [
+          6,
+          4
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G03",
+          "station_name": "七張",
+          "route_name_list": [
+            "松山新店線",
+            "小碧潭支線"
+          ],
+          "x_grid": 6,
+          "y_grid": 4,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G04",
+          "station_name": "大坪林",
+          "route_name_list": [
+            "松山新店線",
+            "環狀線"
+          ],
+          "x_grid": 6,
+          "y_grid": 5,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          4
+        ],
+        [],
+        [
+          6,
+          5
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G04",
+          "station_name": "大坪林",
+          "route_name_list": [
+            "松山新店線",
+            "環狀線"
+          ],
+          "x_grid": 6,
+          "y_grid": 5,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "G05",
+            "station_name": "景美",
+            "lon": 121.54079853952,
+            "lat": 24.99296725303,
+            "type": "normal"
+          },
+          {
+            "station_id": "G06",
+            "station_name": "萬隆",
+            "lon": 121.53901218832,
+            "lat": 25.00188886814,
+            "type": "normal"
+          },
+          {
+            "station_id": "G07",
+            "station_name": "公館",
+            "lon": 121.53421103418,
+            "lat": 25.01487874813,
+            "type": "normal"
+          },
+          {
+            "station_id": "G08",
+            "station_name": "台電大樓",
+            "lon": 121.52840136945,
+            "lat": 25.02049819556,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "G09",
+          "station_name": "古亭",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 6,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          5
+        ],
+        [
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G09",
+          "station_name": "古亭",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 6,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          6
+        ],
+        [],
+        [
+          5,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "G11",
+            "station_name": "小南門",
+            "lon": 121.51087044597,
+            "lat": 25.03594549399,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL11",
+          "station_name": "西門",
+          "route_name_list": [
+            "板南線",
+            "松山新店線"
+          ],
+          "x_grid": 4,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          7
+        ],
+        [],
+        [
+          4,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "BL11",
+          "station_name": "西門",
+          "route_name_list": [
+            "板南線",
+            "松山新店線"
+          ],
+          "x_grid": 4,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "G13",
+            "station_name": "北門",
+            "lon": 121.51028572977,
+            "lat": 25.0493983124,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R11",
+          "station_name": "中山",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線"
+          ],
+          "x_grid": 5,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          8
+        ],
+        [
+          [
+            4,
+            9
+          ]
+        ],
+        [
+          5,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "R11",
+          "station_name": "中山",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線"
+          ],
+          "x_grid": 5,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G15/O08",
+          "station_name": "松江南京",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          9
+        ],
+        [],
+        [
+          6,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G15/O08",
+          "station_name": "松江南京",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G16",
+          "station_name": "南京復興",
+          "route_name_list": [
+            "文湖線",
+            "松山新店線"
+          ],
+          "x_grid": 7,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          9
+        ],
+        [],
+        [
+          7,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "松山新店線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G16",
+          "station_name": "南京復興",
+          "route_name_list": [
+            "文湖線",
+            "松山新店線"
+          ],
+          "x_grid": 7,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "G17",
+            "station_name": "台北小巨蛋",
+            "lon": 121.55147909582,
+            "lat": 25.05167756434,
+            "type": "normal"
+          },
+          {
+            "station_id": "G18",
+            "station_name": "南京三民",
+            "lon": 121.56431077838,
+            "lat": 25.05142000127,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "G19",
+          "station_name": "松山",
+          "route_name_list": [
+            "松山新店線"
+          ],
+          "x_grid": 8,
+          "y_grid": 9,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          7,
+          9
+        ],
+        [],
+        [
+          8,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O01",
+          "station_name": "南勢角",
+          "route_name_list": [
+            "中和新蘆線"
+          ],
+          "x_grid": 4,
+          "y_grid": 5,
+          "type": "terminal"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "O02",
+          "station_name": "景安",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 4,
+          "y_grid": 6,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          5
+        ],
+        [],
+        [
+          4,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O02",
+          "station_name": "景安",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 4,
+          "y_grid": 6,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O03",
+            "station_name": "永安市場",
+            "lon": 121.51083022222,
+            "lat": 25.00240542319,
+            "type": "normal"
+          },
+          {
+            "station_id": "O04",
+            "station_name": "頂溪",
+            "lon": 121.515473122,
+            "lat": 25.01359051676,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "G09",
+          "station_name": "古亭",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 6,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          6
+        ],
+        [],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "G09",
+          "station_name": "古亭",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 6,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R07",
+          "station_name": "東門",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          6
+        ],
+        [],
+        [
+          6,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "R07",
+          "station_name": "東門",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "BL14",
+          "station_name": "忠孝新生",
+          "route_name_list": [
+            "板南線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          7
+        ],
+        [],
+        [
+          6,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "BL14",
+          "station_name": "忠孝新生",
+          "route_name_list": [
+            "板南線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G15/O08",
+          "station_name": "松江南京",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 9,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          8
+        ],
+        [],
+        [
+          6,
+          9
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "G15/O08",
+          "station_name": "松江南京",
+          "route_name_list": [
+            "松山新店線",
+            "中和新蘆線"
+          ],
+          "x_grid": 6,
+          "y_grid": 9,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O09",
+            "station_name": "行天宮",
+            "lon": 121.53313903746,
+            "lat": 25.05794377078,
+            "type": "normal"
+          },
+          {
+            "station_id": "O10",
+            "station_name": "中山國小",
+            "lon": 121.52665256381,
+            "lat": 25.06266501,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "R13",
+          "station_name": "民權西路",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 10,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          9
+        ],
+        [
+          [
+            6,
+            10
+          ]
+        ],
+        [
+          5,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "R13",
+          "station_name": "民權西路",
+          "route_name_list": [
+            "淡水信義線",
+            "中和新蘆線"
+          ],
+          "x_grid": 5,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "O10",
+          "station_name": "大橋頭",
+          "route_name_list": [
+            "中和新蘆線",
+            "中和新蘆線(蘆洲線)"
+          ],
+          "x_grid": 4,
+          "y_grid": 10,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          10
+        ],
+        [],
+        [
+          4,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O10",
+          "station_name": "大橋頭",
+          "route_name_list": [
+            "中和新蘆線",
+            "中和新蘆線(蘆洲線)"
+          ],
+          "x_grid": 4,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O11",
+            "station_name": "台北橋",
+            "lon": 121.50051712956,
+            "lat": 25.06314941422,
+            "type": "normal"
+          },
+          {
+            "station_id": "O12",
+            "station_name": "菜寮",
+            "lon": 121.49211376637,
+            "lat": 25.06027175864,
+            "type": "normal"
+          },
+          {
+            "station_id": "O13",
+            "station_name": "三重",
+            "lon": 121.48244708508,
+            "lat": 25.05536606961,
+            "type": "normal"
+          },
+          {
+            "station_id": "O14",
+            "station_name": "先嗇宮",
+            "lon": 121.47163241833,
+            "lat": 25.04640703124,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O15",
+          "station_name": "頭前庄",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          10
+        ],
+        [],
+        [
+          2,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O15",
+          "station_name": "頭前庄",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O16",
+            "station_name": "新莊",
+            "lon": 121.45334779948,
+            "lat": 25.0363221664,
+            "type": "normal"
+          },
+          {
+            "station_id": "O17",
+            "station_name": "輔大",
+            "lon": 121.43524825037,
+            "lat": 25.03271814734,
+            "type": "normal"
+          },
+          {
+            "station_id": "O18",
+            "station_name": "丹鳳",
+            "lon": 121.4226499173,
+            "lat": 25.02893417296,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O19",
+          "station_name": "迴龍",
+          "route_name_list": [
+            "中和新蘆線"
+          ],
+          "x_grid": 1,
+          "y_grid": 8,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          8
+        ],
+        [],
+        [
+          1,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "中和新蘆線(蘆洲線)",
+      "color": "#F8B61C",
+      "segment": {
+        "start": {
+          "station_id": "O10",
+          "station_name": "大橋頭",
+          "route_name_list": [
+            "中和新蘆線",
+            "中和新蘆線(蘆洲線)"
+          ],
+          "x_grid": 4,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "O50",
+            "station_name": "三重國小",
+            "lon": 121.49730920523,
+            "lat": 25.06999751431,
+            "type": "normal"
+          },
+          {
+            "station_id": "O51",
+            "station_name": "三和國中",
+            "lon": 121.48636042535,
+            "lat": 25.07679998454,
+            "type": "normal"
+          },
+          {
+            "station_id": "O52",
+            "station_name": "徐匯中學",
+            "lon": 121.4796254012,
+            "lat": 25.08067236105,
+            "type": "normal"
+          },
+          {
+            "station_id": "O53",
+            "station_name": "三民高中",
+            "lon": 121.47330879629,
+            "lat": 25.08550659188,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O54",
+          "station_name": "蘆洲",
+          "route_name_list": [
+            "中和新蘆線(蘆洲線)"
+          ],
+          "x_grid": 3,
+          "y_grid": 10,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          10
+        ],
+        [],
+        [
+          3,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "萬大中和樹林線(第一期)",
+      "color": "#B2D235",
+      "segment": {
+        "start": {
+          "station_id": "R08",
+          "station_name": "中正紀念堂",
+          "route_name_list": [
+            "淡水信義線",
+            "松山新店線",
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 5,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "LG02",
+            "station_name": "植物園",
+            "lon": 121.50880515039,
+            "lat": 25.03061352481,
+            "type": "normal"
+          },
+          {
+            "station_id": "LG03",
+            "station_name": "廈安",
+            "lon": 121.50260924757,
+            "lat": 25.02977263781,
+            "type": "normal"
+          },
+          {
+            "station_id": "LG04",
+            "station_name": "加蚋",
+            "lon": 121.49845718265,
+            "lat": 25.02121762668,
+            "type": "normal"
+          },
+          {
+            "station_id": "LG05",
+            "station_name": "永和永平國小",
+            "lon": 121.50625703573,
+            "lat": 25.00772769262,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "Y12/LG06",
+          "station_name": "中和",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)",
+            "環狀線"
+          ],
+          "x_grid": 3,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          7
+        ],
+        [],
+        [
+          3,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "萬大中和樹林線(第一期)",
+      "color": "#B2D235",
+      "segment": {
+        "start": {
+          "station_id": "Y12/LG06",
+          "station_name": "中和",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)",
+            "環狀線"
+          ],
+          "x_grid": 3,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "LG07",
+            "station_name": "雙和醫院",
+            "lon": 121.49153708875,
+            "lat": 24.99644846166,
+            "type": "normal"
+          },
+          {
+            "station_id": "LG08",
+            "station_name": "中和高中",
+            "lon": 121.48015647858,
+            "lat": 24.99487074491,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "莒光",
+          "station_name": "LG08A",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)"
+          ],
+          "x_grid": 3,
+          "y_grid": 6,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          7
+        ],
+        [],
+        [
+          3,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "小碧潭支線",
+      "color": "#008659",
+      "segment": {
+        "start": {
+          "station_id": "G03",
+          "station_name": "七張",
+          "route_name_list": [
+            "松山新店線",
+            "小碧潭支線"
+          ],
+          "x_grid": 6,
+          "y_grid": 4,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "G03A",
+          "station_name": "小碧潭",
+          "route_name_list": [
+            "小碧潭支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 4,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          4
+        ],
+        [],
+        [
+          5,
+          4
+        ]
+      ]
+    },
+    {
+      "routeName": "新北投支線",
+      "color": "#E3002C",
+      "segment": {
+        "start": {
+          "station_id": "R22",
+          "station_name": "北投",
+          "route_name_list": [
+            "淡水信義線",
+            "新北投支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 11,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "R22A",
+          "station_name": "新北投",
+          "route_name_list": [
+            "新北投支線"
+          ],
+          "x_grid": 5,
+          "y_grid": 12,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          5,
+          11
+        ],
+        [],
+        [
+          5,
+          12
+        ]
+      ]
+    },
+    {
+      "routeName": "三鶯線",
+      "color": "#79BCE8",
+      "segment": {
+        "start": {
+          "station_id": "BL01",
+          "station_name": "頂埔",
+          "route_name_list": [
+            "板南線",
+            "三鶯線"
+          ],
+          "x_grid": 1,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "LB02",
+            "station_name": "媽祖田",
+            "lon": 121.41209274262,
+            "lat": 24.95335913332,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB03",
+            "station_name": "挖子",
+            "lon": 121.402742562,
+            "lat": 24.94426375751,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB04",
+            "station_name": "橫溪",
+            "lon": 121.39116614789,
+            "lat": 24.93745394561,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB05",
+            "station_name": "龍埔",
+            "lon": 121.3844096607,
+            "lat": 24.93983742502,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB06",
+            "station_name": "三峽",
+            "lon": 121.37642874777,
+            "lat": 24.93895700318,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB07",
+            "station_name": "臺北大學",
+            "lon": 121.36690824956,
+            "lat": 24.93899105033,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB08",
+            "station_name": "鶯歌車站",
+            "lon": 121.35630815953,
+            "lat": 24.95312810936,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB09",
+            "station_name": "陶瓷老街",
+            "lon": 121.34876042336,
+            "lat": 24.95279494773,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB10",
+            "station_name": "國華",
+            "lon": 121.34234725893,
+            "lat": 24.95467231634,
+            "type": "normal"
+          },
+          {
+            "station_id": "LB11",
+            "station_name": "永吉公園",
+            "lon": 121.33446693152,
+            "lat": 24.96089027697,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "LB12",
+          "station_name": "鶯桃福德",
+          "route_name_list": [
+            "三鶯線"
+          ],
+          "x_grid": 0,
+          "y_grid": 7,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          1,
+          7
+        ],
+        [],
+        [
+          0,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "民生汐止線",
+      "color": "#A4B6D8",
+      "segment": {
+        "start": {
+          "station_id": "BR22",
+          "station_name": "東湖",
+          "route_name_list": [
+            "文湖線",
+            "民生汐止線"
+          ],
+          "x_grid": 8,
+          "y_grid": 10,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "SB11",
+            "station_name": "下社后",
+            "lon": 121.62296265096,
+            "lat": 25.06633131338,
+            "type": "normal"
+          },
+          {
+            "station_id": "SB12",
+            "station_name": "社后",
+            "lon": 121.63375853956,
+            "lat": 25.06551254023,
+            "type": "normal"
+          },
+          {
+            "station_id": "SB13",
+            "station_name": "樟樹灣",
+            "lon": 121.64099245996,
+            "lat": 25.06044912757,
+            "type": "normal"
+          },
+          {
+            "station_id": "SB14",
+            "station_name": "汐科",
+            "lon": 121.6515389058,
+            "lat": 25.06363079102,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "SB15",
+          "station_name": "汐止區公所",
+          "route_name_list": [
+            "民生汐止線"
+          ],
+          "x_grid": 9,
+          "y_grid": 10,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          8,
+          10
+        ],
+        [],
+        [
+          9,
+          10
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "G04",
+          "station_name": "大坪林",
+          "route_name_list": [
+            "松山新店線",
+            "環狀線"
+          ],
+          "x_grid": 6,
+          "y_grid": 5,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "K09",
+            "station_name": "十四張",
+            "lon": 121.52759268746,
+            "lat": 24.98446437181,
+            "type": "normal"
+          },
+          {
+            "station_id": "Y09",
+            "station_name": "秀朗橋",
+            "lon": 121.52490109071,
+            "lat": 24.99032710504,
+            "type": "normal"
+          },
+          {
+            "station_id": "Y10",
+            "station_name": "景平",
+            "lon": 121.51617586479,
+            "lat": 24.9921346133,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O02",
+          "station_name": "景安",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 4,
+          "y_grid": 6,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          6,
+          5
+        ],
+        [
+          [
+            5,
+            5
+          ]
+        ],
+        [
+          4,
+          6
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "O02",
+          "station_name": "景安",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 4,
+          "y_grid": 6,
+          "type": "intersection"
+        },
+        "stations": [],
+        "end": {
+          "station_id": "Y12/LG06",
+          "station_name": "中和",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)",
+            "環狀線"
+          ],
+          "x_grid": 3,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          4,
+          6
+        ],
+        [],
+        [
+          3,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "Y12/LG06",
+          "station_name": "中和",
+          "route_name_list": [
+            "萬大中和樹林線(第一期)",
+            "環狀線"
+          ],
+          "x_grid": 3,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "Y13",
+            "station_name": "橋和",
+            "lon": 121.49026035994,
+            "lat": 25.00459682454,
+            "type": "normal"
+          },
+          {
+            "station_id": "Y14",
+            "station_name": "中原",
+            "lon": 121.48427367143,
+            "lat": 25.00817432402,
+            "type": "normal"
+          },
+          {
+            "station_id": "Y15",
+            "station_name": "板新",
+            "lon": 121.4724263522,
+            "lat": 25.01452144515,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "BL07",
+          "station_name": "板橋",
+          "route_name_list": [
+            "板南線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 7,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          3,
+          7
+        ],
+        [],
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "BL07",
+          "station_name": "板橋",
+          "route_name_list": [
+            "板南線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 7,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "Y17",
+            "station_name": "新埔民生",
+            "lon": 121.46671593055,
+            "lat": 25.0260444704,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "O15",
+          "station_name": "頭前庄",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          7
+        ],
+        [],
+        [
+          2,
+          8
+        ]
+      ]
+    },
+    {
+      "routeName": "環狀線",
+      "color": "#FFDB00",
+      "segment": {
+        "start": {
+          "station_id": "O15",
+          "station_name": "頭前庄",
+          "route_name_list": [
+            "中和新蘆線",
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 8,
+          "type": "intersection"
+        },
+        "stations": [
+          {
+            "station_id": "Y19",
+            "station_name": "幸福",
+            "lon": 121.45997553796,
+            "lat": 25.04997906155,
+            "type": "normal"
+          }
+        ],
+        "end": {
+          "station_id": "Y20",
+          "station_name": "新北產業園區",
+          "route_name_list": [
+            "環狀線"
+          ],
+          "x_grid": 2,
+          "y_grid": 9,
+          "type": "terminal"
+        }
+      },
+      "routeCoordinates": [
+        [
+          2,
+          8
+        ],
+        [],
+        [
+          2,
+          9
+        ]
+      ]
+    }
+  ]
+}
