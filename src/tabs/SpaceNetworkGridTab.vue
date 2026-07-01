@@ -2770,13 +2770,23 @@
     /** 示意圖：以站名/id 為 key，同格不同站可並存（如轉乘＋端點 snap 共格）。 */
     const stationMapKeyFromProps = (nodeProps, x, y, idx = 0) => {
       const t = nodeProps?.tags || {};
+      const cc = String(nodeProps?.node_class_color ?? t.node_class_color ?? '').trim();
+      // 彩色端點（紅／藍／黃／紫…）一律以「格＋色」為 key，優先於 station_id。
+      // 全球離線批次站 id 可能跨不同實體站重複（如倫敦 id:4 同時對應多個站），
+      // 若只用 id 當 key 會讓後續格點的紅／藍點被丟棄。
+      if (useSchematicVisualStyle && cc) {
+        return `connect:${cc}:${x},${y}`;
+      }
+      if (nodeProps?.node_type === 'connect') {
+        return cc ? `connect:${cc}:${x},${y}` : `connect:${x},${y}`;
+      }
       const sid = String(nodeProps?.station_id ?? t.station_id ?? '').trim();
       const snm = String(nodeProps?.station_name ?? t.station_name ?? '').trim();
-      if (sid) return `id:${sid}`;
-      if (snm) return `nm:${snm}`;
-      if (nodeProps?.node_type === 'connect') {
-        const cc = String(nodeProps?.node_class_color ?? t.node_class_color ?? '').trim();
-        return cc ? `connect:${cc}:${x},${y}` : `connect:${x},${y}`;
+      if (sid) {
+        return useSchematicVisualStyle ? `id:${sid}@${x},${y}` : `id:${sid}`;
+      }
+      if (snm) {
+        return useSchematicVisualStyle ? `nm:${snm}@${x},${y}` : `nm:${snm}`;
       }
       if (nodeProps?.tags?._forceDrawBlackDot) return `blk:${x},${y},${idx}`;
       return `${x},${y}`;
@@ -3626,6 +3636,45 @@
           }
         });
       }
+      // ⑨／示意圖佈局：以 properties_start／end 補登端點（紅／藍／黃／紫），
+      // 避免 nodes 與 points 合併後缺 node_class_color 或同格黑點覆寫 connect。
+      if (useSchematicVisualStyle) {
+        const addSchematicLayoutEndpoint = (ep) => {
+          if (!ep || typeof ep !== 'object') return;
+          const x = Number(ep.x_grid ?? ep.tags?.x_grid);
+          const y = Number(ep.y_grid ?? ep.tags?.y_grid);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+          const drawX = ep.display_x ?? x;
+          const drawY = ep.display_y ?? y;
+          const nodeProps = {
+            ...ep,
+            node_type: ep.node_type || 'connect',
+            x_grid: x,
+            y_grid: y,
+          };
+          if (!isDrawableMidStation(nodeProps)) return;
+          const key = stationMapKeyFromProps(nodeProps, drawX, drawY, 0);
+          const exNode = stationMap.get(key);
+          const epColor = schematicNodeClassColor(nodeProps, nodeProps.tags || {});
+          const exColor =
+            exNode && schematicNodeClassColor(exNode.properties || {}, exNode.properties?.tags || {});
+          const canPlace =
+            !exNode ||
+            exNode.nodeType !== 'connect' ||
+            (epColor && !exColor) ||
+            (epColor && exColor && epColor === exColor);
+          if (!canPlace) return;
+          stationMap.set(key, {
+            geometry: { type: 'Point', coordinates: [drawX, drawY] },
+            properties: nodePropsWithLiveDpRatio(nodeProps, drawX, drawY),
+            nodeType: 'connect',
+          });
+        };
+        for (const seg of flatSegments) {
+          addSchematicLayoutEndpoint(seg.properties_start);
+          addSchematicLayoutEndpoint(seg.properties_end);
+        }
+      }
       stationFeatures = Array.from(stationMap.values());
 
       // taipei_d：路網／站點改在「縮減疊加網格」座標空間繪製（overlayRemovalMaps 由 execute_d_to_e_test 寫入 taipei_d）
@@ -3749,9 +3798,29 @@
         (f) =>
           f.geometry && (f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString')
       );
-      stationFeatures = mapGeoJsonData.value.features.filter(
-        (f) => f.geometry && f.geometry.type === 'Point'
-      );
+      stationFeatures = mapGeoJsonData.value.features
+        .filter((f) => f.geometry && f.geometry.type === 'Point')
+        .map((f) => {
+          if (!useSchematicVisualStyle) return f;
+          const props = f.properties || {};
+          const tags = props.tags || {};
+          const cc = schematicNodeClassColor(props, tags);
+          const isConnect =
+            props.node_type === 'connect' ||
+            tags.node_type === 'connect' ||
+            cc === '#ff0000' ||
+            cc === '#1565c0' ||
+            cc === '#ffd600' ||
+            cc === '#9c27b0';
+          return {
+            ...f,
+            nodeType: isConnect ? 'connect' : 'line',
+            properties: {
+              ...props,
+              node_type: props.node_type ?? tags.node_type ?? (isConnect ? 'connect' : 'line'),
+            },
+          };
+        });
 
       // 計算邊界（使用網格座標）
       mapGeoJsonData.value.features.forEach((feature) => {
@@ -12000,6 +12069,7 @@
       const containerId = getContainerId();
       d3.select(`#${containerId}`).selectAll('svg').remove();
       d3.select('body').selectAll('.d3js-map-tooltip').remove();
+      drawMapForceNext = true;
       await loadLayerData(activeLayerTab.value);
       await nextTick();
       drawSchematic();

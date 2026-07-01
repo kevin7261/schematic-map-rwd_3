@@ -235,12 +235,25 @@ function buildSegmentFromWayRange(coords, idxA, idxB, snap, ptProps, pointAll, t
   const mkEnd = (props, gx, gy) => {
     const base = props ? JSON.parse(JSON.stringify(props)) : {};
     const t = base.tags || {};
+    const node_class_color = t.node_class_color ?? base.node_class_color;
+    const node_kind = t.node_kind ?? base.node_kind;
+    const epType = t.type ?? base.type;
     return {
       ...base,
       node_type: 'connect',
+      ...(node_class_color != null ? { node_class_color } : {}),
+      ...(node_kind != null ? { node_kind } : {}),
       x_grid: gx,
       y_grid: gy,
-      tags: { ...t, x_grid: gx, y_grid: gy },
+      tags: {
+        ...t,
+        node_type: 'connect',
+        ...(node_class_color != null ? { node_class_color } : {}),
+        ...(node_kind != null ? { node_kind } : {}),
+        ...(epType != null ? { type: epType } : {}),
+        x_grid: gx,
+        y_grid: gy,
+      },
     };
   };
 
@@ -407,6 +420,10 @@ export function executeNormalizeRma() {
     gridCols: result.stats?.gridCols,
     gridRows: result.stats?.gridRows,
   });
+
+  if (write.ok !== false) {
+    dataStore.routeSchematicTick += 1;
+  }
 
   return { ok: write.ok !== false, message: '正規化完成。', stats: write.stats ?? result.stats };
 }
