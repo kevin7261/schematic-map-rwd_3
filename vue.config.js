@@ -264,6 +264,97 @@ module.exports = defineConfig({
         }
       });
 
+      /** AI測試（路線調整）HV — ai_test HV 之獨立實體複製（程式不共用），寫入 public/data/route_adjust_ai_test。 */
+      const raAiTestHvDir = path.join(__dirname, 'public', 'data', 'route_adjust_ai_test');
+      const raAiTestHvPayloadPath = path.join(raAiTestHvDir, 'hv_payload.json');
+      const raAiTestHvResponsePath = path.join(raAiTestHvDir, 'hv_response.json');
+      const ensureRaAiTestHvDir = () => {
+        if (!fs.existsSync(raAiTestHvDir)) fs.mkdirSync(raAiTestHvDir, { recursive: true });
+      };
+
+      devServer.app.post('/api/route-adjust-ai-test-hv/payload', (req, res) => {
+        try {
+          ensureRaAiTestHvDir();
+          fs.writeFileSync(raAiTestHvPayloadPath, JSON.stringify(req.body, null, 2), 'utf8');
+          res.json({ ok: true, path: 'public/data/route_adjust_ai_test/hv_payload.json' });
+        } catch (err) {
+          console.error('[route-adjust-ai-test-hv/payload]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.get('/api/route-adjust-ai-test-hv/payload', (req, res) => {
+        try {
+          if (!fs.existsSync(raAiTestHvPayloadPath)) {
+            res.status(404).json({ ok: false, error: 'payload not found' });
+            return;
+          }
+          res.json(JSON.parse(fs.readFileSync(raAiTestHvPayloadPath, 'utf8')));
+        } catch (err) {
+          console.error('[route-adjust-ai-test-hv/payload GET]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.post('/api/route-adjust-ai-test-hv/response', (req, res) => {
+        try {
+          ensureRaAiTestHvDir();
+          fs.writeFileSync(raAiTestHvResponsePath, JSON.stringify(req.body, null, 2), 'utf8');
+          res.json({ ok: true, path: 'public/data/route_adjust_ai_test/hv_response.json' });
+        } catch (err) {
+          console.error('[route-adjust-ai-test-hv/response]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.get('/api/route-adjust-ai-test-hv/response', (req, res) => {
+        try {
+          if (!fs.existsSync(raAiTestHvResponsePath)) {
+            res.json({ ok: true, missing: true });
+            return;
+          }
+          res.json(JSON.parse(fs.readFileSync(raAiTestHvResponsePath, 'utf8')));
+        } catch (err) {
+          console.error('[route-adjust-ai-test-hv/response GET]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.delete('/api/route-adjust-ai-test-hv/response', (req, res) => {
+        try {
+          if (fs.existsSync(raAiTestHvResponsePath)) fs.unlinkSync(raAiTestHvResponsePath);
+          res.json({ ok: true });
+        } catch (err) {
+          console.error('[route-adjust-ai-test-hv/response DELETE]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      const raAiTestHvAuditPath = path.join(raAiTestHvDir, 'hv_audit.json');
+
+      devServer.app.get('/api/route-adjust-ai-test-hv/audit', (req, res) => {
+        try {
+          if (!fs.existsSync(raAiTestHvAuditPath)) {
+            res.json({ ok: true, missing: true });
+            return;
+          }
+          res.json(JSON.parse(fs.readFileSync(raAiTestHvAuditPath, 'utf8')));
+        } catch (err) {
+          console.error('[route-adjust-ai-test-hv/audit GET]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.delete('/api/route-adjust-ai-test-hv/audit', (req, res) => {
+        try {
+          if (fs.existsSync(raAiTestHvAuditPath)) fs.unlinkSync(raAiTestHvAuditPath);
+          res.json({ ok: true });
+        } catch (err) {
+          console.error('[route-adjust-ai-test-hv/audit DELETE]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
       /** 以下 API 仍保留於 devServer，前端已不再呼叫（路網成品改存圖層 dataOSM／dataGeojson／dataJson）。 */
       devServer.app.post('/api/save-osm2-geojson-2-json-artifacts', (req, res) => {
         try {

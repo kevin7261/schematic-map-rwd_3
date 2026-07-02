@@ -31,6 +31,7 @@
   import { useRmaMilpReadPrepCatalog } from '@/utils/routeMapAdjust/loadRmaMilpReadPrep.js';
   import { useRmaMilpReadOneClickCatalog } from '@/utils/routeMapAdjust/loadRmaMilpReadOneClick.js';
   import { useAiTestMetroOneClickCatalog } from '@/utils/loadAiTestMetroOneClick.js';
+  import { useRouteAdjustAiTestMetroOneClickCatalog } from '@/utils/routeAdjustLoadAiTestMetroOneClick.js';
   import { useRouteMapAdjustStraight } from '@/utils/routeMapAdjust/loadFromSelectRouteMapStraight.js';
   import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
   import { computeQuadtreePartitionFromGeojson } from '@/utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
@@ -129,12 +130,24 @@
     isAiTestHvLocalDevMode,
   } from '@/utils/uniformGridHvOptimizeExecute.js';
   import {
+    runHvOptimizeForLayer as runHvOptimizeForLayerRA,
+    applyHvOptimizePreviewForLayer as applyHvOptimizePreviewForLayerRA,
+    resetAiTestHvBridgeFiles as resetAiTestHvBridgeFilesRA,
+  } from '@/utils/routeAdjustAiTestHvOptimizeExecute.js';
+  import {
     AI_TEST_HV_IRON_RULE,
     AI_TEST_HV_PROCEDURE,
     AI_TEST_HV_SKILL_TEXT,
     AI_TEST_HV_PROMPT_TEMPLATE,
     AI_TEST_HV_SYSTEM_PROMPT,
   } from '@/utils/aiTestHvOptimizeHelp.js';
+  import {
+    AI_TEST_HV_IRON_RULE as RA_AI_TEST_HV_IRON_RULE,
+    AI_TEST_HV_PROCEDURE as RA_AI_TEST_HV_PROCEDURE,
+    AI_TEST_HV_SKILL_TEXT as RA_AI_TEST_HV_SKILL_TEXT,
+    AI_TEST_HV_PROMPT_TEMPLATE as RA_AI_TEST_HV_PROMPT_TEMPLATE,
+    AI_TEST_HV_SYSTEM_PROMPT as RA_AI_TEST_HV_SYSTEM_PROMPT,
+  } from '@/utils/routeAdjustAiTestHvOptimizeHelp.js';
 
   /**
    * 網格合併和縮減工具函數引入
@@ -240,6 +253,27 @@
     quickLoadCity: aiTestMetroQuickLoad,
     clearLoadedCity: aiTestMetroClearLoadedCity,
   } = useAiTestMetroOneClickCatalog(dataStore);
+
+  // 🏷️ AI示意圖測試（路線調整）— 獨立實體複製（程式不共用）
+  const {
+    selContinent: raAiTestMetroContinent,
+    selCountry: raAiTestMetroCountry,
+    selCity: raAiTestMetroCity,
+    selQuick: raAiTestMetroQuick,
+    selStationSort: raAiTestMetroStationSort,
+    loadableCities: raAiTestMetroLoadableCities,
+    quickCities: raAiTestMetroQuickCities,
+    stationSortedCities: raAiTestMetroStationSortedCities,
+    drawContinents: raAiTestMetroContinents,
+    drawCountries: raAiTestMetroCountries,
+    drawCities: raAiTestMetroCities,
+    isLoading: raAiTestMetroLoading,
+    loadedCityLabel: raAiTestMetroLoadedLabel,
+    loadedOfficialUrl: raAiTestMetroOfficialUrl,
+    loadSelectedCity: raAiTestMetroLoadSelectedCity,
+    quickLoadCity: raAiTestMetroQuickLoad,
+    clearLoadedCity: raAiTestMetroClearLoadedCity,
+  } = useRouteAdjustAiTestMetroOneClickCatalog(dataStore);
 
   const LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL = [
     ...ORTH_SPACE_LINE_IDS_MAIN,
@@ -1786,6 +1820,71 @@
       }
     } finally {
       hvOptimizeApplying.value = false;
+    }
+  };
+
+  /** AI測試（路線調整）：重新隨機產生均勻網格交叉點、三角化與捷運風格路線 */
+  const regenerateRouteAdjustAiTestLayer = async (layer) => {
+    if (!layer || layer.layerId !== 'route_adjust_ai_test_layer') return;
+    const storeLayer = dataStore.findLayerById('route_adjust_ai_test_layer');
+    if (storeLayer) {
+      storeLayer.hvOptimizeLastResult = null;
+      storeLayer.hvOptimizeSession = null;
+    }
+    raAiTestMetroClearLoadedCity();
+    await resetAiTestHvBridgeFilesRA();
+    await dataStore.reloadLayer(layer.layerId);
+  };
+
+  /** AI測試（路線調整）：HV 最佳化狀態 */
+  const raHvOptimizeRunning = ref(false);
+  const raHvOptimizeApplying = ref(false);
+  const raHvOptimizeStatus = ref('');
+
+  /** AI測試（路線調整）：同步 payload、載入 Cursor Agent 回覆 → 虛線預覽 */
+  const optimizeRouteAdjustAiTestLayerHv = async (layer) => {
+    if (!layer || layer.layerId !== 'route_adjust_ai_test_layer' || raHvOptimizeRunning.value)
+      return;
+    const storeLayer = dataStore.findLayerById('route_adjust_ai_test_layer') || layer;
+    if (!storeLayer.isLoaded || !storeLayer.processedJsonData?.routes?.length) {
+      if (typeof window !== 'undefined' && window.alert) {
+        window.alert('請先開啟圖層並載入路線圖或按「隨機產生」。');
+      }
+      return;
+    }
+    raHvOptimizeRunning.value = true;
+    raHvOptimizeStatus.value = '';
+    try {
+      const result = await runHvOptimizeForLayerRA(storeLayer);
+      raHvOptimizeStatus.value = result.message || '';
+      if (storeLayer) {
+        storeLayer.hvOptimizeBridgeStatus = result.message || '';
+        storeLayer.hvOptimizeBridgePending = !!result.pendingAgent;
+      }
+      if (!result.ok && typeof window !== 'undefined' && window.alert) {
+        window.alert(result.message);
+      } else {
+        dataStore.requestSpaceNetworkGridFullRedraw();
+      }
+    } finally {
+      raHvOptimizeRunning.value = false;
+    }
+  };
+
+  /** AI測試（路線調整）：套用 HV 最佳化預覽（真正移動路線，虛線消失） */
+  const applyRouteAdjustAiTestLayerHv = async (layer) => {
+    if (!layer || layer.layerId !== 'route_adjust_ai_test_layer' || raHvOptimizeApplying.value)
+      return;
+    const storeLayer = dataStore.findLayerById('route_adjust_ai_test_layer') || layer;
+    if (!storeLayer.hvOptimizeLastResult?.changeCount) return;
+    raHvOptimizeApplying.value = true;
+    try {
+      const result = await applyHvOptimizePreviewForLayerRA(storeLayer);
+      if (!result.ok && typeof window !== 'undefined' && window.alert) {
+        window.alert(result.message);
+      }
+    } finally {
+      raHvOptimizeApplying.value = false;
     }
   };
 
@@ -13662,6 +13761,217 @@
 
               <div class="text-muted pb-1 fw-semibold">System Prompt（HV_OPTIMIZE_SYSTEM_PROMPT）</div>
               <pre class="ai-test-hv-help-pre mb-0">{{ AI_TEST_HV_SYSTEM_PROMPT }}</pre>
+            </div>
+          </template>
+        </div>
+
+        <!-- AI測試（路線調整）：全球一鍵執行預算 → ai_test 格式 + 隨機產生（獨立實體複製） -->
+        <div
+          v-if="layer.layerId === 'route_adjust_ai_test_layer'"
+          class="pb-3 mb-3 border-bottom"
+        >
+          <div class="my-title-xs-gray pb-2">選擇路線圖（一鍵執行預算）</div>
+          <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
+            載入全球城市經「站點與路線調整前置」一鍵執行後之路網，轉成 AI測試格式（保留各城市原始整數格座標）後可接
+            HV 最佳化 + LLM。
+          </div>
+          <div
+            v-if="raAiTestMetroLoadedLabel"
+            class="my-font-size-xs text-success pb-2"
+            style="line-height: 1.35"
+          >
+            目前已載入：{{ raAiTestMetroLoadedLabel }}
+            <div v-if="raAiTestMetroOfficialUrl">
+              <a :href="raAiTestMetroOfficialUrl" target="_blank" rel="noopener noreferrer"
+                >官方路線圖 ↗</a
+              >
+            </div>
+          </div>
+          <select
+            v-model="raAiTestMetroQuick"
+            :disabled="raAiTestMetroLoading"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+            @change="raAiTestMetroQuickLoad(raAiTestMetroQuick)"
+          >
+            <option value="">快選城市…</option>
+            <option v-for="c in raAiTestMetroQuickCities" :key="c.id" :value="c.id">
+              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+            </option>
+          </select>
+          <select
+            v-model="raAiTestMetroStationSort"
+            :disabled="raAiTestMetroLoading"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-3 my-cursor-pointer"
+            @change="raAiTestMetroQuickLoad(raAiTestMetroStationSort)"
+          >
+            <option value="">依站點數排序…</option>
+            <option v-for="c in raAiTestMetroStationSortedCities" :key="c.id" :value="c.id">
+              {{
+                (c.cityZh ? c.cityZh + ' ' : '') +
+                c.city +
+                '（' +
+                c.stations +
+                ' 站・' +
+                c.routes +
+                ' 線）'
+              }}
+            </option>
+          </select>
+          <div class="my-title-xs-gray pb-2">
+            載入一鍵執行結果（全球・共 {{ raAiTestMetroLoadableCities.length }} 城市）
+          </div>
+          <select
+            v-model="raAiTestMetroContinent"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇洲別…</option>
+            <option v-for="c in raAiTestMetroContinents" :key="c" :value="c">{{ c }}</option>
+          </select>
+          <select
+            v-model="raAiTestMetroCountry"
+            :disabled="!raAiTestMetroContinent"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇國家…</option>
+            <option v-for="c in raAiTestMetroCountries" :key="c.country" :value="c.country">
+              {{ c.label }}
+            </option>
+          </select>
+          <select
+            v-model="raAiTestMetroCity"
+            :disabled="!raAiTestMetroCountry"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇城市…</option>
+            <option v-for="c in raAiTestMetroCities" :key="c.id" :value="c.id">
+              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-3"
+            :disabled="!raAiTestMetroCity || raAiTestMetroLoading"
+            title="載入該城市一鍵執行預算結果至 AI測試（路線調整）圖層"
+            @click="raAiTestMetroLoadSelectedCity"
+          >
+            {{ raAiTestMetroLoading ? '讀取中…' : '載入路線圖' }}
+          </button>
+          <ControlLoadFeedback layer-id="route_adjust_ai_test_layer:metro" />
+
+          <div class="my-title-xs-gray pb-2 pt-2 border-top">隨機產生</div>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
+            @click="regenerateRouteAdjustAiTestLayer(layer)"
+          >
+            隨機產生
+          </button>
+          <div class="my-title-xs-gray pt-1" style="line-height: 1.3">
+            重新隨機產生交叉點、三角化與捷運風格路線。
+          </div>
+
+          <template v-if="isAiTestHvLocalDevMode">
+            <button
+              type="button"
+              class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
+              :disabled="raHvOptimizeRunning || !layer.isLoaded"
+              @click="optimizeRouteAdjustAiTestLayerHv(layer)"
+            >
+              {{ raHvOptimizeRunning ? '處理中…' : 'HV 最佳化（水平/垂直）' }}
+            </button>
+            <div
+              v-if="raHvOptimizeStatus || layer.hvOptimizeBridgeStatus"
+              class="my-font-size-xs pt-1"
+              :class="layer.hvOptimizeBridgePending ? 'text-warning' : 'text-muted'"
+              style="line-height: 1.4; white-space: pre-wrap"
+            >
+              {{ raHvOptimizeStatus || layer.hvOptimizeBridgeStatus }}
+            </div>
+            <div
+              v-if="layer.hvOptimizeLastResult"
+              class="mt-2 my-font-size-xs"
+              style="line-height: 1.45"
+            >
+              <div class="text-muted pb-1">
+                HV 邊 {{ layer.hvOptimizeLastResult.hvStatsAfter.hvEdges }}/{{
+                  layer.hvOptimizeLastResult.hvStatsAfter.edgeCount
+                }}（{{
+                  Math.round((layer.hvOptimizeLastResult.hvStatsBefore.hvRatio ?? 0) * 100)
+                }}% → {{
+                  Math.round((layer.hvOptimizeLastResult.hvStatsAfter.hvRatio ?? 0) * 100)
+                }}%）
+              </div>
+              <div v-if="layer.hvOptimizeLastResult.model" class="text-muted pb-1">
+                計算 model：{{ layer.hvOptimizeLastResult.model }}
+              </div>
+              <div v-if="layer.hvOptimizeLastResult.changeCount" class="text-success">
+                <div class="pb-1">
+                  建議移動 {{ layer.hvOptimizeLastResult.changeCount }} 點（虛線預覽）：
+                </div>
+                <div
+                  v-for="c in layer.hvOptimizeLastResult.changes"
+                  :key="`ra-hv-opt-${c.id}`"
+                  class="text-muted pb-1 d-flex flex-wrap align-items-center"
+                >
+                  <span>
+                    {{ c.kindLabel }} id={{ c.id }}：({{ c.from.x }},{{ c.from.y }}) → ({{
+                      c.to.x
+                    }},{{ c.to.y }})
+                  </span>
+                  <span class="ms-2 d-inline-flex align-items-center flex-wrap gap-1">
+                    路線
+                    <span
+                      v-for="(color, ci) in c.routeColors"
+                      :key="`ra-hv-opt-${c.id}-color-${ci}`"
+                      class="d-inline-flex align-items-center"
+                      :title="color"
+                    >
+                      <span
+                        :style="{
+                          display: 'inline-block',
+                          width: '10px',
+                          height: '10px',
+                          background: color,
+                          borderRadius: '2px',
+                          border: '1px solid rgba(0,0,0,0.15)',
+                        }"
+                      ></span>
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <div v-else class="text-muted">建議移動：無（已達目前可安全移動的最佳狀態）</div>
+
+              <button
+                v-if="layer.hvOptimizeLastResult.changeCount"
+                type="button"
+                class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer mt-2"
+                :disabled="raHvOptimizeApplying || raHvOptimizeRunning"
+                @click="applyRouteAdjustAiTestLayerHv(layer)"
+              >
+                {{ raHvOptimizeApplying ? '套用中…' : '執行（套用移動）' }}
+              </button>
+            </div>
+
+            <div
+              class="mt-3 pt-2 border-top ai-test-hv-help"
+              style="font-size: 11px; line-height: 1.5"
+            >
+              <div class="my-title-xs-gray pb-2">HV 最佳化 — 操作說明（本地 Cursor 開發）</div>
+
+              <pre class="ai-test-hv-help-pre ai-test-hv-help-iron mb-2">{{ RA_AI_TEST_HV_IRON_RULE }}</pre>
+
+              <div class="text-muted pb-1 fw-semibold">操作流程</div>
+              <pre class="ai-test-hv-help-pre mb-2">{{ RA_AI_TEST_HV_PROCEDURE }}</pre>
+
+              <div class="text-muted pb-1 fw-semibold">Skill 內容</div>
+              <pre class="ai-test-hv-help-pre mb-2">{{ RA_AI_TEST_HV_SKILL_TEXT }}</pre>
+
+              <div class="text-muted pb-1 fw-semibold">Prompt 模板</div>
+              <pre class="ai-test-hv-help-pre mb-2">{{ RA_AI_TEST_HV_PROMPT_TEMPLATE }}</pre>
+
+              <div class="text-muted pb-1 fw-semibold">System Prompt（HV_OPTIMIZE_SYSTEM_PROMPT）</div>
+              <pre class="ai-test-hv-help-pre mb-0">{{ RA_AI_TEST_HV_SYSTEM_PROMPT }}</pre>
             </div>
           </template>
         </div>
