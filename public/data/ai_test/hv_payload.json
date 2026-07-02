@@ -1,6 +1,6 @@
 {
-  "updatedAt": 1782980107215,
-  "routesFingerprint": "0:2:10,15:6,29|1:2:10,15:25,14|2:2:9,35:1,31|3:2:9,35:13,43|4:2:9,35:4,59|5:2:16,47:13,43|6:2:16,47:20,45|7:2:17,48:20,45|8:2:17,48:15,50|9:2:21,60:20,45|10:2:21,60:19,89|11:2:32,79:40,66|12:2:32,79:29,84|13:2:29,84:26,94|14:2:32,79:26,94|15:2:32,79:38,65|16:2:33,92:26,94|17:2:33,92:43,76|18:2:35,97:14,105|19:2:35,97:41,98|20:2:37,102:36,106|21:2:37,102:41,98|22:2:52,101:50,103|23:2:52,101:61,91|24:2:62,100:50,103|25:2:62,100:65,93|26:2:94,96:84,85|27:2:94,96:103,104|28:2:96,81:90,63|29:2:96,81:105,95|30:2:105,95:107,80|31:2:107,80:109,27|32:2:99,61:91,58|33:2:99,61:102,49|34:2:98,51:102,49|35:2:98,51:93,44|36:2:95,30:93,44|37:2:95,30:97,17|38:2:86,25:88,41|39:2:86,25:87,13|40:2:82,21:87,13|41:2:82,21:80,38|42:2:78,17:74,34|43:2:78,17:100,7|44:2:69,28:74,34|45:2:69,28:60,26|46:2:59,19:60,26|47:2:59,19:58,18|48:2:56,20:55,23|49:2:56,20:58,18|50:2:54,22:55,23|51:2:54,22:24,11|52:2:49,32:24,11|53:2:49,32:39,42|54:2:49,32:25,14|55:2:49,32:53,37|56:2:49,32:55,23|57:2:23,33:25,14|58:2:23,33:20,45|59:2:27,107:36,106|60:2:36,106:50,103|61:2:50,103:28,108|62:2:28,108:22,109|63:2:61,91:64,78|64:2:61,91:65,93|65:2:61,91:51,86|66:2:64,78:66,71|67:2:64,78:57,74|68:2:64,78:70,83|69:2:66,71:68,68|70:2:66,71:57,74|71:2:66,71:70,83|72:2:66,71:67,67|73:2:68,68:72,54|74:2:68,68:67,67|75:2:68,68:71,70|76:2:72,54:63,36|77:2:72,54:71,70|78:2:72,54:77,39|79:2:72,54:53,37|80:2:72,54:85,62|81:2:72,54:67,67|82:2:72,54:73,40|83:2:72,54:83,53|84:2:63,36:60,26|85:2:63,36:73,40|86:2:63,36:53,37|87:2:60,26:55,23|88:2:58,18:30,8|89:2:30,8:11,3|90:2:11,3:3,0|91:2:58,18:47,9|92:2:47,9:31,2|93:2:20,45:34,55|94:2:20,45:39,42|95:2:34,55:38,65|96:2:34,55:42,64|97:2:34,55:39,42|98:2:38,65:40,66|99:2:38,65:42,64|100:2:40,66:44,69|101:2:40,66:43,76|102:2:44,69:48,73|103:2:44,69:45,75|104:2:44,69:42,64|105:2:48,73:57,74|106:2:48,73:45,75|107:2:57,74:51,86|108:2:70,83:71,70|109:2:70,83:76,87|110:2:70,83:75,72|111:2:70,83:65,93|112:2:71,70:75,72|113:2:77,39:74,34|114:2:77,39:80,38|115:2:77,39:73,40|116:2:74,34:73,40|117:2:24,11:5,6|118:2:5,6:0,1|119:2:24,11:25,14|120:2:39,42:42,64|121:2:39,42:53,37|122:2:42,64:67,67|123:2:42,64:53,37|124:2:75,72:78,77|125:2:75,72:85,62|126:2:78,77:84,85|127:2:78,77:76,87|128:2:78,77:85,62|129:2:84,85:81,90|130:2:81,90:76,87|131:2:84,85:90,63|132:2:85,62:90,63|133:2:85,62:89,56|134:2:85,62:83,53|135:2:90,63:91,58|136:2:41,98:51,86|137:2:41,98:46,82|138:2:51,86:46,82|139:2:76,87:65,93|140:2:91,58:92,52|141:2:91,58:89,56|142:2:92,52:88,41|143:2:92,52:89,56|144:2:92,52:93,44|145:2:88,41:93,44|146:2:88,41:80,38|147:2:87,13:100,7|148:2:87,13:97,17|149:2:100,7:104,4|150:2:108,12:106,57|151:2:106,57:102,49|152:2:102,49:101,16|153:2:80,38:83,53|154:2:89,56:83,53|155:2:97,17:101,16|156:2:46,82:43,76|157:2:46,82:45,75|158:2:43,76:45,75|159:2:26,94:18,99|160:2:26,94:19,89|161:2:18,99:19,89|162:2:8,88:19,89|163:2:2,5:7,10|164:2:7,10:10,15|165:2:10,15:9,35|166:2:12,46:16,47|167:2:12,46:13,43|168:2:16,47:17,48|169:2:17,48:21,60|170:2:21,60:32,79|171:2:32,79:33,92|172:2:33,92:35,97|173:2:35,97:37,102|174:2:37,102:52,101|175:2:52,101:62,100|176:2:62,100:94,96|177:2:94,96:96,81|178:2:96,81:99,61|179:2:99,61:98,51|180:2:98,51:95,30|181:2:95,30:86,25|182:2:86,25:82,21|183:2:82,21:78,17|184:2:78,17:69,28|185:2:69,28:59,19|186:2:59,19:56,20|187:2:56,20:54,22|188:2:54,22:49,32|189:2:49,32:23,33|190:2:23,33:13,43|191:2:9,35:12,46",
+  "updatedAt": 1782982258291,
+  "routesFingerprint": "0:2:10,14:6,29|1:2:10,14:25,14|2:2:9,35:1,35|3:2:9,35:13,43|4:2:9,35:9,59|5:2:16,47:13,43|6:2:16,47:20,45|7:2:17,47:20,45|8:2:17,47:17,50|9:2:19,60:20,45|10:2:19,60:19,89|11:2:32,79:40,66|12:2:32,79:29,84|13:2:29,84:26,94|14:2:32,79:26,94|15:2:32,79:38,66|16:2:35,92:26,94|17:2:35,92:43,74|18:2:35,97:25,97|19:2:35,97:41,98|20:2:37,102:36,106|21:2:37,102:41,98|22:2:52,101:50,103|23:2:52,101:61,91|24:2:62,101:50,103|25:2:62,101:62,93|26:2:94,96:84,85|27:2:94,96:103,96|28:2:96,81:90,62|29:2:96,81:107,95|30:2:107,95:107,80|31:2:107,80:107,35|32:2:99,61:92,61|33:2:99,61:102,51|34:2:99,51:102,51|35:2:99,51:92,44|36:2:95,25:92,44|37:2:95,25:97,17|38:2:86,25:86,44|39:2:86,25:86,17|40:2:80,21:86,17|41:2:80,21:80,38|42:2:74,7:74,34|43:2:74,7:100,7|44:2:69,26:74,34|45:2:69,26:59,26|46:2:59,20:59,26|47:2:59,20:58,18|48:2:56,20:55,23|49:2:56,20:58,18|50:2:54,22:55,23|51:2:54,22:25,11|52:2:49,32:25,11|53:2:49,32:42,42|54:2:49,32:25,14|55:2:49,32:49,42|56:2:49,32:55,23|57:2:23,33:25,14|58:2:23,33:20,45|59:2:27,106:36,106|60:2:36,106:50,103|61:2:50,103:28,108|62:2:28,108:22,108|63:2:61,91:64,78|64:2:61,91:62,93|65:2:61,91:57,86|66:2:64,78:66,71|67:2:64,78:57,74|68:2:64,78:66,83|69:2:66,71:68,70|70:2:66,71:57,74|71:2:66,71:66,83|72:2:66,71:67,64|73:2:68,70:72,54|74:2:68,70:67,64|75:2:68,70:71,70|76:2:72,54:59,37|77:2:72,54:71,70|78:2:72,54:77,39|79:2:72,54:49,42|80:2:72,54:85,62|81:2:72,54:67,64|82:2:72,54:74,39|83:2:72,54:85,54|84:2:59,37:59,26|85:2:59,37:74,39|86:2:59,37:49,42|87:2:59,26:55,23|88:2:58,18:30,8|89:2:30,8:11,3|90:2:11,3:3,3|91:2:58,18:47,9|92:2:47,9:35,9|93:2:20,45:38,55|94:2:20,45:42,42|95:2:38,55:38,66|96:2:38,55:42,64|97:2:38,55:42,42|98:2:38,66:40,66|99:2:38,66:42,64|100:2:40,66:45,66|101:2:40,66:43,74|102:2:45,66:48,74|103:2:45,66:45,74|104:2:45,66:42,64|105:2:48,74:57,74|106:2:48,74:45,74|107:2:57,74:57,86|108:2:66,83:71,70|109:2:66,83:78,83|110:2:66,83:75,70|111:2:66,83:62,93|112:2:71,70:75,70|113:2:77,39:74,34|114:2:77,39:80,38|115:2:77,39:74,39|116:2:74,34:74,39|117:2:25,11:5,6|118:2:5,6:0,6|119:2:25,11:25,14|120:2:42,42:42,64|121:2:42,42:49,42|122:2:42,64:67,64|123:2:42,64:49,42|124:2:75,70:78,77|125:2:75,70:85,62|126:2:78,77:84,85|127:2:78,77:78,83|128:2:78,77:85,62|129:2:84,85:81,90|130:2:81,90:78,83|131:2:84,85:90,62|132:2:85,62:90,62|133:2:85,62:89,56|134:2:85,62:85,54|135:2:90,62:92,61|136:2:41,98:57,86|137:2:41,98:45,86|138:2:57,86:45,86|139:2:78,83:62,93|140:2:92,61:92,52|141:2:92,61:89,56|142:2:92,52:86,44|143:2:92,52:89,56|144:2:92,52:92,44|145:2:86,44:92,44|146:2:86,44:80,38|147:2:86,17:100,7|148:2:86,17:97,17|149:2:100,7:104,7|150:2:106,12:106,57|151:2:106,57:102,51|152:2:102,51:102,17|153:2:80,38:85,54|154:2:89,56:85,54|155:2:97,17:102,17|156:2:45,86:43,74|157:2:45,86:45,74|158:2:43,74:45,74|159:2:26,94:19,94|160:2:26,94:19,89|161:2:19,94:19,89|162:2:8,89:19,89|163:2:4,10:10,10|164:2:10,10:10,14|165:2:10,14:9,35|166:2:13,47:16,47|167:2:13,47:13,43|168:2:16,47:17,47|169:2:17,47:19,60|170:2:19,60:32,79|171:2:32,79:35,92|172:2:35,92:35,97|173:2:35,97:37,102|174:2:37,102:52,101|175:2:52,101:62,101|176:2:62,101:94,96|177:2:94,96:96,81|178:2:96,81:99,61|179:2:99,61:99,51|180:2:99,51:95,25|181:2:95,25:86,25|182:2:86,25:80,21|183:2:80,21:74,7|184:2:74,7:69,26|185:2:69,26:59,20|186:2:59,20:56,20|187:2:56,20:54,22|188:2:54,22:49,32|189:2:49,32:23,33|190:2:23,33:13,43|191:2:9,35:13,47",
   "roundIndex": 0,
   "network": {
     "meta": {
@@ -9,8 +9,8 @@
       "routeCount": 192,
       "pointCount": 110,
       "movableMarkerCount": 110,
-      "initialHvRatio": 0,
-      "initialNonHvCount": 192
+      "initialHvRatio": 0.3697916666666667,
+      "initialNonHvCount": 121
     },
     "topology": {
       "preserveTopology": true,
@@ -789,7 +789,7 @@
         {
           "crossingId": 0,
           "x": 10,
-          "y": 15,
+          "y": 14,
           "branchCount": 4,
           "branchOrderCCW": [
             2,
@@ -803,21 +803,21 @@
               "routeIndices": [
                 0
               ],
-              "leaveAngleDeg": 106
+              "leaveAngleDeg": 105
             },
             {
               "neighborId": 2,
               "routeIndices": [
                 1
               ],
-              "leaveAngleDeg": -4
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 108,
               "routeIndices": [
                 164
               ],
-              "leaveAngleDeg": -121
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 3,
@@ -845,7 +845,7 @@
               "routeIndices": [
                 1
               ],
-              "leaveAngleDeg": 176
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 61,
@@ -866,7 +866,7 @@
               "routeIndices": [
                 119
               ],
-              "leaveAngleDeg": -108
+              "leaveAngleDeg": -90
             }
           ]
         },
@@ -876,11 +876,11 @@
           "y": 35,
           "branchCount": 5,
           "branchOrderCCW": [
+            0,
             5,
             109,
             6,
-            4,
-            0
+            4
           ],
           "branches": [
             {
@@ -888,7 +888,7 @@
               "routeIndices": [
                 2
               ],
-              "leaveAngleDeg": -153
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 5,
@@ -902,7 +902,7 @@
               "routeIndices": [
                 4
               ],
-              "leaveAngleDeg": 102
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 0,
@@ -916,7 +916,7 @@
               "routeIndices": [
                 191
               ],
-              "leaveAngleDeg": 75
+              "leaveAngleDeg": 72
             }
           ]
         },
@@ -951,7 +951,7 @@
               "routeIndices": [
                 167
               ],
-              "leaveAngleDeg": 108
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 64,
@@ -993,14 +993,14 @@
               "routeIndices": [
                 166
               ],
-              "leaveAngleDeg": -166
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 9,
               "routeIndices": [
                 168
               ],
-              "leaveAngleDeg": 45
+              "leaveAngleDeg": 0
             }
           ]
         },
@@ -1030,14 +1030,14 @@
               "routeIndices": [
                 7
               ],
-              "leaveAngleDeg": 135
+              "leaveAngleDeg": 146
             },
             {
               "neighborId": 11,
               "routeIndices": [
                 9
               ],
-              "leaveAngleDeg": 86
+              "leaveAngleDeg": 94
             },
             {
               "neighborId": 64,
@@ -1051,21 +1051,21 @@
               "routeIndices": [
                 93
               ],
-              "leaveAngleDeg": 36
+              "leaveAngleDeg": 29
             },
             {
               "neighborId": 62,
               "routeIndices": [
                 94
               ],
-              "leaveAngleDeg": -9
+              "leaveAngleDeg": -8
             }
           ]
         },
         {
           "crossingId": 9,
           "x": 17,
-          "y": 48,
+          "y": 47,
           "branchCount": 4,
           "branchOrderCCW": [
             8,
@@ -1079,41 +1079,41 @@
               "routeIndices": [
                 7
               ],
-              "leaveAngleDeg": -45
+              "leaveAngleDeg": -34
             },
             {
               "neighborId": 10,
               "routeIndices": [
                 8
               ],
-              "leaveAngleDeg": 135
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 7,
               "routeIndices": [
                 168
               ],
-              "leaveAngleDeg": -135
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 11,
               "routeIndices": [
                 169
               ],
-              "leaveAngleDeg": 72
+              "leaveAngleDeg": 81
             }
           ]
         },
         {
           "crossingId": 11,
-          "x": 21,
+          "x": 19,
           "y": 60,
           "branchCount": 4,
           "branchOrderCCW": [
-            12,
-            9,
             8,
-            13
+            13,
+            12,
+            9
           ],
           "branches": [
             {
@@ -1121,28 +1121,28 @@
               "routeIndices": [
                 9
               ],
-              "leaveAngleDeg": -94
+              "leaveAngleDeg": -86
             },
             {
               "neighborId": 12,
               "routeIndices": [
                 10
               ],
-              "leaveAngleDeg": 94
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 9,
               "routeIndices": [
                 169
               ],
-              "leaveAngleDeg": -108
+              "leaveAngleDeg": -99
             },
             {
               "neighborId": 13,
               "routeIndices": [
                 170
               ],
-              "leaveAngleDeg": 60
+              "leaveAngleDeg": 56
             }
           ]
         },
@@ -1163,7 +1163,7 @@
               "routeIndices": [
                 10
               ],
-              "leaveAngleDeg": -86
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 16,
@@ -1177,14 +1177,14 @@
               "routeIndices": [
                 161
               ],
-              "leaveAngleDeg": 96
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 106,
               "routeIndices": [
                 162
               ],
-              "leaveAngleDeg": -175
+              "leaveAngleDeg": 180
             }
           ]
         },
@@ -1228,21 +1228,21 @@
               "routeIndices": [
                 15
               ],
-              "leaveAngleDeg": -67
+              "leaveAngleDeg": -65
             },
             {
               "neighborId": 11,
               "routeIndices": [
                 170
               ],
-              "leaveAngleDeg": -120
+              "leaveAngleDeg": -124
             },
             {
               "neighborId": 18,
               "routeIndices": [
                 171
               ],
-              "leaveAngleDeg": 86
+              "leaveAngleDeg": 77
             }
           ]
         },
@@ -1252,10 +1252,10 @@
           "y": 66,
           "branchCount": 4,
           "branchOrderCCW": [
-            89,
             19,
             13,
-            17
+            17,
+            89
           ],
           "branches": [
             {
@@ -1270,21 +1270,21 @@
               "routeIndices": [
                 98
               ],
-              "leaveAngleDeg": -153
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 89,
               "routeIndices": [
                 100
               ],
-              "leaveAngleDeg": 37
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 19,
               "routeIndices": [
                 101
               ],
-              "leaveAngleDeg": 73
+              "leaveAngleDeg": 69
             }
           ]
         },
@@ -1346,14 +1346,14 @@
               "routeIndices": [
                 16
               ],
-              "leaveAngleDeg": -16
+              "leaveAngleDeg": -13
             },
             {
               "neighborId": 105,
               "routeIndices": [
                 159
               ],
-              "leaveAngleDeg": 148
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 12,
@@ -1367,7 +1367,7 @@
         {
           "crossingId": 17,
           "x": 38,
-          "y": 65,
+          "y": 66,
           "branchCount": 4,
           "branchOrderCCW": [
             13,
@@ -1381,41 +1381,41 @@
               "routeIndices": [
                 15
               ],
-              "leaveAngleDeg": 113
+              "leaveAngleDeg": 115
             },
             {
               "neighborId": 87,
               "routeIndices": [
                 95
               ],
-              "leaveAngleDeg": -112
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 14,
               "routeIndices": [
                 98
               ],
-              "leaveAngleDeg": 27
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 88,
               "routeIndices": [
                 99
               ],
-              "leaveAngleDeg": -14
+              "leaveAngleDeg": -27
             }
           ]
         },
         {
           "crossingId": 18,
-          "x": 33,
+          "x": 35,
           "y": 92,
           "branchCount": 4,
           "branchOrderCCW": [
+            20,
             16,
             13,
-            19,
-            20
+            19
           ],
           "branches": [
             {
@@ -1423,41 +1423,41 @@
               "routeIndices": [
                 16
               ],
-              "leaveAngleDeg": 164
+              "leaveAngleDeg": 167
             },
             {
               "neighborId": 19,
               "routeIndices": [
                 17
               ],
-              "leaveAngleDeg": -58
+              "leaveAngleDeg": -66
             },
             {
               "neighborId": 13,
               "routeIndices": [
                 171
               ],
-              "leaveAngleDeg": -94
+              "leaveAngleDeg": -103
             },
             {
               "neighborId": 20,
               "routeIndices": [
                 172
               ],
-              "leaveAngleDeg": 68
+              "leaveAngleDeg": 90
             }
           ]
         },
         {
           "crossingId": 19,
           "x": 43,
-          "y": 76,
+          "y": 74,
           "branchCount": 4,
           "branchOrderCCW": [
-            18,
-            14,
             91,
-            99
+            99,
+            18,
+            14
           ],
           "branches": [
             {
@@ -1465,28 +1465,28 @@
               "routeIndices": [
                 17
               ],
-              "leaveAngleDeg": 122
+              "leaveAngleDeg": 114
             },
             {
               "neighborId": 14,
               "routeIndices": [
                 101
               ],
-              "leaveAngleDeg": -107
+              "leaveAngleDeg": -111
             },
             {
               "neighborId": 99,
               "routeIndices": [
                 156
               ],
-              "leaveAngleDeg": 63
+              "leaveAngleDeg": 81
             },
             {
               "neighborId": 91,
               "routeIndices": [
                 158
               ],
-              "leaveAngleDeg": -27
+              "leaveAngleDeg": 0
             }
           ]
         },
@@ -1507,7 +1507,7 @@
               "routeIndices": [
                 18
               ],
-              "leaveAngleDeg": 159
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 22,
@@ -1521,7 +1521,7 @@
               "routeIndices": [
                 172
               ],
-              "leaveAngleDeg": -112
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 23,
@@ -1563,14 +1563,14 @@
               "routeIndices": [
                 136
               ],
-              "leaveAngleDeg": -50
+              "leaveAngleDeg": -37
             },
             {
               "neighborId": 99,
               "routeIndices": [
                 137
               ],
-              "leaveAngleDeg": -73
+              "leaveAngleDeg": -72
             }
           ]
         },
@@ -1639,7 +1639,7 @@
               "routeIndices": [
                 59
               ],
-              "leaveAngleDeg": 174
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 26,
@@ -1656,10 +1656,10 @@
           "y": 101,
           "branchCount": 4,
           "branchOrderCCW": [
+            28,
             26,
             23,
-            27,
-            28
+            27
           ],
           "branches": [
             {
@@ -1688,7 +1688,7 @@
               "routeIndices": [
                 175
               ],
-              "leaveAngleDeg": -6
+              "leaveAngleDeg": 0
             }
           ]
         },
@@ -1698,10 +1698,10 @@
           "y": 103,
           "branchCount": 4,
           "branchOrderCCW": [
-            66,
-            24,
             25,
-            28
+            28,
+            66,
+            24
           ],
           "branches": [
             {
@@ -1716,7 +1716,7 @@
               "routeIndices": [
                 24
               ],
-              "leaveAngleDeg": -14
+              "leaveAngleDeg": -9
             },
             {
               "neighborId": 24,
@@ -1765,21 +1765,21 @@
               "routeIndices": [
                 64
               ],
-              "leaveAngleDeg": 27
+              "leaveAngleDeg": 63
             },
             {
               "neighborId": 69,
               "routeIndices": [
                 65
               ],
-              "leaveAngleDeg": -153
+              "leaveAngleDeg": -129
             }
           ]
         },
         {
           "crossingId": 28,
           "x": 62,
-          "y": 100,
+          "y": 101,
           "branchCount": 4,
           "branchOrderCCW": [
             26,
@@ -1793,34 +1793,34 @@
               "routeIndices": [
                 24
               ],
-              "leaveAngleDeg": 166
+              "leaveAngleDeg": 171
             },
             {
               "neighborId": 29,
               "routeIndices": [
                 25
               ],
-              "leaveAngleDeg": -67
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 25,
               "routeIndices": [
                 175
               ],
-              "leaveAngleDeg": 174
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 30,
               "routeIndices": [
                 176
               ],
-              "leaveAngleDeg": -7
+              "leaveAngleDeg": -9
             }
           ]
         },
         {
           "crossingId": 29,
-          "x": 65,
+          "x": 62,
           "y": 93,
           "branchCount": 4,
           "branchOrderCCW": [
@@ -1835,28 +1835,28 @@
               "routeIndices": [
                 25
               ],
-              "leaveAngleDeg": 113
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 27,
               "routeIndices": [
                 64
               ],
-              "leaveAngleDeg": -153
+              "leaveAngleDeg": -117
             },
             {
               "neighborId": 72,
               "routeIndices": [
                 111
               ],
-              "leaveAngleDeg": -63
+              "leaveAngleDeg": -68
             },
             {
               "neighborId": 92,
               "routeIndices": [
                 139
               ],
-              "leaveAngleDeg": -29
+              "leaveAngleDeg": -32
             }
           ]
         },
@@ -1884,14 +1884,14 @@
               "routeIndices": [
                 27
               ],
-              "leaveAngleDeg": 42
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 28,
               "routeIndices": [
                 176
               ],
-              "leaveAngleDeg": 173
+              "leaveAngleDeg": 171
             },
             {
               "neighborId": 33,
@@ -1968,7 +1968,7 @@
               "routeIndices": [
                 29
               ],
-              "leaveAngleDeg": 57
+              "leaveAngleDeg": 52
             },
             {
               "neighborId": 30,
@@ -1989,13 +1989,13 @@
         {
           "crossingId": 34,
           "x": 90,
-          "y": 63,
+          "y": 62,
           "branchCount": 4,
           "branchOrderCCW": [
+            39,
             33,
             31,
-            79,
-            39
+            79
           ],
           "branches": [
             {
@@ -2017,20 +2017,20 @@
               "routeIndices": [
                 132
               ],
-              "leaveAngleDeg": -169
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 39,
               "routeIndices": [
                 135
               ],
-              "leaveAngleDeg": -79
+              "leaveAngleDeg": -27
             }
           ]
         },
         {
           "crossingId": 35,
-          "x": 105,
+          "x": 107,
           "y": 95,
           "branchCount": 2,
           "branchOrderCCW": [
@@ -2043,14 +2043,14 @@
               "routeIndices": [
                 29
               ],
-              "leaveAngleDeg": -123
+              "leaveAngleDeg": -128
             },
             {
               "neighborId": 36,
               "routeIndices": [
                 30
               ],
-              "leaveAngleDeg": -82
+              "leaveAngleDeg": -90
             }
           ]
         },
@@ -2069,14 +2069,14 @@
               "routeIndices": [
                 30
               ],
-              "leaveAngleDeg": 98
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 37,
               "routeIndices": [
                 31
               ],
-              "leaveAngleDeg": -88
+              "leaveAngleDeg": -90
             }
           ]
         },
@@ -2097,14 +2097,14 @@
               "routeIndices": [
                 32
               ],
-              "leaveAngleDeg": -159
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 40,
               "routeIndices": [
                 33
               ],
-              "leaveAngleDeg": -76
+              "leaveAngleDeg": -73
             },
             {
               "neighborId": 33,
@@ -2118,14 +2118,14 @@
               "routeIndices": [
                 179
               ],
-              "leaveAngleDeg": -96
+              "leaveAngleDeg": -90
             }
           ]
         },
         {
           "crossingId": 39,
-          "x": 91,
-          "y": 58,
+          "x": 92,
+          "y": 61,
           "branchCount": 4,
           "branchOrderCCW": [
             38,
@@ -2139,35 +2139,35 @@
               "routeIndices": [
                 32
               ],
-              "leaveAngleDeg": 21
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 34,
               "routeIndices": [
                 135
               ],
-              "leaveAngleDeg": 101
+              "leaveAngleDeg": 153
             },
             {
               "neighborId": 100,
               "routeIndices": [
                 140
               ],
-              "leaveAngleDeg": -81
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 98,
               "routeIndices": [
                 141
               ],
-              "leaveAngleDeg": -135
+              "leaveAngleDeg": -121
             }
           ]
         },
         {
           "crossingId": 40,
           "x": 102,
-          "y": 49,
+          "y": 51,
           "branchCount": 4,
           "branchOrderCCW": [
             103,
@@ -2181,34 +2181,34 @@
               "routeIndices": [
                 33
               ],
-              "leaveAngleDeg": 104
+              "leaveAngleDeg": 107
             },
             {
               "neighborId": 41,
               "routeIndices": [
                 34
               ],
-              "leaveAngleDeg": 153
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 103,
               "routeIndices": [
                 151
               ],
-              "leaveAngleDeg": 63
+              "leaveAngleDeg": 56
             },
             {
               "neighborId": 104,
               "routeIndices": [
                 152
               ],
-              "leaveAngleDeg": -92
+              "leaveAngleDeg": -90
             }
           ]
         },
         {
           "crossingId": 41,
-          "x": 98,
+          "x": 99,
           "y": 51,
           "branchCount": 4,
           "branchOrderCCW": [
@@ -2223,34 +2223,34 @@
               "routeIndices": [
                 34
               ],
-              "leaveAngleDeg": -27
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 42,
               "routeIndices": [
                 35
               ],
-              "leaveAngleDeg": -126
+              "leaveAngleDeg": -135
             },
             {
               "neighborId": 38,
               "routeIndices": [
                 179
               ],
-              "leaveAngleDeg": 84
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 43,
               "routeIndices": [
                 180
               ],
-              "leaveAngleDeg": -98
+              "leaveAngleDeg": -99
             }
           ]
         },
         {
           "crossingId": 42,
-          "x": 93,
+          "x": 92,
           "y": 44,
           "branchCount": 4,
           "branchOrderCCW": [
@@ -2265,35 +2265,35 @@
               "routeIndices": [
                 35
               ],
-              "leaveAngleDeg": 54
+              "leaveAngleDeg": 45
             },
             {
               "neighborId": 43,
               "routeIndices": [
                 36
               ],
-              "leaveAngleDeg": -82
+              "leaveAngleDeg": -81
             },
             {
               "neighborId": 100,
               "routeIndices": [
                 144
               ],
-              "leaveAngleDeg": 97
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 46,
               "routeIndices": [
                 145
               ],
-              "leaveAngleDeg": -149
+              "leaveAngleDeg": 180
             }
           ]
         },
         {
           "crossingId": 43,
           "x": 95,
-          "y": 30,
+          "y": 25,
           "branchCount": 4,
           "branchOrderCCW": [
             44,
@@ -2307,28 +2307,28 @@
               "routeIndices": [
                 36
               ],
-              "leaveAngleDeg": 98
+              "leaveAngleDeg": 99
             },
             {
               "neighborId": 44,
               "routeIndices": [
                 37
               ],
-              "leaveAngleDeg": -81
+              "leaveAngleDeg": -76
             },
             {
               "neighborId": 41,
               "routeIndices": [
                 180
               ],
-              "leaveAngleDeg": 82
+              "leaveAngleDeg": 81
             },
             {
               "neighborId": 45,
               "routeIndices": [
                 181
               ],
-              "leaveAngleDeg": -151
+              "leaveAngleDeg": 180
             }
           ]
         },
@@ -2348,21 +2348,21 @@
               "routeIndices": [
                 37
               ],
-              "leaveAngleDeg": 99
+              "leaveAngleDeg": 104
             },
             {
               "neighborId": 47,
               "routeIndices": [
                 148
               ],
-              "leaveAngleDeg": -158
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 104,
               "routeIndices": [
                 155
               ],
-              "leaveAngleDeg": -14
+              "leaveAngleDeg": 0
             }
           ]
         },
@@ -2372,10 +2372,10 @@
           "y": 25,
           "branchCount": 4,
           "branchOrderCCW": [
+            46,
             48,
             47,
-            43,
-            46
+            43
           ],
           "branches": [
             {
@@ -2383,41 +2383,41 @@
               "routeIndices": [
                 38
               ],
-              "leaveAngleDeg": 83
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 47,
               "routeIndices": [
                 39
               ],
-              "leaveAngleDeg": -85
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 43,
               "routeIndices": [
                 181
               ],
-              "leaveAngleDeg": 29
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 48,
               "routeIndices": [
                 182
               ],
-              "leaveAngleDeg": -135
+              "leaveAngleDeg": -146
             }
           ]
         },
         {
           "crossingId": 46,
-          "x": 88,
-          "y": 41,
+          "x": 86,
+          "y": 44,
           "branchCount": 4,
           "branchOrderCCW": [
+            49,
             45,
             42,
-            100,
-            49
+            100
           ],
           "branches": [
             {
@@ -2425,41 +2425,41 @@
               "routeIndices": [
                 38
               ],
-              "leaveAngleDeg": -97
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 100,
               "routeIndices": [
                 142
               ],
-              "leaveAngleDeg": 70
+              "leaveAngleDeg": 53
             },
             {
               "neighborId": 42,
               "routeIndices": [
                 145
               ],
-              "leaveAngleDeg": 31
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 49,
               "routeIndices": [
                 146
               ],
-              "leaveAngleDeg": -159
+              "leaveAngleDeg": -135
             }
           ]
         },
         {
           "crossingId": 47,
-          "x": 87,
-          "y": 13,
+          "x": 86,
+          "y": 17,
           "branchCount": 4,
           "branchOrderCCW": [
-            52,
             44,
             45,
-            48
+            48,
+            52
           ],
           "branches": [
             {
@@ -2467,41 +2467,41 @@
               "routeIndices": [
                 39
               ],
-              "leaveAngleDeg": 95
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 48,
               "routeIndices": [
                 40
               ],
-              "leaveAngleDeg": 122
+              "leaveAngleDeg": 146
             },
             {
               "neighborId": 52,
               "routeIndices": [
                 147
               ],
-              "leaveAngleDeg": -25
+              "leaveAngleDeg": -36
             },
             {
               "neighborId": 44,
               "routeIndices": [
                 148
               ],
-              "leaveAngleDeg": 22
+              "leaveAngleDeg": 0
             }
           ]
         },
         {
           "crossingId": 48,
-          "x": 82,
+          "x": 80,
           "y": 21,
           "branchCount": 4,
           "branchOrderCCW": [
+            50,
             47,
             45,
-            49,
-            50
+            49
           ],
           "branches": [
             {
@@ -2509,28 +2509,28 @@
               "routeIndices": [
                 40
               ],
-              "leaveAngleDeg": -58
+              "leaveAngleDeg": -34
             },
             {
               "neighborId": 49,
               "routeIndices": [
                 41
               ],
-              "leaveAngleDeg": 97
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 45,
               "routeIndices": [
                 182
               ],
-              "leaveAngleDeg": 45
+              "leaveAngleDeg": 34
             },
             {
               "neighborId": 50,
               "routeIndices": [
                 183
               ],
-              "leaveAngleDeg": -135
+              "leaveAngleDeg": -113
             }
           ]
         },
@@ -2551,7 +2551,7 @@
               "routeIndices": [
                 41
               ],
-              "leaveAngleDeg": -83
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 78,
@@ -2565,21 +2565,21 @@
               "routeIndices": [
                 146
               ],
-              "leaveAngleDeg": 21
+              "leaveAngleDeg": 45
             },
             {
               "neighborId": 81,
               "routeIndices": [
                 153
               ],
-              "leaveAngleDeg": 79
+              "leaveAngleDeg": 73
             }
           ]
         },
         {
           "crossingId": 50,
-          "x": 78,
-          "y": 17,
+          "x": 74,
+          "y": 7,
           "branchCount": 4,
           "branchOrderCCW": [
             52,
@@ -2593,28 +2593,28 @@
               "routeIndices": [
                 42
               ],
-              "leaveAngleDeg": 103
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 52,
               "routeIndices": [
                 43
               ],
-              "leaveAngleDeg": -24
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 48,
               "routeIndices": [
                 183
               ],
-              "leaveAngleDeg": 45
+              "leaveAngleDeg": 67
             },
             {
               "neighborId": 53,
               "routeIndices": [
                 184
               ],
-              "leaveAngleDeg": 129
+              "leaveAngleDeg": 105
             }
           ]
         },
@@ -2635,14 +2635,14 @@
               "routeIndices": [
                 42
               ],
-              "leaveAngleDeg": -77
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 53,
               "routeIndices": [
                 44
               ],
-              "leaveAngleDeg": -130
+              "leaveAngleDeg": -122
             },
             {
               "neighborId": 78,
@@ -2656,7 +2656,7 @@
               "routeIndices": [
                 116
               ],
-              "leaveAngleDeg": 99
+              "leaveAngleDeg": 90
             }
           ]
         },
@@ -2676,28 +2676,28 @@
               "routeIndices": [
                 43
               ],
-              "leaveAngleDeg": 156
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 47,
               "routeIndices": [
                 147
               ],
-              "leaveAngleDeg": 155
+              "leaveAngleDeg": 144
             },
             {
               "neighborId": 101,
               "routeIndices": [
                 149
               ],
-              "leaveAngleDeg": -37
+              "leaveAngleDeg": 0
             }
           ]
         },
         {
           "crossingId": 53,
           "x": 69,
-          "y": 28,
+          "y": 26,
           "branchCount": 4,
           "branchOrderCCW": [
             51,
@@ -2711,34 +2711,34 @@
               "routeIndices": [
                 44
               ],
-              "leaveAngleDeg": 50
+              "leaveAngleDeg": 58
             },
             {
               "neighborId": 54,
               "routeIndices": [
                 45
               ],
-              "leaveAngleDeg": -167
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 50,
               "routeIndices": [
                 184
               ],
-              "leaveAngleDeg": -51
+              "leaveAngleDeg": -75
             },
             {
               "neighborId": 55,
               "routeIndices": [
                 185
               ],
-              "leaveAngleDeg": -138
+              "leaveAngleDeg": -149
             }
           ]
         },
         {
           "crossingId": 54,
-          "x": 60,
+          "x": 59,
           "y": 26,
           "branchCount": 4,
           "branchOrderCCW": [
@@ -2753,35 +2753,35 @@
               "routeIndices": [
                 45
               ],
-              "leaveAngleDeg": 13
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 55,
               "routeIndices": [
                 46
               ],
-              "leaveAngleDeg": -98
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 77,
               "routeIndices": [
                 84
               ],
-              "leaveAngleDeg": 73
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 58,
               "routeIndices": [
                 87
               ],
-              "leaveAngleDeg": -149
+              "leaveAngleDeg": -143
             }
           ]
         },
         {
           "crossingId": 55,
           "x": 59,
-          "y": 19,
+          "y": 20,
           "branchCount": 4,
           "branchOrderCCW": [
             54,
@@ -2795,28 +2795,28 @@
               "routeIndices": [
                 46
               ],
-              "leaveAngleDeg": 82
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 56,
               "routeIndices": [
                 47
               ],
-              "leaveAngleDeg": -135
+              "leaveAngleDeg": -117
             },
             {
               "neighborId": 53,
               "routeIndices": [
                 185
               ],
-              "leaveAngleDeg": 42
+              "leaveAngleDeg": 31
             },
             {
               "neighborId": 57,
               "routeIndices": [
                 186
               ],
-              "leaveAngleDeg": 162
+              "leaveAngleDeg": 180
             }
           ]
         },
@@ -2837,7 +2837,7 @@
               "routeIndices": [
                 47
               ],
-              "leaveAngleDeg": 45
+              "leaveAngleDeg": 63
             },
             {
               "neighborId": 57,
@@ -2893,7 +2893,7 @@
               "routeIndices": [
                 186
               ],
-              "leaveAngleDeg": -18
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 59,
@@ -2942,7 +2942,7 @@
               "routeIndices": [
                 87
               ],
-              "leaveAngleDeg": 31
+              "leaveAngleDeg": 37
             }
           ]
         },
@@ -2970,7 +2970,7 @@
               "routeIndices": [
                 51
               ],
-              "leaveAngleDeg": -160
+              "leaveAngleDeg": -159
             },
             {
               "neighborId": 57,
@@ -2990,7 +2990,7 @@
         },
         {
           "crossingId": 60,
-          "x": 24,
+          "x": 25,
           "y": 11,
           "branchCount": 4,
           "branchOrderCCW": [
@@ -3005,28 +3005,28 @@
               "routeIndices": [
                 51
               ],
-              "leaveAngleDeg": 20
+              "leaveAngleDeg": 21
             },
             {
               "neighborId": 61,
               "routeIndices": [
                 52
               ],
-              "leaveAngleDeg": 40
+              "leaveAngleDeg": 41
             },
             {
               "neighborId": 94,
               "routeIndices": [
                 117
               ],
-              "leaveAngleDeg": -165
+              "leaveAngleDeg": -166
             },
             {
               "neighborId": 2,
               "routeIndices": [
                 119
               ],
-              "leaveAngleDeg": 72
+              "leaveAngleDeg": 90
             }
           ]
         },
@@ -3050,14 +3050,14 @@
               "routeIndices": [
                 52
               ],
-              "leaveAngleDeg": -140
+              "leaveAngleDeg": -139
             },
             {
               "neighborId": 62,
               "routeIndices": [
                 53
               ],
-              "leaveAngleDeg": 135
+              "leaveAngleDeg": 125
             },
             {
               "neighborId": 2,
@@ -3071,7 +3071,7 @@
               "routeIndices": [
                 55
               ],
-              "leaveAngleDeg": 51
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 58,
@@ -3098,7 +3098,7 @@
         },
         {
           "crossingId": 62,
-          "x": 39,
+          "x": 42,
           "y": 42,
           "branchCount": 5,
           "branchOrderCCW": [
@@ -3114,49 +3114,49 @@
               "routeIndices": [
                 53
               ],
-              "leaveAngleDeg": -45
+              "leaveAngleDeg": -55
             },
             {
               "neighborId": 8,
               "routeIndices": [
                 94
               ],
-              "leaveAngleDeg": 171
+              "leaveAngleDeg": 172
             },
             {
               "neighborId": 87,
               "routeIndices": [
                 97
               ],
-              "leaveAngleDeg": 111
+              "leaveAngleDeg": 107
             },
             {
               "neighborId": 88,
               "routeIndices": [
                 120
               ],
-              "leaveAngleDeg": 82
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 63,
               "routeIndices": [
                 121
               ],
-              "leaveAngleDeg": -20
+              "leaveAngleDeg": 0
             }
           ]
         },
         {
           "crossingId": 63,
-          "x": 53,
-          "y": 37,
+          "x": 49,
+          "y": 42,
           "branchCount": 5,
           "branchOrderCCW": [
+            62,
             61,
             77,
             75,
-            88,
-            62
+            88
           ],
           "branches": [
             {
@@ -3164,35 +3164,35 @@
               "routeIndices": [
                 55
               ],
-              "leaveAngleDeg": -129
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 75,
               "routeIndices": [
                 79
               ],
-              "leaveAngleDeg": 42
+              "leaveAngleDeg": 28
             },
             {
               "neighborId": 77,
               "routeIndices": [
                 86
               ],
-              "leaveAngleDeg": -6
+              "leaveAngleDeg": -27
             },
             {
               "neighborId": 62,
               "routeIndices": [
                 121
               ],
-              "leaveAngleDeg": 160
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 88,
               "routeIndices": [
                 123
               ],
-              "leaveAngleDeg": 112
+              "leaveAngleDeg": 108
             }
           ]
         },
@@ -3260,7 +3260,7 @@
               "routeIndices": [
                 62
               ],
-              "leaveAngleDeg": 171
+              "leaveAngleDeg": 180
             }
           ]
         },
@@ -3302,20 +3302,20 @@
               "routeIndices": [
                 68
               ],
-              "leaveAngleDeg": 40
+              "leaveAngleDeg": 68
             }
           ]
         },
         {
           "crossingId": 69,
-          "x": 51,
+          "x": 57,
           "y": 86,
           "branchCount": 4,
           "branchOrderCCW": [
-            99,
             71,
             27,
-            22
+            22,
+            99
           ],
           "branches": [
             {
@@ -3323,28 +3323,28 @@
               "routeIndices": [
                 65
               ],
-              "leaveAngleDeg": 27
+              "leaveAngleDeg": 51
             },
             {
               "neighborId": 71,
               "routeIndices": [
                 107
               ],
-              "leaveAngleDeg": -63
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 22,
               "routeIndices": [
                 136
               ],
-              "leaveAngleDeg": 130
+              "leaveAngleDeg": 143
             },
             {
               "neighborId": 99,
               "routeIndices": [
                 138
               ],
-              "leaveAngleDeg": -141
+              "leaveAngleDeg": 180
             }
           ]
         },
@@ -3373,7 +3373,7 @@
               "routeIndices": [
                 69
               ],
-              "leaveAngleDeg": -56
+              "leaveAngleDeg": -27
             },
             {
               "neighborId": 71,
@@ -3387,14 +3387,14 @@
               "routeIndices": [
                 71
               ],
-              "leaveAngleDeg": 72
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 74,
               "routeIndices": [
                 72
               ],
-              "leaveAngleDeg": -76
+              "leaveAngleDeg": -82
             }
           ]
         },
@@ -3429,20 +3429,20 @@
               "routeIndices": [
                 105
               ],
-              "leaveAngleDeg": -174
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 69,
               "routeIndices": [
                 107
               ],
-              "leaveAngleDeg": 117
+              "leaveAngleDeg": 90
             }
           ]
         },
         {
           "crossingId": 72,
-          "x": 70,
+          "x": 66,
           "y": 83,
           "branchCount": 6,
           "branchOrderCCW": [
@@ -3459,49 +3459,49 @@
               "routeIndices": [
                 68
               ],
-              "leaveAngleDeg": -140
+              "leaveAngleDeg": -112
             },
             {
               "neighborId": 70,
               "routeIndices": [
                 71
               ],
-              "leaveAngleDeg": -108
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 76,
               "routeIndices": [
                 108
               ],
-              "leaveAngleDeg": -86
+              "leaveAngleDeg": -69
             },
             {
               "neighborId": 92,
               "routeIndices": [
                 109
               ],
-              "leaveAngleDeg": 34
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 93,
               "routeIndices": [
                 110
               ],
-              "leaveAngleDeg": -66
+              "leaveAngleDeg": -55
             },
             {
               "neighborId": 29,
               "routeIndices": [
                 111
               ],
-              "leaveAngleDeg": 117
+              "leaveAngleDeg": 112
             }
           ]
         },
         {
           "crossingId": 73,
           "x": 68,
-          "y": 68,
+          "y": 70,
           "branchCount": 4,
           "branchOrderCCW": [
             70,
@@ -3515,35 +3515,35 @@
               "routeIndices": [
                 69
               ],
-              "leaveAngleDeg": 124
+              "leaveAngleDeg": 153
             },
             {
               "neighborId": 75,
               "routeIndices": [
                 73
               ],
-              "leaveAngleDeg": -74
+              "leaveAngleDeg": -76
             },
             {
               "neighborId": 74,
               "routeIndices": [
                 74
               ],
-              "leaveAngleDeg": -135
+              "leaveAngleDeg": -99
             },
             {
               "neighborId": 76,
               "routeIndices": [
                 75
               ],
-              "leaveAngleDeg": 34
+              "leaveAngleDeg": 0
             }
           ]
         },
         {
           "crossingId": 74,
           "x": 67,
-          "y": 67,
+          "y": 64,
           "branchCount": 4,
           "branchOrderCCW": [
             75,
@@ -3557,28 +3557,28 @@
               "routeIndices": [
                 72
               ],
-              "leaveAngleDeg": 104
+              "leaveAngleDeg": 98
             },
             {
               "neighborId": 73,
               "routeIndices": [
                 74
               ],
-              "leaveAngleDeg": 45
+              "leaveAngleDeg": 81
             },
             {
               "neighborId": 75,
               "routeIndices": [
                 81
               ],
-              "leaveAngleDeg": -69
+              "leaveAngleDeg": -63
             },
             {
               "neighborId": 88,
               "routeIndices": [
                 122
               ],
-              "leaveAngleDeg": -173
+              "leaveAngleDeg": 180
             }
           ]
         },
@@ -3604,14 +3604,14 @@
               "routeIndices": [
                 73
               ],
-              "leaveAngleDeg": 106
+              "leaveAngleDeg": 104
             },
             {
               "neighborId": 77,
               "routeIndices": [
                 76
               ],
-              "leaveAngleDeg": -117
+              "leaveAngleDeg": -127
             },
             {
               "neighborId": 76,
@@ -3632,7 +3632,7 @@
               "routeIndices": [
                 79
               ],
-              "leaveAngleDeg": -138
+              "leaveAngleDeg": -152
             },
             {
               "neighborId": 79,
@@ -3646,21 +3646,21 @@
               "routeIndices": [
                 81
               ],
-              "leaveAngleDeg": 111
+              "leaveAngleDeg": 117
             },
             {
               "neighborId": 80,
               "routeIndices": [
                 82
               ],
-              "leaveAngleDeg": -86
+              "leaveAngleDeg": -82
             },
             {
               "neighborId": 81,
               "routeIndices": [
                 83
               ],
-              "leaveAngleDeg": -5
+              "leaveAngleDeg": 0
             }
           ]
         },
@@ -3681,7 +3681,7 @@
               "routeIndices": [
                 75
               ],
-              "leaveAngleDeg": -146
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 75,
@@ -3695,21 +3695,21 @@
               "routeIndices": [
                 108
               ],
-              "leaveAngleDeg": 94
+              "leaveAngleDeg": 111
             },
             {
               "neighborId": 93,
               "routeIndices": [
                 112
               ],
-              "leaveAngleDeg": 27
+              "leaveAngleDeg": 0
             }
           ]
         },
         {
           "crossingId": 77,
-          "x": 63,
-          "y": 36,
+          "x": 59,
+          "y": 37,
           "branchCount": 4,
           "branchOrderCCW": [
             54,
@@ -3723,28 +3723,28 @@
               "routeIndices": [
                 76
               ],
-              "leaveAngleDeg": 63
+              "leaveAngleDeg": 53
             },
             {
               "neighborId": 54,
               "routeIndices": [
                 84
               ],
-              "leaveAngleDeg": -107
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 80,
               "routeIndices": [
                 85
               ],
-              "leaveAngleDeg": 22
+              "leaveAngleDeg": 8
             },
             {
               "neighborId": 63,
               "routeIndices": [
                 86
               ],
-              "leaveAngleDeg": 174
+              "leaveAngleDeg": 153
             }
           ]
         },
@@ -3786,7 +3786,7 @@
               "routeIndices": [
                 115
               ],
-              "leaveAngleDeg": 166
+              "leaveAngleDeg": 180
             }
           ]
         },
@@ -3816,7 +3816,7 @@
               "routeIndices": [
                 125
               ],
-              "leaveAngleDeg": 135
+              "leaveAngleDeg": 141
             },
             {
               "neighborId": 96,
@@ -3830,7 +3830,7 @@
               "routeIndices": [
                 132
               ],
-              "leaveAngleDeg": 11
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 98,
@@ -3844,14 +3844,14 @@
               "routeIndices": [
                 134
               ],
-              "leaveAngleDeg": -103
+              "leaveAngleDeg": -90
             }
           ]
         },
         {
           "crossingId": 80,
-          "x": 73,
-          "y": 40,
+          "x": 74,
+          "y": 39,
           "branchCount": 4,
           "branchOrderCCW": [
             75,
@@ -3865,35 +3865,35 @@
               "routeIndices": [
                 82
               ],
-              "leaveAngleDeg": 94
+              "leaveAngleDeg": 98
             },
             {
               "neighborId": 77,
               "routeIndices": [
                 85
               ],
-              "leaveAngleDeg": -158
+              "leaveAngleDeg": -172
             },
             {
               "neighborId": 78,
               "routeIndices": [
                 115
               ],
-              "leaveAngleDeg": -14
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 51,
               "routeIndices": [
                 116
               ],
-              "leaveAngleDeg": -81
+              "leaveAngleDeg": -90
             }
           ]
         },
         {
           "crossingId": 81,
-          "x": 83,
-          "y": 53,
+          "x": 85,
+          "y": 54,
           "branchCount": 4,
           "branchOrderCCW": [
             98,
@@ -3907,21 +3907,21 @@
               "routeIndices": [
                 83
               ],
-              "leaveAngleDeg": 175
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 79,
               "routeIndices": [
                 134
               ],
-              "leaveAngleDeg": 77
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 49,
               "routeIndices": [
                 153
               ],
-              "leaveAngleDeg": -101
+              "leaveAngleDeg": -107
             },
             {
               "neighborId": 98,
@@ -3964,8 +3964,8 @@
           "y": 3,
           "branchCount": 2,
           "branchOrderCCW": [
-            84,
-            82
+            82,
+            84
           ],
           "branches": [
             {
@@ -3980,7 +3980,7 @@
               "routeIndices": [
                 90
               ],
-              "leaveAngleDeg": -159
+              "leaveAngleDeg": 180
             }
           ]
         },
@@ -4006,13 +4006,13 @@
               "routeIndices": [
                 92
               ],
-              "leaveAngleDeg": -156
+              "leaveAngleDeg": 180
             }
           ]
         },
         {
           "crossingId": 87,
-          "x": 34,
+          "x": 38,
           "y": 55,
           "branchCount": 4,
           "branchOrderCCW": [
@@ -4027,28 +4027,28 @@
               "routeIndices": [
                 93
               ],
-              "leaveAngleDeg": -144
+              "leaveAngleDeg": -151
             },
             {
               "neighborId": 17,
               "routeIndices": [
                 95
               ],
-              "leaveAngleDeg": 68
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 88,
               "routeIndices": [
                 96
               ],
-              "leaveAngleDeg": 48
+              "leaveAngleDeg": 66
             },
             {
               "neighborId": 62,
               "routeIndices": [
                 97
               ],
-              "leaveAngleDeg": -69
+              "leaveAngleDeg": -73
             }
           ]
         },
@@ -4058,12 +4058,12 @@
           "y": 64,
           "branchCount": 6,
           "branchOrderCCW": [
-            89,
             17,
             87,
             62,
             63,
-            74
+            74,
+            89
           ],
           "branches": [
             {
@@ -4071,49 +4071,49 @@
               "routeIndices": [
                 96
               ],
-              "leaveAngleDeg": -132
+              "leaveAngleDeg": -114
             },
             {
               "neighborId": 17,
               "routeIndices": [
                 99
               ],
-              "leaveAngleDeg": 166
+              "leaveAngleDeg": 153
             },
             {
               "neighborId": 89,
               "routeIndices": [
                 104
               ],
-              "leaveAngleDeg": 68
+              "leaveAngleDeg": 34
             },
             {
               "neighborId": 62,
               "routeIndices": [
                 120
               ],
-              "leaveAngleDeg": -98
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 74,
               "routeIndices": [
                 122
               ],
-              "leaveAngleDeg": 7
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 63,
               "routeIndices": [
                 123
               ],
-              "leaveAngleDeg": -68
+              "leaveAngleDeg": -72
             }
           ]
         },
         {
           "crossingId": 89,
-          "x": 44,
-          "y": 69,
+          "x": 45,
+          "y": 66,
           "branchCount": 4,
           "branchOrderCCW": [
             90,
@@ -4127,35 +4127,35 @@
               "routeIndices": [
                 100
               ],
-              "leaveAngleDeg": -143
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 90,
               "routeIndices": [
                 102
               ],
-              "leaveAngleDeg": 45
+              "leaveAngleDeg": 69
             },
             {
               "neighborId": 91,
               "routeIndices": [
                 103
               ],
-              "leaveAngleDeg": 81
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 88,
               "routeIndices": [
                 104
               ],
-              "leaveAngleDeg": -112
+              "leaveAngleDeg": -146
             }
           ]
         },
         {
           "crossingId": 90,
           "x": 48,
-          "y": 73,
+          "y": 74,
           "branchCount": 3,
           "branchOrderCCW": [
             89,
@@ -4168,34 +4168,34 @@
               "routeIndices": [
                 102
               ],
-              "leaveAngleDeg": -135
+              "leaveAngleDeg": -111
             },
             {
               "neighborId": 71,
               "routeIndices": [
                 105
               ],
-              "leaveAngleDeg": 6
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 91,
               "routeIndices": [
                 106
               ],
-              "leaveAngleDeg": 146
+              "leaveAngleDeg": 180
             }
           ]
         },
         {
           "crossingId": 91,
           "x": 45,
-          "y": 75,
+          "y": 74,
           "branchCount": 4,
           "branchOrderCCW": [
-            19,
             89,
             90,
-            99
+            99,
+            19
           ],
           "branches": [
             {
@@ -4203,35 +4203,35 @@
               "routeIndices": [
                 103
               ],
-              "leaveAngleDeg": -99
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 90,
               "routeIndices": [
                 106
               ],
-              "leaveAngleDeg": -34
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 99,
               "routeIndices": [
                 157
               ],
-              "leaveAngleDeg": 82
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 19,
               "routeIndices": [
                 158
               ],
-              "leaveAngleDeg": 153
+              "leaveAngleDeg": 180
             }
           ]
         },
         {
           "crossingId": 92,
-          "x": 76,
-          "y": 87,
+          "x": 78,
+          "y": 83,
           "branchCount": 4,
           "branchOrderCCW": [
             29,
@@ -4245,35 +4245,35 @@
               "routeIndices": [
                 109
               ],
-              "leaveAngleDeg": -146
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 96,
               "routeIndices": [
                 127
               ],
-              "leaveAngleDeg": -79
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 97,
               "routeIndices": [
                 130
               ],
-              "leaveAngleDeg": 31
+              "leaveAngleDeg": 67
             },
             {
               "neighborId": 29,
               "routeIndices": [
                 139
               ],
-              "leaveAngleDeg": 151
+              "leaveAngleDeg": 148
             }
           ]
         },
         {
           "crossingId": 93,
           "x": 75,
-          "y": 72,
+          "y": 70,
           "branchCount": 4,
           "branchOrderCCW": [
             79,
@@ -4287,28 +4287,28 @@
               "routeIndices": [
                 110
               ],
-              "leaveAngleDeg": 114
+              "leaveAngleDeg": 125
             },
             {
               "neighborId": 76,
               "routeIndices": [
                 112
               ],
-              "leaveAngleDeg": -153
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 96,
               "routeIndices": [
                 124
               ],
-              "leaveAngleDeg": 59
+              "leaveAngleDeg": 67
             },
             {
               "neighborId": 79,
               "routeIndices": [
                 125
               ],
-              "leaveAngleDeg": -45
+              "leaveAngleDeg": -39
             }
           ]
         },
@@ -4318,8 +4318,8 @@
           "y": 6,
           "branchCount": 2,
           "branchOrderCCW": [
-            95,
-            60
+            60,
+            95
           ],
           "branches": [
             {
@@ -4327,14 +4327,14 @@
               "routeIndices": [
                 117
               ],
-              "leaveAngleDeg": 15
+              "leaveAngleDeg": 14
             },
             {
               "neighborId": 95,
               "routeIndices": [
                 118
               ],
-              "leaveAngleDeg": -135
+              "leaveAngleDeg": 180
             }
           ]
         },
@@ -4355,7 +4355,7 @@
               "routeIndices": [
                 124
               ],
-              "leaveAngleDeg": -121
+              "leaveAngleDeg": -113
             },
             {
               "neighborId": 31,
@@ -4369,7 +4369,7 @@
               "routeIndices": [
                 127
               ],
-              "leaveAngleDeg": 101
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 79,
@@ -4404,7 +4404,7 @@
               "routeIndices": [
                 141
               ],
-              "leaveAngleDeg": 45
+              "leaveAngleDeg": 59
             },
             {
               "neighborId": 100,
@@ -4424,8 +4424,8 @@
         },
         {
           "crossingId": 99,
-          "x": 46,
-          "y": 82,
+          "x": 45,
+          "y": 86,
           "branchCount": 4,
           "branchOrderCCW": [
             69,
@@ -4439,28 +4439,28 @@
               "routeIndices": [
                 137
               ],
-              "leaveAngleDeg": 107
+              "leaveAngleDeg": 108
             },
             {
               "neighborId": 69,
               "routeIndices": [
                 138
               ],
-              "leaveAngleDeg": 39
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 19,
               "routeIndices": [
                 156
               ],
-              "leaveAngleDeg": -117
+              "leaveAngleDeg": -99
             },
             {
               "neighborId": 91,
               "routeIndices": [
                 157
               ],
-              "leaveAngleDeg": -98
+              "leaveAngleDeg": -90
             }
           ]
         },
@@ -4481,14 +4481,14 @@
               "routeIndices": [
                 140
               ],
-              "leaveAngleDeg": 99
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 46,
               "routeIndices": [
                 142
               ],
-              "leaveAngleDeg": -110
+              "leaveAngleDeg": -127
             },
             {
               "neighborId": 98,
@@ -4502,7 +4502,7 @@
               "routeIndices": [
                 144
               ],
-              "leaveAngleDeg": -83
+              "leaveAngleDeg": -90
             }
           ]
         },
@@ -4521,21 +4521,21 @@
               "routeIndices": [
                 150
               ],
-              "leaveAngleDeg": -87
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 40,
               "routeIndices": [
                 151
               ],
-              "leaveAngleDeg": -117
+              "leaveAngleDeg": -124
             }
           ]
         },
         {
           "crossingId": 104,
-          "x": 101,
-          "y": 16,
+          "x": 102,
+          "y": 17,
           "branchCount": 2,
           "branchOrderCCW": [
             40,
@@ -4547,21 +4547,21 @@
               "routeIndices": [
                 152
               ],
-              "leaveAngleDeg": 88
+              "leaveAngleDeg": 90
             },
             {
               "neighborId": 44,
               "routeIndices": [
                 155
               ],
-              "leaveAngleDeg": 166
+              "leaveAngleDeg": 180
             }
           ]
         },
         {
           "crossingId": 105,
-          "x": 18,
-          "y": 99,
+          "x": 19,
+          "y": 94,
           "branchCount": 2,
           "branchOrderCCW": [
             12,
@@ -4573,20 +4573,20 @@
               "routeIndices": [
                 159
               ],
-              "leaveAngleDeg": -32
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 12,
               "routeIndices": [
                 161
               ],
-              "leaveAngleDeg": -84
+              "leaveAngleDeg": -90
             }
           ]
         },
         {
           "crossingId": 108,
-          "x": 7,
+          "x": 10,
           "y": 10,
           "branchCount": 2,
           "branchOrderCCW": [
@@ -4599,21 +4599,21 @@
               "routeIndices": [
                 163
               ],
-              "leaveAngleDeg": -135
+              "leaveAngleDeg": 180
             },
             {
               "neighborId": 0,
               "routeIndices": [
                 164
               ],
-              "leaveAngleDeg": 59
+              "leaveAngleDeg": 90
             }
           ]
         },
         {
           "crossingId": 109,
-          "x": 12,
-          "y": 46,
+          "x": 13,
+          "y": 47,
           "branchCount": 3,
           "branchOrderCCW": [
             3,
@@ -4626,21 +4626,21 @@
               "routeIndices": [
                 166
               ],
-              "leaveAngleDeg": 14
+              "leaveAngleDeg": 0
             },
             {
               "neighborId": 5,
               "routeIndices": [
                 167
               ],
-              "leaveAngleDeg": -72
+              "leaveAngleDeg": -90
             },
             {
               "neighborId": 3,
               "routeIndices": [
                 191
               ],
-              "leaveAngleDeg": -105
+              "leaveAngleDeg": -108
             }
           ]
         }
@@ -4651,7 +4651,7 @@
       {
         "id": 0,
         "x": 10,
-        "y": 15,
+        "y": 14,
         "kind": "crossing"
       },
       {
@@ -4675,7 +4675,7 @@
       {
         "id": 4,
         "x": 1,
-        "y": 31,
+        "y": 35,
         "kind": "endpoint"
       },
       {
@@ -4686,7 +4686,7 @@
       },
       {
         "id": 6,
-        "x": 4,
+        "x": 9,
         "y": 59,
         "kind": "endpoint"
       },
@@ -4705,18 +4705,18 @@
       {
         "id": 9,
         "x": 17,
-        "y": 48,
+        "y": 47,
         "kind": "crossing"
       },
       {
         "id": 10,
-        "x": 15,
+        "x": 17,
         "y": 50,
         "kind": "endpoint"
       },
       {
         "id": 11,
-        "x": 21,
+        "x": 19,
         "y": 60,
         "kind": "crossing"
       },
@@ -4753,19 +4753,19 @@
       {
         "id": 17,
         "x": 38,
-        "y": 65,
+        "y": 66,
         "kind": "crossing"
       },
       {
         "id": 18,
-        "x": 33,
+        "x": 35,
         "y": 92,
         "kind": "crossing"
       },
       {
         "id": 19,
         "x": 43,
-        "y": 76,
+        "y": 74,
         "kind": "crossing"
       },
       {
@@ -4776,8 +4776,8 @@
       },
       {
         "id": 21,
-        "x": 14,
-        "y": 105,
+        "x": 25,
+        "y": 97,
         "kind": "endpoint"
       },
       {
@@ -4819,12 +4819,12 @@
       {
         "id": 28,
         "x": 62,
-        "y": 100,
+        "y": 101,
         "kind": "crossing"
       },
       {
         "id": 29,
-        "x": 65,
+        "x": 62,
         "y": 93,
         "kind": "crossing"
       },
@@ -4843,7 +4843,7 @@
       {
         "id": 32,
         "x": 103,
-        "y": 104,
+        "y": 96,
         "kind": "endpoint"
       },
       {
@@ -4855,12 +4855,12 @@
       {
         "id": 34,
         "x": 90,
-        "y": 63,
+        "y": 62,
         "kind": "crossing"
       },
       {
         "id": 35,
-        "x": 105,
+        "x": 107,
         "y": 95,
         "kind": "crossing"
       },
@@ -4872,8 +4872,8 @@
       },
       {
         "id": 37,
-        "x": 109,
-        "y": 27,
+        "x": 107,
+        "y": 35,
         "kind": "endpoint"
       },
       {
@@ -4884,32 +4884,32 @@
       },
       {
         "id": 39,
-        "x": 91,
-        "y": 58,
+        "x": 92,
+        "y": 61,
         "kind": "crossing"
       },
       {
         "id": 40,
         "x": 102,
-        "y": 49,
+        "y": 51,
         "kind": "crossing"
       },
       {
         "id": 41,
-        "x": 98,
+        "x": 99,
         "y": 51,
         "kind": "crossing"
       },
       {
         "id": 42,
-        "x": 93,
+        "x": 92,
         "y": 44,
         "kind": "crossing"
       },
       {
         "id": 43,
         "x": 95,
-        "y": 30,
+        "y": 25,
         "kind": "crossing"
       },
       {
@@ -4926,19 +4926,19 @@
       },
       {
         "id": 46,
-        "x": 88,
-        "y": 41,
+        "x": 86,
+        "y": 44,
         "kind": "crossing"
       },
       {
         "id": 47,
-        "x": 87,
-        "y": 13,
+        "x": 86,
+        "y": 17,
         "kind": "crossing"
       },
       {
         "id": 48,
-        "x": 82,
+        "x": 80,
         "y": 21,
         "kind": "crossing"
       },
@@ -4950,8 +4950,8 @@
       },
       {
         "id": 50,
-        "x": 78,
-        "y": 17,
+        "x": 74,
+        "y": 7,
         "kind": "crossing"
       },
       {
@@ -4969,19 +4969,19 @@
       {
         "id": 53,
         "x": 69,
-        "y": 28,
+        "y": 26,
         "kind": "crossing"
       },
       {
         "id": 54,
-        "x": 60,
+        "x": 59,
         "y": 26,
         "kind": "crossing"
       },
       {
         "id": 55,
         "x": 59,
-        "y": 19,
+        "y": 20,
         "kind": "crossing"
       },
       {
@@ -5010,7 +5010,7 @@
       },
       {
         "id": 60,
-        "x": 24,
+        "x": 25,
         "y": 11,
         "kind": "crossing"
       },
@@ -5022,14 +5022,14 @@
       },
       {
         "id": 62,
-        "x": 39,
+        "x": 42,
         "y": 42,
         "kind": "crossing"
       },
       {
         "id": 63,
-        "x": 53,
-        "y": 37,
+        "x": 49,
+        "y": 42,
         "kind": "crossing"
       },
       {
@@ -5041,7 +5041,7 @@
       {
         "id": 65,
         "x": 27,
-        "y": 107,
+        "y": 106,
         "kind": "crossing"
       },
       {
@@ -5053,7 +5053,7 @@
       {
         "id": 67,
         "x": 22,
-        "y": 109,
+        "y": 108,
         "kind": "endpoint"
       },
       {
@@ -5064,7 +5064,7 @@
       },
       {
         "id": 69,
-        "x": 51,
+        "x": 57,
         "y": 86,
         "kind": "crossing"
       },
@@ -5082,20 +5082,20 @@
       },
       {
         "id": 72,
-        "x": 70,
+        "x": 66,
         "y": 83,
         "kind": "crossing"
       },
       {
         "id": 73,
         "x": 68,
-        "y": 68,
+        "y": 70,
         "kind": "crossing"
       },
       {
         "id": 74,
         "x": 67,
-        "y": 67,
+        "y": 64,
         "kind": "crossing"
       },
       {
@@ -5112,8 +5112,8 @@
       },
       {
         "id": 77,
-        "x": 63,
-        "y": 36,
+        "x": 59,
+        "y": 37,
         "kind": "crossing"
       },
       {
@@ -5130,14 +5130,14 @@
       },
       {
         "id": 80,
-        "x": 73,
-        "y": 40,
+        "x": 74,
+        "y": 39,
         "kind": "crossing"
       },
       {
         "id": 81,
-        "x": 83,
-        "y": 53,
+        "x": 85,
+        "y": 54,
         "kind": "crossing"
       },
       {
@@ -5155,7 +5155,7 @@
       {
         "id": 84,
         "x": 3,
-        "y": 0,
+        "y": 3,
         "kind": "endpoint"
       },
       {
@@ -5166,13 +5166,13 @@
       },
       {
         "id": 86,
-        "x": 31,
-        "y": 2,
+        "x": 35,
+        "y": 9,
         "kind": "endpoint"
       },
       {
         "id": 87,
-        "x": 34,
+        "x": 38,
         "y": 55,
         "kind": "crossing"
       },
@@ -5184,32 +5184,32 @@
       },
       {
         "id": 89,
-        "x": 44,
-        "y": 69,
+        "x": 45,
+        "y": 66,
         "kind": "crossing"
       },
       {
         "id": 90,
         "x": 48,
-        "y": 73,
+        "y": 74,
         "kind": "crossing"
       },
       {
         "id": 91,
         "x": 45,
-        "y": 75,
+        "y": 74,
         "kind": "crossing"
       },
       {
         "id": 92,
-        "x": 76,
-        "y": 87,
+        "x": 78,
+        "y": 83,
         "kind": "crossing"
       },
       {
         "id": 93,
         "x": 75,
-        "y": 72,
+        "y": 70,
         "kind": "crossing"
       },
       {
@@ -5221,7 +5221,7 @@
       {
         "id": 95,
         "x": 0,
-        "y": 1,
+        "y": 6,
         "kind": "crossing"
       },
       {
@@ -5244,8 +5244,8 @@
       },
       {
         "id": 99,
-        "x": 46,
-        "y": 82,
+        "x": 45,
+        "y": 86,
         "kind": "crossing"
       },
       {
@@ -5257,12 +5257,12 @@
       {
         "id": 101,
         "x": 104,
-        "y": 4,
+        "y": 7,
         "kind": "endpoint"
       },
       {
         "id": 102,
-        "x": 108,
+        "x": 106,
         "y": 12,
         "kind": "endpoint"
       },
@@ -5274,38 +5274,38 @@
       },
       {
         "id": 104,
-        "x": 101,
-        "y": 16,
+        "x": 102,
+        "y": 17,
         "kind": "crossing"
       },
       {
         "id": 105,
-        "x": 18,
-        "y": 99,
+        "x": 19,
+        "y": 94,
         "kind": "crossing"
       },
       {
         "id": 106,
         "x": 8,
-        "y": 88,
+        "y": 89,
         "kind": "endpoint"
       },
       {
         "id": 107,
-        "x": 2,
-        "y": 5,
+        "x": 4,
+        "y": 10,
         "kind": "endpoint"
       },
       {
         "id": 108,
-        "x": 7,
+        "x": 10,
         "y": 10,
         "kind": "crossing"
       },
       {
         "id": 109,
-        "x": 12,
-        "y": 46,
+        "x": 13,
+        "y": 47,
         "kind": "crossing"
       }
     ],
@@ -5315,7 +5315,7 @@
         "fromId": 0,
         "toId": 1,
         "dx": -4,
-        "dy": 14,
+        "dy": 15,
         "isHv": false
       },
       {
@@ -5323,16 +5323,16 @@
         "fromId": 0,
         "toId": 2,
         "dx": 15,
-        "dy": -1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 2,
         "fromId": 3,
         "toId": 4,
         "dx": -8,
-        "dy": -4,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 3,
@@ -5346,9 +5346,9 @@
         "routeIndex": 4,
         "fromId": 3,
         "toId": 6,
-        "dx": -5,
+        "dx": 0,
         "dy": 24,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 5,
@@ -5371,22 +5371,22 @@
         "fromId": 9,
         "toId": 8,
         "dx": 3,
-        "dy": -3,
+        "dy": -2,
         "isHv": false
       },
       {
         "routeIndex": 8,
         "fromId": 9,
         "toId": 10,
-        "dx": -2,
-        "dy": 2,
-        "isHv": false
+        "dx": 0,
+        "dy": 3,
+        "isHv": true
       },
       {
         "routeIndex": 9,
         "fromId": 11,
         "toId": 8,
-        "dx": -1,
+        "dx": 1,
         "dy": -15,
         "isHv": false
       },
@@ -5394,9 +5394,9 @@
         "routeIndex": 10,
         "fromId": 11,
         "toId": 12,
-        "dx": -2,
+        "dx": 0,
         "dy": 29,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 11,
@@ -5435,14 +5435,14 @@
         "fromId": 13,
         "toId": 17,
         "dx": 6,
-        "dy": -14,
+        "dy": -13,
         "isHv": false
       },
       {
         "routeIndex": 16,
         "fromId": 18,
         "toId": 16,
-        "dx": -7,
+        "dx": -9,
         "dy": 2,
         "isHv": false
       },
@@ -5450,17 +5450,17 @@
         "routeIndex": 17,
         "fromId": 18,
         "toId": 19,
-        "dx": 10,
-        "dy": -16,
+        "dx": 8,
+        "dy": -18,
         "isHv": false
       },
       {
         "routeIndex": 18,
         "fromId": 20,
         "toId": 21,
-        "dx": -21,
-        "dy": 8,
-        "isHv": false
+        "dx": -10,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 19,
@@ -5507,16 +5507,16 @@
         "fromId": 28,
         "toId": 26,
         "dx": -12,
-        "dy": 3,
+        "dy": 2,
         "isHv": false
       },
       {
         "routeIndex": 25,
         "fromId": 28,
         "toId": 29,
-        "dx": 3,
-        "dy": -7,
-        "isHv": false
+        "dx": 0,
+        "dy": -8,
+        "isHv": true
       },
       {
         "routeIndex": 26,
@@ -5531,22 +5531,22 @@
         "fromId": 30,
         "toId": 32,
         "dx": 9,
-        "dy": 8,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 28,
         "fromId": 33,
         "toId": 34,
         "dx": -6,
-        "dy": -18,
+        "dy": -19,
         "isHv": false
       },
       {
         "routeIndex": 29,
         "fromId": 33,
         "toId": 35,
-        "dx": 9,
+        "dx": 11,
         "dy": 14,
         "isHv": false
       },
@@ -5554,47 +5554,47 @@
         "routeIndex": 30,
         "fromId": 35,
         "toId": 36,
-        "dx": 2,
+        "dx": 0,
         "dy": -15,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 31,
         "fromId": 36,
         "toId": 37,
-        "dx": 2,
-        "dy": -53,
-        "isHv": false
+        "dx": 0,
+        "dy": -45,
+        "isHv": true
       },
       {
         "routeIndex": 32,
         "fromId": 38,
         "toId": 39,
-        "dx": -8,
-        "dy": -3,
-        "isHv": false
+        "dx": -7,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 33,
         "fromId": 38,
         "toId": 40,
         "dx": 3,
-        "dy": -12,
+        "dy": -10,
         "isHv": false
       },
       {
         "routeIndex": 34,
         "fromId": 41,
         "toId": 40,
-        "dx": 4,
-        "dy": -2,
-        "isHv": false
+        "dx": 3,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 35,
         "fromId": 41,
         "toId": 42,
-        "dx": -5,
+        "dx": -7,
         "dy": -7,
         "isHv": false
       },
@@ -5602,8 +5602,8 @@
         "routeIndex": 36,
         "fromId": 43,
         "toId": 42,
-        "dx": -2,
-        "dy": 14,
+        "dx": -3,
+        "dy": 19,
         "isHv": false
       },
       {
@@ -5611,87 +5611,87 @@
         "fromId": 43,
         "toId": 44,
         "dx": 2,
-        "dy": -13,
+        "dy": -8,
         "isHv": false
       },
       {
         "routeIndex": 38,
         "fromId": 45,
         "toId": 46,
-        "dx": 2,
-        "dy": 16,
-        "isHv": false
+        "dx": 0,
+        "dy": 19,
+        "isHv": true
       },
       {
         "routeIndex": 39,
         "fromId": 45,
         "toId": 47,
-        "dx": 1,
-        "dy": -12,
-        "isHv": false
+        "dx": 0,
+        "dy": -8,
+        "isHv": true
       },
       {
         "routeIndex": 40,
         "fromId": 48,
         "toId": 47,
-        "dx": 5,
-        "dy": -8,
+        "dx": 6,
+        "dy": -4,
         "isHv": false
       },
       {
         "routeIndex": 41,
         "fromId": 48,
         "toId": 49,
-        "dx": -2,
+        "dx": 0,
         "dy": 17,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 42,
         "fromId": 50,
         "toId": 51,
-        "dx": -4,
-        "dy": 17,
-        "isHv": false
+        "dx": 0,
+        "dy": 27,
+        "isHv": true
       },
       {
         "routeIndex": 43,
         "fromId": 50,
         "toId": 52,
-        "dx": 22,
-        "dy": -10,
-        "isHv": false
+        "dx": 26,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 44,
         "fromId": 53,
         "toId": 51,
         "dx": 5,
-        "dy": 6,
+        "dy": 8,
         "isHv": false
       },
       {
         "routeIndex": 45,
         "fromId": 53,
         "toId": 54,
-        "dx": -9,
-        "dy": -2,
-        "isHv": false
+        "dx": -10,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 46,
         "fromId": 55,
         "toId": 54,
-        "dx": 1,
-        "dy": 7,
-        "isHv": false
+        "dx": 0,
+        "dy": 6,
+        "isHv": true
       },
       {
         "routeIndex": 47,
         "fromId": 55,
         "toId": 56,
         "dx": -1,
-        "dy": -1,
+        "dy": -2,
         "isHv": false
       },
       {
@@ -5722,7 +5722,7 @@
         "routeIndex": 51,
         "fromId": 59,
         "toId": 60,
-        "dx": -30,
+        "dx": -29,
         "dy": -11,
         "isHv": false
       },
@@ -5730,7 +5730,7 @@
         "routeIndex": 52,
         "fromId": 61,
         "toId": 60,
-        "dx": -25,
+        "dx": -24,
         "dy": -21,
         "isHv": false
       },
@@ -5738,7 +5738,7 @@
         "routeIndex": 53,
         "fromId": 61,
         "toId": 62,
-        "dx": -10,
+        "dx": -7,
         "dy": 10,
         "isHv": false
       },
@@ -5754,9 +5754,9 @@
         "routeIndex": 55,
         "fromId": 61,
         "toId": 63,
-        "dx": 4,
-        "dy": 5,
-        "isHv": false
+        "dx": 0,
+        "dy": 10,
+        "isHv": true
       },
       {
         "routeIndex": 56,
@@ -5787,8 +5787,8 @@
         "fromId": 65,
         "toId": 24,
         "dx": 9,
-        "dy": -1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 60,
@@ -5811,8 +5811,8 @@
         "fromId": 66,
         "toId": 67,
         "dx": -6,
-        "dy": 1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 63,
@@ -5826,7 +5826,7 @@
         "routeIndex": 64,
         "fromId": 27,
         "toId": 29,
-        "dx": 4,
+        "dx": 1,
         "dy": 2,
         "isHv": false
       },
@@ -5834,7 +5834,7 @@
         "routeIndex": 65,
         "fromId": 27,
         "toId": 69,
-        "dx": -10,
+        "dx": -4,
         "dy": -5,
         "isHv": false
       },
@@ -5858,7 +5858,7 @@
         "routeIndex": 68,
         "fromId": 68,
         "toId": 72,
-        "dx": 6,
+        "dx": 2,
         "dy": 5,
         "isHv": false
       },
@@ -5867,7 +5867,7 @@
         "fromId": 70,
         "toId": 73,
         "dx": 2,
-        "dy": -3,
+        "dy": -1,
         "isHv": false
       },
       {
@@ -5882,16 +5882,16 @@
         "routeIndex": 71,
         "fromId": 70,
         "toId": 72,
-        "dx": 4,
+        "dx": 0,
         "dy": 12,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 72,
         "fromId": 70,
         "toId": 74,
         "dx": 1,
-        "dy": -4,
+        "dy": -7,
         "isHv": false
       },
       {
@@ -5899,7 +5899,7 @@
         "fromId": 73,
         "toId": 75,
         "dx": 4,
-        "dy": -14,
+        "dy": -16,
         "isHv": false
       },
       {
@@ -5907,7 +5907,7 @@
         "fromId": 73,
         "toId": 74,
         "dx": -1,
-        "dy": -1,
+        "dy": -6,
         "isHv": false
       },
       {
@@ -5915,15 +5915,15 @@
         "fromId": 73,
         "toId": 76,
         "dx": 3,
-        "dy": 2,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 76,
         "fromId": 75,
         "toId": 77,
-        "dx": -9,
-        "dy": -18,
+        "dx": -13,
+        "dy": -17,
         "isHv": false
       },
       {
@@ -5946,8 +5946,8 @@
         "routeIndex": 79,
         "fromId": 75,
         "toId": 63,
-        "dx": -19,
-        "dy": -17,
+        "dx": -23,
+        "dy": -12,
         "isHv": false
       },
       {
@@ -5963,39 +5963,39 @@
         "fromId": 75,
         "toId": 74,
         "dx": -5,
-        "dy": 13,
+        "dy": 10,
         "isHv": false
       },
       {
         "routeIndex": 82,
         "fromId": 75,
         "toId": 80,
-        "dx": 1,
-        "dy": -14,
+        "dx": 2,
+        "dy": -15,
         "isHv": false
       },
       {
         "routeIndex": 83,
         "fromId": 75,
         "toId": 81,
-        "dx": 11,
-        "dy": -1,
-        "isHv": false
+        "dx": 13,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 84,
         "fromId": 77,
         "toId": 54,
-        "dx": -3,
-        "dy": -10,
-        "isHv": false
+        "dx": 0,
+        "dy": -11,
+        "isHv": true
       },
       {
         "routeIndex": 85,
         "fromId": 77,
         "toId": 80,
-        "dx": 10,
-        "dy": 4,
+        "dx": 15,
+        "dy": 2,
         "isHv": false
       },
       {
@@ -6003,14 +6003,14 @@
         "fromId": 77,
         "toId": 63,
         "dx": -10,
-        "dy": 1,
+        "dy": 5,
         "isHv": false
       },
       {
         "routeIndex": 87,
         "fromId": 54,
         "toId": 58,
-        "dx": -5,
+        "dx": -4,
         "dy": -3,
         "isHv": false
       },
@@ -6035,8 +6035,8 @@
         "fromId": 83,
         "toId": 84,
         "dx": -8,
-        "dy": -3,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 91,
@@ -6050,15 +6050,15 @@
         "routeIndex": 92,
         "fromId": 85,
         "toId": 86,
-        "dx": -16,
-        "dy": -7,
-        "isHv": false
+        "dx": -12,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 93,
         "fromId": 8,
         "toId": 87,
-        "dx": 14,
+        "dx": 18,
         "dy": 10,
         "isHv": false
       },
@@ -6066,7 +6066,7 @@
         "routeIndex": 94,
         "fromId": 8,
         "toId": 62,
-        "dx": 19,
+        "dx": 22,
         "dy": -3,
         "isHv": false
       },
@@ -6074,15 +6074,15 @@
         "routeIndex": 95,
         "fromId": 87,
         "toId": 17,
-        "dx": 4,
-        "dy": 10,
-        "isHv": false
+        "dx": 0,
+        "dy": 11,
+        "isHv": true
       },
       {
         "routeIndex": 96,
         "fromId": 87,
         "toId": 88,
-        "dx": 8,
+        "dx": 4,
         "dy": 9,
         "isHv": false
       },
@@ -6090,7 +6090,7 @@
         "routeIndex": 97,
         "fromId": 87,
         "toId": 62,
-        "dx": 5,
+        "dx": 4,
         "dy": -13,
         "isHv": false
       },
@@ -6099,55 +6099,55 @@
         "fromId": 17,
         "toId": 14,
         "dx": 2,
-        "dy": 1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 99,
         "fromId": 17,
         "toId": 88,
         "dx": 4,
-        "dy": -1,
+        "dy": -2,
         "isHv": false
       },
       {
         "routeIndex": 100,
         "fromId": 14,
         "toId": 89,
-        "dx": 4,
-        "dy": 3,
-        "isHv": false
+        "dx": 5,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 101,
         "fromId": 14,
         "toId": 19,
         "dx": 3,
-        "dy": 10,
+        "dy": 8,
         "isHv": false
       },
       {
         "routeIndex": 102,
         "fromId": 89,
         "toId": 90,
-        "dx": 4,
-        "dy": 4,
+        "dx": 3,
+        "dy": 8,
         "isHv": false
       },
       {
         "routeIndex": 103,
         "fromId": 89,
         "toId": 91,
-        "dx": 1,
-        "dy": 6,
-        "isHv": false
+        "dx": 0,
+        "dy": 8,
+        "isHv": true
       },
       {
         "routeIndex": 104,
         "fromId": 89,
         "toId": 88,
-        "dx": -2,
-        "dy": -5,
+        "dx": -3,
+        "dy": -2,
         "isHv": false
       },
       {
@@ -6155,30 +6155,30 @@
         "fromId": 90,
         "toId": 71,
         "dx": 9,
-        "dy": 1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 106,
         "fromId": 90,
         "toId": 91,
         "dx": -3,
-        "dy": 2,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 107,
         "fromId": 71,
         "toId": 69,
-        "dx": -6,
+        "dx": 0,
         "dy": 12,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 108,
         "fromId": 72,
         "toId": 76,
-        "dx": 1,
+        "dx": 5,
         "dy": -13,
         "isHv": false
       },
@@ -6186,23 +6186,23 @@
         "routeIndex": 109,
         "fromId": 72,
         "toId": 92,
-        "dx": 6,
-        "dy": 4,
-        "isHv": false
+        "dx": 12,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 110,
         "fromId": 72,
         "toId": 93,
-        "dx": 5,
-        "dy": -11,
+        "dx": 9,
+        "dy": -13,
         "isHv": false
       },
       {
         "routeIndex": 111,
         "fromId": 72,
         "toId": 29,
-        "dx": -5,
+        "dx": -4,
         "dy": 10,
         "isHv": false
       },
@@ -6211,8 +6211,8 @@
         "fromId": 76,
         "toId": 93,
         "dx": 4,
-        "dy": 2,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 113,
@@ -6234,23 +6234,23 @@
         "routeIndex": 115,
         "fromId": 78,
         "toId": 80,
-        "dx": -4,
-        "dy": 1,
-        "isHv": false
+        "dx": -3,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 116,
         "fromId": 51,
         "toId": 80,
-        "dx": -1,
-        "dy": 6,
-        "isHv": false
+        "dx": 0,
+        "dy": 5,
+        "isHv": true
       },
       {
         "routeIndex": 117,
         "fromId": 60,
         "toId": 94,
-        "dx": -19,
+        "dx": -20,
         "dy": -5,
         "isHv": false
       },
@@ -6259,47 +6259,47 @@
         "fromId": 94,
         "toId": 95,
         "dx": -5,
-        "dy": -5,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 119,
         "fromId": 60,
         "toId": 2,
-        "dx": 1,
+        "dx": 0,
         "dy": 3,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 120,
         "fromId": 62,
         "toId": 88,
-        "dx": 3,
+        "dx": 0,
         "dy": 22,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 121,
         "fromId": 62,
         "toId": 63,
-        "dx": 14,
-        "dy": -5,
-        "isHv": false
+        "dx": 7,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 122,
         "fromId": 88,
         "toId": 74,
         "dx": 25,
-        "dy": 3,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 123,
         "fromId": 88,
         "toId": 63,
-        "dx": 11,
-        "dy": -27,
+        "dx": 7,
+        "dy": -22,
         "isHv": false
       },
       {
@@ -6307,7 +6307,7 @@
         "fromId": 93,
         "toId": 96,
         "dx": 3,
-        "dy": 5,
+        "dy": 7,
         "isHv": false
       },
       {
@@ -6315,7 +6315,7 @@
         "fromId": 93,
         "toId": 79,
         "dx": 10,
-        "dy": -10,
+        "dy": -8,
         "isHv": false
       },
       {
@@ -6330,9 +6330,9 @@
         "routeIndex": 127,
         "fromId": 96,
         "toId": 92,
-        "dx": -2,
-        "dy": 10,
-        "isHv": false
+        "dx": 0,
+        "dy": 6,
+        "isHv": true
       },
       {
         "routeIndex": 128,
@@ -6354,8 +6354,8 @@
         "routeIndex": 130,
         "fromId": 97,
         "toId": 92,
-        "dx": -5,
-        "dy": -3,
+        "dx": -3,
+        "dy": -7,
         "isHv": false
       },
       {
@@ -6363,7 +6363,7 @@
         "fromId": 31,
         "toId": 34,
         "dx": 6,
-        "dy": -22,
+        "dy": -23,
         "isHv": false
       },
       {
@@ -6371,8 +6371,8 @@
         "fromId": 79,
         "toId": 34,
         "dx": 5,
-        "dy": 1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 133,
@@ -6386,23 +6386,23 @@
         "routeIndex": 134,
         "fromId": 79,
         "toId": 81,
-        "dx": -2,
-        "dy": -9,
-        "isHv": false
+        "dx": 0,
+        "dy": -8,
+        "isHv": true
       },
       {
         "routeIndex": 135,
         "fromId": 34,
         "toId": 39,
-        "dx": 1,
-        "dy": -5,
+        "dx": 2,
+        "dy": -1,
         "isHv": false
       },
       {
         "routeIndex": 136,
         "fromId": 22,
         "toId": 69,
-        "dx": 10,
+        "dx": 16,
         "dy": -12,
         "isHv": false
       },
@@ -6410,48 +6410,48 @@
         "routeIndex": 137,
         "fromId": 22,
         "toId": 99,
-        "dx": 5,
-        "dy": -16,
+        "dx": 4,
+        "dy": -12,
         "isHv": false
       },
       {
         "routeIndex": 138,
         "fromId": 69,
         "toId": 99,
-        "dx": -5,
-        "dy": -4,
-        "isHv": false
+        "dx": -12,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 139,
         "fromId": 92,
         "toId": 29,
-        "dx": -11,
-        "dy": 6,
+        "dx": -16,
+        "dy": 10,
         "isHv": false
       },
       {
         "routeIndex": 140,
         "fromId": 39,
         "toId": 100,
-        "dx": 1,
-        "dy": -6,
-        "isHv": false
+        "dx": 0,
+        "dy": -9,
+        "isHv": true
       },
       {
         "routeIndex": 141,
         "fromId": 39,
         "toId": 98,
-        "dx": -2,
-        "dy": -2,
+        "dx": -3,
+        "dy": -5,
         "isHv": false
       },
       {
         "routeIndex": 142,
         "fromId": 100,
         "toId": 46,
-        "dx": -4,
-        "dy": -11,
+        "dx": -6,
+        "dy": -8,
         "isHv": false
       },
       {
@@ -6466,129 +6466,129 @@
         "routeIndex": 144,
         "fromId": 100,
         "toId": 42,
-        "dx": 1,
+        "dx": 0,
         "dy": -8,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 145,
         "fromId": 46,
         "toId": 42,
-        "dx": 5,
-        "dy": 3,
-        "isHv": false
+        "dx": 6,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 146,
         "fromId": 46,
         "toId": 49,
-        "dx": -8,
-        "dy": -3,
+        "dx": -6,
+        "dy": -6,
         "isHv": false
       },
       {
         "routeIndex": 147,
         "fromId": 47,
         "toId": 52,
-        "dx": 13,
-        "dy": -6,
+        "dx": 14,
+        "dy": -10,
         "isHv": false
       },
       {
         "routeIndex": 148,
         "fromId": 47,
         "toId": 44,
-        "dx": 10,
-        "dy": 4,
-        "isHv": false
+        "dx": 11,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 149,
         "fromId": 52,
         "toId": 101,
         "dx": 4,
-        "dy": -3,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 150,
         "fromId": 102,
         "toId": 103,
-        "dx": -2,
+        "dx": 0,
         "dy": 45,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 151,
         "fromId": 103,
         "toId": 40,
         "dx": -4,
-        "dy": -8,
+        "dy": -6,
         "isHv": false
       },
       {
         "routeIndex": 152,
         "fromId": 40,
         "toId": 104,
-        "dx": -1,
-        "dy": -33,
-        "isHv": false
+        "dx": 0,
+        "dy": -34,
+        "isHv": true
       },
       {
         "routeIndex": 153,
         "fromId": 49,
         "toId": 81,
-        "dx": 3,
-        "dy": 15,
+        "dx": 5,
+        "dy": 16,
         "isHv": false
       },
       {
         "routeIndex": 154,
         "fromId": 98,
         "toId": 81,
-        "dx": -6,
-        "dy": -3,
+        "dx": -4,
+        "dy": -2,
         "isHv": false
       },
       {
         "routeIndex": 155,
         "fromId": 44,
         "toId": 104,
-        "dx": 4,
-        "dy": -1,
-        "isHv": false
+        "dx": 5,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 156,
         "fromId": 99,
         "toId": 19,
-        "dx": -3,
-        "dy": -6,
+        "dx": -2,
+        "dy": -12,
         "isHv": false
       },
       {
         "routeIndex": 157,
         "fromId": 99,
         "toId": 91,
-        "dx": -1,
-        "dy": -7,
-        "isHv": false
+        "dx": 0,
+        "dy": -12,
+        "isHv": true
       },
       {
         "routeIndex": 158,
         "fromId": 19,
         "toId": 91,
         "dx": 2,
-        "dy": -1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 159,
         "fromId": 16,
         "toId": 105,
-        "dx": -8,
-        "dy": 5,
-        "isHv": false
+        "dx": -7,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 160,
@@ -6602,79 +6602,79 @@
         "routeIndex": 161,
         "fromId": 105,
         "toId": 12,
-        "dx": 1,
-        "dy": -10,
-        "isHv": false
+        "dx": 0,
+        "dy": -5,
+        "isHv": true
       },
       {
         "routeIndex": 162,
         "fromId": 106,
         "toId": 12,
         "dx": 11,
-        "dy": 1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 163,
         "fromId": 107,
         "toId": 108,
-        "dx": 5,
-        "dy": 5,
-        "isHv": false
+        "dx": 6,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 164,
         "fromId": 108,
         "toId": 0,
-        "dx": 3,
-        "dy": 5,
-        "isHv": false
+        "dx": 0,
+        "dy": 4,
+        "isHv": true
       },
       {
         "routeIndex": 165,
         "fromId": 0,
         "toId": 3,
         "dx": -1,
-        "dy": 20,
+        "dy": 21,
         "isHv": false
       },
       {
         "routeIndex": 166,
         "fromId": 109,
         "toId": 7,
-        "dx": 4,
-        "dy": 1,
-        "isHv": false
+        "dx": 3,
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 167,
         "fromId": 109,
         "toId": 5,
-        "dx": 1,
-        "dy": -3,
-        "isHv": false
+        "dx": 0,
+        "dy": -4,
+        "isHv": true
       },
       {
         "routeIndex": 168,
         "fromId": 7,
         "toId": 9,
         "dx": 1,
-        "dy": 1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 169,
         "fromId": 9,
         "toId": 11,
-        "dx": 4,
-        "dy": 12,
+        "dx": 2,
+        "dy": 13,
         "isHv": false
       },
       {
         "routeIndex": 170,
         "fromId": 11,
         "toId": 13,
-        "dx": 11,
+        "dx": 13,
         "dy": 19,
         "isHv": false
       },
@@ -6682,7 +6682,7 @@
         "routeIndex": 171,
         "fromId": 13,
         "toId": 18,
-        "dx": 1,
+        "dx": 3,
         "dy": 13,
         "isHv": false
       },
@@ -6690,9 +6690,9 @@
         "routeIndex": 172,
         "fromId": 18,
         "toId": 20,
-        "dx": 2,
+        "dx": 0,
         "dy": 5,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 173,
@@ -6715,15 +6715,15 @@
         "fromId": 25,
         "toId": 28,
         "dx": 10,
-        "dy": -1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 176,
         "fromId": 28,
         "toId": 30,
         "dx": 32,
-        "dy": -4,
+        "dy": -5,
         "isHv": false
       },
       {
@@ -6746,16 +6746,16 @@
         "routeIndex": 179,
         "fromId": 38,
         "toId": 41,
-        "dx": -1,
+        "dx": 0,
         "dy": -10,
-        "isHv": false
+        "isHv": true
       },
       {
         "routeIndex": 180,
         "fromId": 41,
         "toId": 43,
-        "dx": -3,
-        "dy": -21,
+        "dx": -4,
+        "dy": -26,
         "isHv": false
       },
       {
@@ -6763,14 +6763,14 @@
         "fromId": 43,
         "toId": 45,
         "dx": -9,
-        "dy": -5,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 182,
         "fromId": 45,
         "toId": 48,
-        "dx": -4,
+        "dx": -6,
         "dy": -4,
         "isHv": false
       },
@@ -6778,16 +6778,16 @@
         "routeIndex": 183,
         "fromId": 48,
         "toId": 50,
-        "dx": -4,
-        "dy": -4,
+        "dx": -6,
+        "dy": -14,
         "isHv": false
       },
       {
         "routeIndex": 184,
         "fromId": 50,
         "toId": 53,
-        "dx": -9,
-        "dy": 11,
+        "dx": -5,
+        "dy": 19,
         "isHv": false
       },
       {
@@ -6795,7 +6795,7 @@
         "fromId": 53,
         "toId": 55,
         "dx": -10,
-        "dy": -9,
+        "dy": -6,
         "isHv": false
       },
       {
@@ -6803,8 +6803,8 @@
         "fromId": 55,
         "toId": 57,
         "dx": -3,
-        "dy": 1,
-        "isHv": false
+        "dy": 0,
+        "isHv": true
       },
       {
         "routeIndex": 187,
@@ -6842,8 +6842,8 @@
         "routeIndex": 191,
         "fromId": 3,
         "toId": 109,
-        "dx": 3,
-        "dy": 11,
+        "dx": 4,
+        "dy": 12,
         "isHv": false
       }
     ],
@@ -6861,13 +6861,13 @@
         {
           "routeIndex": 0,
           "medianX": 8,
-          "medianY": 22,
+          "medianY": 21.5,
           "xSequence": [
             6,
             10
           ],
           "ySequence": [
-            15,
+            14,
             29
           ],
           "movableIds": [
@@ -6878,14 +6878,14 @@
         {
           "routeIndex": 1,
           "medianX": 17.5,
-          "medianY": 14.5,
+          "medianY": 14,
           "xSequence": [
             10,
             25
           ],
           "ySequence": [
             14,
-            15
+            14
           ],
           "movableIds": [
             0,
@@ -6895,13 +6895,13 @@
         {
           "routeIndex": 2,
           "medianX": 5,
-          "medianY": 33,
+          "medianY": 35,
           "xSequence": [
             1,
             9
           ],
           "ySequence": [
-            31,
+            35,
             35
           ],
           "movableIds": [
@@ -6928,10 +6928,10 @@
         },
         {
           "routeIndex": 4,
-          "medianX": 6.5,
+          "medianX": 9,
           "medianY": 47,
           "xSequence": [
-            4,
+            9,
             9
           ],
           "ySequence": [
@@ -6980,14 +6980,14 @@
         {
           "routeIndex": 7,
           "medianX": 18.5,
-          "medianY": 46.5,
+          "medianY": 46,
           "xSequence": [
             17,
             20
           ],
           "ySequence": [
             45,
-            48
+            47
           ],
           "movableIds": [
             9,
@@ -6996,14 +6996,14 @@
         },
         {
           "routeIndex": 8,
-          "medianX": 16,
-          "medianY": 49,
+          "medianX": 17,
+          "medianY": 48.5,
           "xSequence": [
-            15,
+            17,
             17
           ],
           "ySequence": [
-            48,
+            47,
             50
           ],
           "movableIds": [
@@ -7013,11 +7013,11 @@
         },
         {
           "routeIndex": 9,
-          "medianX": 20.5,
+          "medianX": 19.5,
           "medianY": 52.5,
           "xSequence": [
-            20,
-            21
+            19,
+            20
           ],
           "ySequence": [
             45,
@@ -7030,11 +7030,11 @@
         },
         {
           "routeIndex": 10,
-          "medianX": 20,
+          "medianX": 19,
           "medianY": 74.5,
           "xSequence": [
             19,
-            21
+            19
           ],
           "ySequence": [
             60,
@@ -7116,13 +7116,13 @@
         {
           "routeIndex": 15,
           "medianX": 35,
-          "medianY": 72,
+          "medianY": 72.5,
           "xSequence": [
             32,
             38
           ],
           "ySequence": [
-            65,
+            66,
             79
           ],
           "movableIds": [
@@ -7132,11 +7132,11 @@
         },
         {
           "routeIndex": 16,
-          "medianX": 29.5,
+          "medianX": 30.5,
           "medianY": 93,
           "xSequence": [
             26,
-            33
+            35
           ],
           "ySequence": [
             92,
@@ -7149,14 +7149,14 @@
         },
         {
           "routeIndex": 17,
-          "medianX": 38,
-          "medianY": 84,
+          "medianX": 39,
+          "medianY": 83,
           "xSequence": [
-            33,
+            35,
             43
           ],
           "ySequence": [
-            76,
+            74,
             92
           ],
           "movableIds": [
@@ -7166,15 +7166,15 @@
         },
         {
           "routeIndex": 18,
-          "medianX": 24.5,
-          "medianY": 101,
+          "medianX": 30,
+          "medianY": 97,
           "xSequence": [
-            14,
+            25,
             35
           ],
           "ySequence": [
             97,
-            105
+            97
           ],
           "movableIds": [
             20,
@@ -7269,13 +7269,13 @@
         {
           "routeIndex": 24,
           "medianX": 56,
-          "medianY": 101.5,
+          "medianY": 102,
           "xSequence": [
             50,
             62
           ],
           "ySequence": [
-            100,
+            101,
             103
           ],
           "movableIds": [
@@ -7285,15 +7285,15 @@
         },
         {
           "routeIndex": 25,
-          "medianX": 63.5,
-          "medianY": 96.5,
+          "medianX": 62,
+          "medianY": 97,
           "xSequence": [
             62,
-            65
+            62
           ],
           "ySequence": [
             93,
-            100
+            101
           ],
           "movableIds": [
             28,
@@ -7320,14 +7320,14 @@
         {
           "routeIndex": 27,
           "medianX": 98.5,
-          "medianY": 100,
+          "medianY": 96,
           "xSequence": [
             94,
             103
           ],
           "ySequence": [
             96,
-            104
+            96
           ],
           "movableIds": [
             30,
@@ -7337,13 +7337,13 @@
         {
           "routeIndex": 28,
           "medianX": 93,
-          "medianY": 72,
+          "medianY": 71.5,
           "xSequence": [
             90,
             96
           ],
           "ySequence": [
-            63,
+            62,
             81
           ],
           "movableIds": [
@@ -7353,11 +7353,11 @@
         },
         {
           "routeIndex": 29,
-          "medianX": 100.5,
+          "medianX": 101.5,
           "medianY": 88,
           "xSequence": [
             96,
-            105
+            107
           ],
           "ySequence": [
             81,
@@ -7370,10 +7370,10 @@
         },
         {
           "routeIndex": 30,
-          "medianX": 106,
+          "medianX": 107,
           "medianY": 87.5,
           "xSequence": [
-            105,
+            107,
             107
           ],
           "ySequence": [
@@ -7387,14 +7387,14 @@
         },
         {
           "routeIndex": 31,
-          "medianX": 108,
-          "medianY": 53.5,
+          "medianX": 107,
+          "medianY": 57.5,
           "xSequence": [
             107,
-            109
+            107
           ],
           "ySequence": [
-            27,
+            35,
             80
           ],
           "movableIds": [
@@ -7404,14 +7404,14 @@
         },
         {
           "routeIndex": 32,
-          "medianX": 95,
-          "medianY": 59.5,
+          "medianX": 95.5,
+          "medianY": 61,
           "xSequence": [
-            91,
+            92,
             99
           ],
           "ySequence": [
-            58,
+            61,
             61
           ],
           "movableIds": [
@@ -7422,13 +7422,13 @@
         {
           "routeIndex": 33,
           "medianX": 100.5,
-          "medianY": 55,
+          "medianY": 56,
           "xSequence": [
             99,
             102
           ],
           "ySequence": [
-            49,
+            51,
             61
           ],
           "movableIds": [
@@ -7438,14 +7438,14 @@
         },
         {
           "routeIndex": 34,
-          "medianX": 100,
-          "medianY": 50,
+          "medianX": 100.5,
+          "medianY": 51,
           "xSequence": [
-            98,
+            99,
             102
           ],
           "ySequence": [
-            49,
+            51,
             51
           ],
           "movableIds": [
@@ -7458,8 +7458,8 @@
           "medianX": 95.5,
           "medianY": 47.5,
           "xSequence": [
-            93,
-            98
+            92,
+            99
           ],
           "ySequence": [
             44,
@@ -7472,14 +7472,14 @@
         },
         {
           "routeIndex": 36,
-          "medianX": 94,
-          "medianY": 37,
+          "medianX": 93.5,
+          "medianY": 34.5,
           "xSequence": [
-            93,
+            92,
             95
           ],
           "ySequence": [
-            30,
+            25,
             44
           ],
           "movableIds": [
@@ -7490,14 +7490,14 @@
         {
           "routeIndex": 37,
           "medianX": 96,
-          "medianY": 23.5,
+          "medianY": 21,
           "xSequence": [
             95,
             97
           ],
           "ySequence": [
             17,
-            30
+            25
           ],
           "movableIds": [
             43,
@@ -7506,15 +7506,15 @@
         },
         {
           "routeIndex": 38,
-          "medianX": 87,
-          "medianY": 33,
+          "medianX": 86,
+          "medianY": 34.5,
           "xSequence": [
             86,
-            88
+            86
           ],
           "ySequence": [
             25,
-            41
+            44
           ],
           "movableIds": [
             45,
@@ -7523,14 +7523,14 @@
         },
         {
           "routeIndex": 39,
-          "medianX": 86.5,
-          "medianY": 19,
+          "medianX": 86,
+          "medianY": 21,
           "xSequence": [
             86,
-            87
+            86
           ],
           "ySequence": [
-            13,
+            17,
             25
           ],
           "movableIds": [
@@ -7540,14 +7540,14 @@
         },
         {
           "routeIndex": 40,
-          "medianX": 84.5,
-          "medianY": 17,
+          "medianX": 83,
+          "medianY": 19,
           "xSequence": [
-            82,
-            87
+            80,
+            86
           ],
           "ySequence": [
-            13,
+            17,
             21
           ],
           "movableIds": [
@@ -7557,11 +7557,11 @@
         },
         {
           "routeIndex": 41,
-          "medianX": 81,
+          "medianX": 80,
           "medianY": 29.5,
           "xSequence": [
             80,
-            82
+            80
           ],
           "ySequence": [
             21,
@@ -7574,14 +7574,14 @@
         },
         {
           "routeIndex": 42,
-          "medianX": 76,
-          "medianY": 25.5,
+          "medianX": 74,
+          "medianY": 20.5,
           "xSequence": [
             74,
-            78
+            74
           ],
           "ySequence": [
-            17,
+            7,
             34
           ],
           "movableIds": [
@@ -7591,15 +7591,15 @@
         },
         {
           "routeIndex": 43,
-          "medianX": 89,
-          "medianY": 12,
+          "medianX": 87,
+          "medianY": 7,
           "xSequence": [
-            78,
+            74,
             100
           ],
           "ySequence": [
             7,
-            17
+            7
           ],
           "movableIds": [
             50,
@@ -7609,13 +7609,13 @@
         {
           "routeIndex": 44,
           "medianX": 71.5,
-          "medianY": 31,
+          "medianY": 30,
           "xSequence": [
             69,
             74
           ],
           "ySequence": [
-            28,
+            26,
             34
           ],
           "movableIds": [
@@ -7625,15 +7625,15 @@
         },
         {
           "routeIndex": 45,
-          "medianX": 64.5,
-          "medianY": 27,
+          "medianX": 64,
+          "medianY": 26,
           "xSequence": [
-            60,
+            59,
             69
           ],
           "ySequence": [
             26,
-            28
+            26
           ],
           "movableIds": [
             53,
@@ -7642,14 +7642,14 @@
         },
         {
           "routeIndex": 46,
-          "medianX": 59.5,
-          "medianY": 22.5,
+          "medianX": 59,
+          "medianY": 23,
           "xSequence": [
             59,
-            60
+            59
           ],
           "ySequence": [
-            19,
+            20,
             26
           ],
           "movableIds": [
@@ -7660,14 +7660,14 @@
         {
           "routeIndex": 47,
           "medianX": 58.5,
-          "medianY": 18.5,
+          "medianY": 19,
           "xSequence": [
             58,
             59
           ],
           "ySequence": [
             18,
-            19
+            20
           ],
           "movableIds": [
             55,
@@ -7727,10 +7727,10 @@
         },
         {
           "routeIndex": 51,
-          "medianX": 39,
+          "medianX": 39.5,
           "medianY": 16.5,
           "xSequence": [
-            24,
+            25,
             54
           ],
           "ySequence": [
@@ -7744,10 +7744,10 @@
         },
         {
           "routeIndex": 52,
-          "medianX": 36.5,
+          "medianX": 37,
           "medianY": 21.5,
           "xSequence": [
-            24,
+            25,
             49
           ],
           "ySequence": [
@@ -7761,10 +7761,10 @@
         },
         {
           "routeIndex": 53,
-          "medianX": 44,
+          "medianX": 45.5,
           "medianY": 37,
           "xSequence": [
-            39,
+            42,
             49
           ],
           "ySequence": [
@@ -7795,15 +7795,15 @@
         },
         {
           "routeIndex": 55,
-          "medianX": 51,
-          "medianY": 34.5,
+          "medianX": 49,
+          "medianY": 37,
           "xSequence": [
             49,
-            53
+            49
           ],
           "ySequence": [
             32,
-            37
+            42
           ],
           "movableIds": [
             61,
@@ -7864,14 +7864,14 @@
         {
           "routeIndex": 59,
           "medianX": 31.5,
-          "medianY": 106.5,
+          "medianY": 106,
           "xSequence": [
             27,
             36
           ],
           "ySequence": [
             106,
-            107
+            106
           ],
           "movableIds": [
             65,
@@ -7915,14 +7915,14 @@
         {
           "routeIndex": 62,
           "medianX": 25,
-          "medianY": 108.5,
+          "medianY": 108,
           "xSequence": [
             22,
             28
           ],
           "ySequence": [
             108,
-            109
+            108
           ],
           "movableIds": [
             66,
@@ -7948,11 +7948,11 @@
         },
         {
           "routeIndex": 64,
-          "medianX": 63,
+          "medianX": 61.5,
           "medianY": 92,
           "xSequence": [
             61,
-            65
+            62
           ],
           "ySequence": [
             91,
@@ -7965,10 +7965,10 @@
         },
         {
           "routeIndex": 65,
-          "medianX": 56,
+          "medianX": 59,
           "medianY": 88.5,
           "xSequence": [
-            51,
+            57,
             61
           ],
           "ySequence": [
@@ -8016,11 +8016,11 @@
         },
         {
           "routeIndex": 68,
-          "medianX": 67,
+          "medianX": 65,
           "medianY": 80.5,
           "xSequence": [
             64,
-            70
+            66
           ],
           "ySequence": [
             78,
@@ -8034,13 +8034,13 @@
         {
           "routeIndex": 69,
           "medianX": 67,
-          "medianY": 69.5,
+          "medianY": 70.5,
           "xSequence": [
             66,
             68
           ],
           "ySequence": [
-            68,
+            70,
             71
           ],
           "movableIds": [
@@ -8067,11 +8067,11 @@
         },
         {
           "routeIndex": 71,
-          "medianX": 68,
+          "medianX": 66,
           "medianY": 77,
           "xSequence": [
             66,
-            70
+            66
           ],
           "ySequence": [
             71,
@@ -8085,13 +8085,13 @@
         {
           "routeIndex": 72,
           "medianX": 66.5,
-          "medianY": 69,
+          "medianY": 67.5,
           "xSequence": [
             66,
             67
           ],
           "ySequence": [
-            67,
+            64,
             71
           ],
           "movableIds": [
@@ -8102,14 +8102,14 @@
         {
           "routeIndex": 73,
           "medianX": 70,
-          "medianY": 61,
+          "medianY": 62,
           "xSequence": [
             68,
             72
           ],
           "ySequence": [
             54,
-            68
+            70
           ],
           "movableIds": [
             73,
@@ -8119,14 +8119,14 @@
         {
           "routeIndex": 74,
           "medianX": 67.5,
-          "medianY": 67.5,
+          "medianY": 67,
           "xSequence": [
             67,
             68
           ],
           "ySequence": [
-            67,
-            68
+            64,
+            70
           ],
           "movableIds": [
             73,
@@ -8136,13 +8136,13 @@
         {
           "routeIndex": 75,
           "medianX": 69.5,
-          "medianY": 69,
+          "medianY": 70,
           "xSequence": [
             68,
             71
           ],
           "ySequence": [
-            68,
+            70,
             70
           ],
           "movableIds": [
@@ -8152,14 +8152,14 @@
         },
         {
           "routeIndex": 76,
-          "medianX": 67.5,
-          "medianY": 45,
+          "medianX": 65.5,
+          "medianY": 45.5,
           "xSequence": [
-            63,
+            59,
             72
           ],
           "ySequence": [
-            36,
+            37,
             54
           ],
           "movableIds": [
@@ -8203,14 +8203,14 @@
         },
         {
           "routeIndex": 79,
-          "medianX": 62.5,
-          "medianY": 45.5,
+          "medianX": 60.5,
+          "medianY": 48,
           "xSequence": [
-            53,
+            49,
             72
           ],
           "ySequence": [
-            37,
+            42,
             54
           ],
           "movableIds": [
@@ -8238,14 +8238,14 @@
         {
           "routeIndex": 81,
           "medianX": 69.5,
-          "medianY": 60.5,
+          "medianY": 59,
           "xSequence": [
             67,
             72
           ],
           "ySequence": [
             54,
-            67
+            64
           ],
           "movableIds": [
             75,
@@ -8254,14 +8254,14 @@
         },
         {
           "routeIndex": 82,
-          "medianX": 72.5,
-          "medianY": 47,
+          "medianX": 73,
+          "medianY": 46.5,
           "xSequence": [
             72,
-            73
+            74
           ],
           "ySequence": [
-            40,
+            39,
             54
           ],
           "movableIds": [
@@ -8271,14 +8271,14 @@
         },
         {
           "routeIndex": 83,
-          "medianX": 77.5,
-          "medianY": 53.5,
+          "medianX": 78.5,
+          "medianY": 54,
           "xSequence": [
             72,
-            83
+            85
           ],
           "ySequence": [
-            53,
+            54,
             54
           ],
           "movableIds": [
@@ -8288,15 +8288,15 @@
         },
         {
           "routeIndex": 84,
-          "medianX": 61.5,
-          "medianY": 31,
+          "medianX": 59,
+          "medianY": 31.5,
           "xSequence": [
-            60,
-            63
+            59,
+            59
           ],
           "ySequence": [
             26,
-            36
+            37
           ],
           "movableIds": [
             77,
@@ -8305,15 +8305,15 @@
         },
         {
           "routeIndex": 85,
-          "medianX": 68,
+          "medianX": 66.5,
           "medianY": 38,
           "xSequence": [
-            63,
-            73
+            59,
+            74
           ],
           "ySequence": [
-            36,
-            40
+            37,
+            39
           ],
           "movableIds": [
             77,
@@ -8322,15 +8322,15 @@
         },
         {
           "routeIndex": 86,
-          "medianX": 58,
-          "medianY": 36.5,
+          "medianX": 54,
+          "medianY": 39.5,
           "xSequence": [
-            53,
-            63
+            49,
+            59
           ],
           "ySequence": [
-            36,
-            37
+            37,
+            42
           ],
           "movableIds": [
             77,
@@ -8339,11 +8339,11 @@
         },
         {
           "routeIndex": 87,
-          "medianX": 57.5,
+          "medianX": 57,
           "medianY": 24.5,
           "xSequence": [
             55,
-            60
+            59
           ],
           "ySequence": [
             23,
@@ -8391,13 +8391,13 @@
         {
           "routeIndex": 90,
           "medianX": 7,
-          "medianY": 1.5,
+          "medianY": 3,
           "xSequence": [
             3,
             11
           ],
           "ySequence": [
-            0,
+            3,
             3
           ],
           "movableIds": [
@@ -8424,14 +8424,14 @@
         },
         {
           "routeIndex": 92,
-          "medianX": 39,
-          "medianY": 5.5,
+          "medianX": 41,
+          "medianY": 9,
           "xSequence": [
-            31,
+            35,
             47
           ],
           "ySequence": [
-            2,
+            9,
             9
           ],
           "movableIds": [
@@ -8441,11 +8441,11 @@
         },
         {
           "routeIndex": 93,
-          "medianX": 27,
+          "medianX": 29,
           "medianY": 50,
           "xSequence": [
             20,
-            34
+            38
           ],
           "ySequence": [
             45,
@@ -8458,11 +8458,11 @@
         },
         {
           "routeIndex": 94,
-          "medianX": 29.5,
+          "medianX": 31,
           "medianY": 43.5,
           "xSequence": [
             20,
-            39
+            42
           ],
           "ySequence": [
             42,
@@ -8475,15 +8475,15 @@
         },
         {
           "routeIndex": 95,
-          "medianX": 36,
-          "medianY": 60,
+          "medianX": 38,
+          "medianY": 60.5,
           "xSequence": [
-            34,
+            38,
             38
           ],
           "ySequence": [
             55,
-            65
+            66
           ],
           "movableIds": [
             87,
@@ -8492,10 +8492,10 @@
         },
         {
           "routeIndex": 96,
-          "medianX": 38,
+          "medianX": 40,
           "medianY": 59.5,
           "xSequence": [
-            34,
+            38,
             42
           ],
           "ySequence": [
@@ -8509,11 +8509,11 @@
         },
         {
           "routeIndex": 97,
-          "medianX": 36.5,
+          "medianX": 40,
           "medianY": 48.5,
           "xSequence": [
-            34,
-            39
+            38,
+            42
           ],
           "ySequence": [
             42,
@@ -8527,13 +8527,13 @@
         {
           "routeIndex": 98,
           "medianX": 39,
-          "medianY": 65.5,
+          "medianY": 66,
           "xSequence": [
             38,
             40
           ],
           "ySequence": [
-            65,
+            66,
             66
           ],
           "movableIds": [
@@ -8544,14 +8544,14 @@
         {
           "routeIndex": 99,
           "medianX": 40,
-          "medianY": 64.5,
+          "medianY": 65,
           "xSequence": [
             38,
             42
           ],
           "ySequence": [
             64,
-            65
+            66
           ],
           "movableIds": [
             17,
@@ -8560,15 +8560,15 @@
         },
         {
           "routeIndex": 100,
-          "medianX": 42,
-          "medianY": 67.5,
+          "medianX": 42.5,
+          "medianY": 66,
           "xSequence": [
             40,
-            44
+            45
           ],
           "ySequence": [
             66,
-            69
+            66
           ],
           "movableIds": [
             14,
@@ -8578,14 +8578,14 @@
         {
           "routeIndex": 101,
           "medianX": 41.5,
-          "medianY": 71,
+          "medianY": 70,
           "xSequence": [
             40,
             43
           ],
           "ySequence": [
             66,
-            76
+            74
           ],
           "movableIds": [
             14,
@@ -8594,15 +8594,15 @@
         },
         {
           "routeIndex": 102,
-          "medianX": 46,
-          "medianY": 71,
+          "medianX": 46.5,
+          "medianY": 70,
           "xSequence": [
-            44,
+            45,
             48
           ],
           "ySequence": [
-            69,
-            73
+            66,
+            74
           ],
           "movableIds": [
             89,
@@ -8611,15 +8611,15 @@
         },
         {
           "routeIndex": 103,
-          "medianX": 44.5,
-          "medianY": 72,
+          "medianX": 45,
+          "medianY": 70,
           "xSequence": [
-            44,
+            45,
             45
           ],
           "ySequence": [
-            69,
-            75
+            66,
+            74
           ],
           "movableIds": [
             89,
@@ -8628,15 +8628,15 @@
         },
         {
           "routeIndex": 104,
-          "medianX": 43,
-          "medianY": 66.5,
+          "medianX": 43.5,
+          "medianY": 65,
           "xSequence": [
             42,
-            44
+            45
           ],
           "ySequence": [
             64,
-            69
+            66
           ],
           "movableIds": [
             89,
@@ -8646,13 +8646,13 @@
         {
           "routeIndex": 105,
           "medianX": 52.5,
-          "medianY": 73.5,
+          "medianY": 74,
           "xSequence": [
             48,
             57
           ],
           "ySequence": [
-            73,
+            74,
             74
           ],
           "movableIds": [
@@ -8669,8 +8669,8 @@
             48
           ],
           "ySequence": [
-            73,
-            75
+            74,
+            74
           ],
           "movableIds": [
             90,
@@ -8679,10 +8679,10 @@
         },
         {
           "routeIndex": 107,
-          "medianX": 54,
+          "medianX": 57,
           "medianY": 80,
           "xSequence": [
-            51,
+            57,
             57
           ],
           "ySequence": [
@@ -8696,10 +8696,10 @@
         },
         {
           "routeIndex": 108,
-          "medianX": 70.5,
+          "medianX": 68.5,
           "medianY": 76.5,
           "xSequence": [
-            70,
+            66,
             71
           ],
           "ySequence": [
@@ -8713,15 +8713,15 @@
         },
         {
           "routeIndex": 109,
-          "medianX": 73,
-          "medianY": 85,
+          "medianX": 72,
+          "medianY": 83,
           "xSequence": [
-            70,
-            76
+            66,
+            78
           ],
           "ySequence": [
             83,
-            87
+            83
           ],
           "movableIds": [
             72,
@@ -8730,14 +8730,14 @@
         },
         {
           "routeIndex": 110,
-          "medianX": 72.5,
-          "medianY": 77.5,
+          "medianX": 70.5,
+          "medianY": 76.5,
           "xSequence": [
-            70,
+            66,
             75
           ],
           "ySequence": [
-            72,
+            70,
             83
           ],
           "movableIds": [
@@ -8747,11 +8747,11 @@
         },
         {
           "routeIndex": 111,
-          "medianX": 67.5,
+          "medianX": 64,
           "medianY": 88,
           "xSequence": [
-            65,
-            70
+            62,
+            66
           ],
           "ySequence": [
             83,
@@ -8765,14 +8765,14 @@
         {
           "routeIndex": 112,
           "medianX": 73,
-          "medianY": 71,
+          "medianY": 70,
           "xSequence": [
             71,
             75
           ],
           "ySequence": [
             70,
-            72
+            70
           ],
           "movableIds": [
             76,
@@ -8815,15 +8815,15 @@
         },
         {
           "routeIndex": 115,
-          "medianX": 75,
-          "medianY": 39.5,
+          "medianX": 75.5,
+          "medianY": 39,
           "xSequence": [
-            73,
+            74,
             77
           ],
           "ySequence": [
             39,
-            40
+            39
           ],
           "movableIds": [
             78,
@@ -8832,15 +8832,15 @@
         },
         {
           "routeIndex": 116,
-          "medianX": 73.5,
-          "medianY": 37,
+          "medianX": 74,
+          "medianY": 36.5,
           "xSequence": [
-            73,
+            74,
             74
           ],
           "ySequence": [
             34,
-            40
+            39
           ],
           "movableIds": [
             51,
@@ -8849,11 +8849,11 @@
         },
         {
           "routeIndex": 117,
-          "medianX": 14.5,
+          "medianX": 15,
           "medianY": 8.5,
           "xSequence": [
             5,
-            24
+            25
           ],
           "ySequence": [
             6,
@@ -8867,13 +8867,13 @@
         {
           "routeIndex": 118,
           "medianX": 2.5,
-          "medianY": 3.5,
+          "medianY": 6,
           "xSequence": [
             0,
             5
           ],
           "ySequence": [
-            1,
+            6,
             6
           ],
           "movableIds": [
@@ -8883,10 +8883,10 @@
         },
         {
           "routeIndex": 119,
-          "medianX": 24.5,
+          "medianX": 25,
           "medianY": 12.5,
           "xSequence": [
-            24,
+            25,
             25
           ],
           "ySequence": [
@@ -8900,10 +8900,10 @@
         },
         {
           "routeIndex": 120,
-          "medianX": 40.5,
+          "medianX": 42,
           "medianY": 53,
           "xSequence": [
-            39,
+            42,
             42
           ],
           "ySequence": [
@@ -8917,14 +8917,14 @@
         },
         {
           "routeIndex": 121,
-          "medianX": 46,
-          "medianY": 39.5,
+          "medianX": 45.5,
+          "medianY": 42,
           "xSequence": [
-            39,
-            53
+            42,
+            49
           ],
           "ySequence": [
-            37,
+            42,
             42
           ],
           "movableIds": [
@@ -8935,14 +8935,14 @@
         {
           "routeIndex": 122,
           "medianX": 54.5,
-          "medianY": 65.5,
+          "medianY": 64,
           "xSequence": [
             42,
             67
           ],
           "ySequence": [
             64,
-            67
+            64
           ],
           "movableIds": [
             88,
@@ -8951,14 +8951,14 @@
         },
         {
           "routeIndex": 123,
-          "medianX": 47.5,
-          "medianY": 50.5,
+          "medianX": 45.5,
+          "medianY": 53,
           "xSequence": [
             42,
-            53
+            49
           ],
           "ySequence": [
-            37,
+            42,
             64
           ],
           "movableIds": [
@@ -8969,13 +8969,13 @@
         {
           "routeIndex": 124,
           "medianX": 76.5,
-          "medianY": 74.5,
+          "medianY": 73.5,
           "xSequence": [
             75,
             78
           ],
           "ySequence": [
-            72,
+            70,
             77
           ],
           "movableIds": [
@@ -8986,14 +8986,14 @@
         {
           "routeIndex": 125,
           "medianX": 80,
-          "medianY": 67,
+          "medianY": 66,
           "xSequence": [
             75,
             85
           ],
           "ySequence": [
             62,
-            72
+            70
           ],
           "movableIds": [
             93,
@@ -9019,15 +9019,15 @@
         },
         {
           "routeIndex": 127,
-          "medianX": 77,
-          "medianY": 82,
+          "medianX": 78,
+          "medianY": 80,
           "xSequence": [
-            76,
+            78,
             78
           ],
           "ySequence": [
             77,
-            87
+            83
           ],
           "movableIds": [
             96,
@@ -9070,14 +9070,14 @@
         },
         {
           "routeIndex": 130,
-          "medianX": 78.5,
-          "medianY": 88.5,
+          "medianX": 79.5,
+          "medianY": 86.5,
           "xSequence": [
-            76,
+            78,
             81
           ],
           "ySequence": [
-            87,
+            83,
             90
           ],
           "movableIds": [
@@ -9088,13 +9088,13 @@
         {
           "routeIndex": 131,
           "medianX": 87,
-          "medianY": 74,
+          "medianY": 73.5,
           "xSequence": [
             84,
             90
           ],
           "ySequence": [
-            63,
+            62,
             85
           ],
           "movableIds": [
@@ -9105,14 +9105,14 @@
         {
           "routeIndex": 132,
           "medianX": 87.5,
-          "medianY": 62.5,
+          "medianY": 62,
           "xSequence": [
             85,
             90
           ],
           "ySequence": [
             62,
-            63
+            62
           ],
           "movableIds": [
             79,
@@ -9138,14 +9138,14 @@
         },
         {
           "routeIndex": 134,
-          "medianX": 84,
-          "medianY": 57.5,
+          "medianX": 85,
+          "medianY": 58,
           "xSequence": [
-            83,
+            85,
             85
           ],
           "ySequence": [
-            53,
+            54,
             62
           ],
           "movableIds": [
@@ -9155,15 +9155,15 @@
         },
         {
           "routeIndex": 135,
-          "medianX": 90.5,
-          "medianY": 60.5,
+          "medianX": 91,
+          "medianY": 61.5,
           "xSequence": [
             90,
-            91
+            92
           ],
           "ySequence": [
-            58,
-            63
+            61,
+            62
           ],
           "movableIds": [
             34,
@@ -9172,11 +9172,11 @@
         },
         {
           "routeIndex": 136,
-          "medianX": 46,
+          "medianX": 49,
           "medianY": 92,
           "xSequence": [
             41,
-            51
+            57
           ],
           "ySequence": [
             86,
@@ -9189,14 +9189,14 @@
         },
         {
           "routeIndex": 137,
-          "medianX": 43.5,
-          "medianY": 90,
+          "medianX": 43,
+          "medianY": 92,
           "xSequence": [
             41,
-            46
+            45
           ],
           "ySequence": [
-            82,
+            86,
             98
           ],
           "movableIds": [
@@ -9206,14 +9206,14 @@
         },
         {
           "routeIndex": 138,
-          "medianX": 48.5,
-          "medianY": 84,
+          "medianX": 51,
+          "medianY": 86,
           "xSequence": [
-            46,
-            51
+            45,
+            57
           ],
           "ySequence": [
-            82,
+            86,
             86
           ],
           "movableIds": [
@@ -9223,14 +9223,14 @@
         },
         {
           "routeIndex": 139,
-          "medianX": 70.5,
-          "medianY": 90,
+          "medianX": 70,
+          "medianY": 88,
           "xSequence": [
-            65,
-            76
+            62,
+            78
           ],
           "ySequence": [
-            87,
+            83,
             93
           ],
           "movableIds": [
@@ -9240,15 +9240,15 @@
         },
         {
           "routeIndex": 140,
-          "medianX": 91.5,
-          "medianY": 55,
+          "medianX": 92,
+          "medianY": 56.5,
           "xSequence": [
-            91,
+            92,
             92
           ],
           "ySequence": [
             52,
-            58
+            61
           ],
           "movableIds": [
             39,
@@ -9257,15 +9257,15 @@
         },
         {
           "routeIndex": 141,
-          "medianX": 90,
-          "medianY": 57,
+          "medianX": 90.5,
+          "medianY": 58.5,
           "xSequence": [
             89,
-            91
+            92
           ],
           "ySequence": [
             56,
-            58
+            61
           ],
           "movableIds": [
             39,
@@ -9274,14 +9274,14 @@
         },
         {
           "routeIndex": 142,
-          "medianX": 90,
-          "medianY": 46.5,
+          "medianX": 89,
+          "medianY": 48,
           "xSequence": [
-            88,
+            86,
             92
           ],
           "ySequence": [
-            41,
+            44,
             52
           ],
           "movableIds": [
@@ -9308,11 +9308,11 @@
         },
         {
           "routeIndex": 144,
-          "medianX": 92.5,
+          "medianX": 92,
           "medianY": 48,
           "xSequence": [
             92,
-            93
+            92
           ],
           "ySequence": [
             44,
@@ -9325,14 +9325,14 @@
         },
         {
           "routeIndex": 145,
-          "medianX": 90.5,
-          "medianY": 42.5,
+          "medianX": 89,
+          "medianY": 44,
           "xSequence": [
-            88,
-            93
+            86,
+            92
           ],
           "ySequence": [
-            41,
+            44,
             44
           ],
           "movableIds": [
@@ -9342,15 +9342,15 @@
         },
         {
           "routeIndex": 146,
-          "medianX": 84,
-          "medianY": 39.5,
+          "medianX": 83,
+          "medianY": 41,
           "xSequence": [
             80,
-            88
+            86
           ],
           "ySequence": [
             38,
-            41
+            44
           ],
           "movableIds": [
             46,
@@ -9359,15 +9359,15 @@
         },
         {
           "routeIndex": 147,
-          "medianX": 93.5,
-          "medianY": 10,
+          "medianX": 93,
+          "medianY": 12,
           "xSequence": [
-            87,
+            86,
             100
           ],
           "ySequence": [
             7,
-            13
+            17
           ],
           "movableIds": [
             47,
@@ -9376,14 +9376,14 @@
         },
         {
           "routeIndex": 148,
-          "medianX": 92,
-          "medianY": 15,
+          "medianX": 91.5,
+          "medianY": 17,
           "xSequence": [
-            87,
+            86,
             97
           ],
           "ySequence": [
-            13,
+            17,
             17
           ],
           "movableIds": [
@@ -9394,13 +9394,13 @@
         {
           "routeIndex": 149,
           "medianX": 102,
-          "medianY": 5.5,
+          "medianY": 7,
           "xSequence": [
             100,
             104
           ],
           "ySequence": [
-            4,
+            7,
             7
           ],
           "movableIds": [
@@ -9410,11 +9410,11 @@
         },
         {
           "routeIndex": 150,
-          "medianX": 107,
+          "medianX": 106,
           "medianY": 34.5,
           "xSequence": [
             106,
-            108
+            106
           ],
           "ySequence": [
             12,
@@ -9428,13 +9428,13 @@
         {
           "routeIndex": 151,
           "medianX": 104,
-          "medianY": 53,
+          "medianY": 54,
           "xSequence": [
             102,
             106
           ],
           "ySequence": [
-            49,
+            51,
             57
           ],
           "movableIds": [
@@ -9444,15 +9444,15 @@
         },
         {
           "routeIndex": 152,
-          "medianX": 101.5,
-          "medianY": 32.5,
+          "medianX": 102,
+          "medianY": 34,
           "xSequence": [
-            101,
+            102,
             102
           ],
           "ySequence": [
-            16,
-            49
+            17,
+            51
           ],
           "movableIds": [
             40,
@@ -9461,15 +9461,15 @@
         },
         {
           "routeIndex": 153,
-          "medianX": 81.5,
-          "medianY": 45.5,
+          "medianX": 82.5,
+          "medianY": 46,
           "xSequence": [
             80,
-            83
+            85
           ],
           "ySequence": [
             38,
-            53
+            54
           ],
           "movableIds": [
             49,
@@ -9478,14 +9478,14 @@
         },
         {
           "routeIndex": 154,
-          "medianX": 86,
-          "medianY": 54.5,
+          "medianX": 87,
+          "medianY": 55,
           "xSequence": [
-            83,
+            85,
             89
           ],
           "ySequence": [
-            53,
+            54,
             56
           ],
           "movableIds": [
@@ -9495,14 +9495,14 @@
         },
         {
           "routeIndex": 155,
-          "medianX": 99,
-          "medianY": 16.5,
+          "medianX": 99.5,
+          "medianY": 17,
           "xSequence": [
             97,
-            101
+            102
           ],
           "ySequence": [
-            16,
+            17,
             17
           ],
           "movableIds": [
@@ -9512,15 +9512,15 @@
         },
         {
           "routeIndex": 156,
-          "medianX": 44.5,
-          "medianY": 79,
+          "medianX": 44,
+          "medianY": 80,
           "xSequence": [
             43,
-            46
+            45
           ],
           "ySequence": [
-            76,
-            82
+            74,
+            86
           ],
           "movableIds": [
             99,
@@ -9529,15 +9529,15 @@
         },
         {
           "routeIndex": 157,
-          "medianX": 45.5,
-          "medianY": 78.5,
+          "medianX": 45,
+          "medianY": 80,
           "xSequence": [
             45,
-            46
+            45
           ],
           "ySequence": [
-            75,
-            82
+            74,
+            86
           ],
           "movableIds": [
             99,
@@ -9547,14 +9547,14 @@
         {
           "routeIndex": 158,
           "medianX": 44,
-          "medianY": 75.5,
+          "medianY": 74,
           "xSequence": [
             43,
             45
           ],
           "ySequence": [
-            75,
-            76
+            74,
+            74
           ],
           "movableIds": [
             19,
@@ -9563,15 +9563,15 @@
         },
         {
           "routeIndex": 159,
-          "medianX": 22,
-          "medianY": 96.5,
+          "medianX": 22.5,
+          "medianY": 94,
           "xSequence": [
-            18,
+            19,
             26
           ],
           "ySequence": [
             94,
-            99
+            94
           ],
           "movableIds": [
             16,
@@ -9597,15 +9597,15 @@
         },
         {
           "routeIndex": 161,
-          "medianX": 18.5,
-          "medianY": 94,
+          "medianX": 19,
+          "medianY": 91.5,
           "xSequence": [
-            18,
+            19,
             19
           ],
           "ySequence": [
             89,
-            99
+            94
           ],
           "movableIds": [
             105,
@@ -9615,13 +9615,13 @@
         {
           "routeIndex": 162,
           "medianX": 13.5,
-          "medianY": 88.5,
+          "medianY": 89,
           "xSequence": [
             8,
             19
           ],
           "ySequence": [
-            88,
+            89,
             89
           ],
           "movableIds": [
@@ -9631,14 +9631,14 @@
         },
         {
           "routeIndex": 163,
-          "medianX": 4.5,
-          "medianY": 7.5,
+          "medianX": 7,
+          "medianY": 10,
           "xSequence": [
-            2,
-            7
+            4,
+            10
           ],
           "ySequence": [
-            5,
+            10,
             10
           ],
           "movableIds": [
@@ -9648,15 +9648,15 @@
         },
         {
           "routeIndex": 164,
-          "medianX": 8.5,
-          "medianY": 12.5,
+          "medianX": 10,
+          "medianY": 12,
           "xSequence": [
-            7,
+            10,
             10
           ],
           "ySequence": [
             10,
-            15
+            14
           ],
           "movableIds": [
             108,
@@ -9666,13 +9666,13 @@
         {
           "routeIndex": 165,
           "medianX": 9.5,
-          "medianY": 25,
+          "medianY": 24.5,
           "xSequence": [
             9,
             10
           ],
           "ySequence": [
-            15,
+            14,
             35
           ],
           "movableIds": [
@@ -9682,14 +9682,14 @@
         },
         {
           "routeIndex": 166,
-          "medianX": 14,
-          "medianY": 46.5,
+          "medianX": 14.5,
+          "medianY": 47,
           "xSequence": [
-            12,
+            13,
             16
           ],
           "ySequence": [
-            46,
+            47,
             47
           ],
           "movableIds": [
@@ -9699,15 +9699,15 @@
         },
         {
           "routeIndex": 167,
-          "medianX": 12.5,
-          "medianY": 44.5,
+          "medianX": 13,
+          "medianY": 45,
           "xSequence": [
-            12,
+            13,
             13
           ],
           "ySequence": [
             43,
-            46
+            47
           ],
           "movableIds": [
             109,
@@ -9717,14 +9717,14 @@
         {
           "routeIndex": 168,
           "medianX": 16.5,
-          "medianY": 47.5,
+          "medianY": 47,
           "xSequence": [
             16,
             17
           ],
           "ySequence": [
             47,
-            48
+            47
           ],
           "movableIds": [
             7,
@@ -9733,14 +9733,14 @@
         },
         {
           "routeIndex": 169,
-          "medianX": 19,
-          "medianY": 54,
+          "medianX": 18,
+          "medianY": 53.5,
           "xSequence": [
             17,
-            21
+            19
           ],
           "ySequence": [
-            48,
+            47,
             60
           ],
           "movableIds": [
@@ -9750,10 +9750,10 @@
         },
         {
           "routeIndex": 170,
-          "medianX": 26.5,
+          "medianX": 25.5,
           "medianY": 69.5,
           "xSequence": [
-            21,
+            19,
             32
           ],
           "ySequence": [
@@ -9767,11 +9767,11 @@
         },
         {
           "routeIndex": 171,
-          "medianX": 32.5,
+          "medianX": 33.5,
           "medianY": 85.5,
           "xSequence": [
             32,
-            33
+            35
           ],
           "ySequence": [
             79,
@@ -9784,10 +9784,10 @@
         },
         {
           "routeIndex": 172,
-          "medianX": 34,
+          "medianX": 35,
           "medianY": 94.5,
           "xSequence": [
-            33,
+            35,
             35
           ],
           "ySequence": [
@@ -9836,13 +9836,13 @@
         {
           "routeIndex": 175,
           "medianX": 57,
-          "medianY": 100.5,
+          "medianY": 101,
           "xSequence": [
             52,
             62
           ],
           "ySequence": [
-            100,
+            101,
             101
           ],
           "movableIds": [
@@ -9853,14 +9853,14 @@
         {
           "routeIndex": 176,
           "medianX": 78,
-          "medianY": 98,
+          "medianY": 98.5,
           "xSequence": [
             62,
             94
           ],
           "ySequence": [
             96,
-            100
+            101
           ],
           "movableIds": [
             28,
@@ -9903,10 +9903,10 @@
         },
         {
           "routeIndex": 179,
-          "medianX": 98.5,
+          "medianX": 99,
           "medianY": 56,
           "xSequence": [
-            98,
+            99,
             99
           ],
           "ySequence": [
@@ -9920,14 +9920,14 @@
         },
         {
           "routeIndex": 180,
-          "medianX": 96.5,
-          "medianY": 40.5,
+          "medianX": 97,
+          "medianY": 38,
           "xSequence": [
             95,
-            98
+            99
           ],
           "ySequence": [
-            30,
+            25,
             51
           ],
           "movableIds": [
@@ -9938,14 +9938,14 @@
         {
           "routeIndex": 181,
           "medianX": 90.5,
-          "medianY": 27.5,
+          "medianY": 25,
           "xSequence": [
             86,
             95
           ],
           "ySequence": [
             25,
-            30
+            25
           ],
           "movableIds": [
             43,
@@ -9954,10 +9954,10 @@
         },
         {
           "routeIndex": 182,
-          "medianX": 84,
+          "medianX": 83,
           "medianY": 23,
           "xSequence": [
-            82,
+            80,
             86
           ],
           "ySequence": [
@@ -9971,14 +9971,14 @@
         },
         {
           "routeIndex": 183,
-          "medianX": 80,
-          "medianY": 19,
+          "medianX": 77,
+          "medianY": 14,
           "xSequence": [
-            78,
-            82
+            74,
+            80
           ],
           "ySequence": [
-            17,
+            7,
             21
           ],
           "movableIds": [
@@ -9988,15 +9988,15 @@
         },
         {
           "routeIndex": 184,
-          "medianX": 73.5,
-          "medianY": 22.5,
+          "medianX": 71.5,
+          "medianY": 16.5,
           "xSequence": [
             69,
-            78
+            74
           ],
           "ySequence": [
-            17,
-            28
+            7,
+            26
           ],
           "movableIds": [
             50,
@@ -10006,14 +10006,14 @@
         {
           "routeIndex": 185,
           "medianX": 64,
-          "medianY": 23.5,
+          "medianY": 23,
           "xSequence": [
             59,
             69
           ],
           "ySequence": [
-            19,
-            28
+            20,
+            26
           ],
           "movableIds": [
             53,
@@ -10023,13 +10023,13 @@
         {
           "routeIndex": 186,
           "medianX": 57.5,
-          "medianY": 19.5,
+          "medianY": 20,
           "xSequence": [
             56,
             59
           ],
           "ySequence": [
-            19,
+            20,
             20
           ],
           "movableIds": [
@@ -10107,15 +10107,15 @@
         },
         {
           "routeIndex": 191,
-          "medianX": 10.5,
-          "medianY": 40.5,
+          "medianX": 11,
+          "medianY": 41,
           "xSequence": [
             9,
-            12
+            13
           ],
           "ySequence": [
             35,
-            46
+            47
           ],
           "movableIds": [
             3,
@@ -10130,31 +10130,15 @@
           "y": 47,
           "centerDistance": 0.5,
           "xDistance": 0.5,
-          "yDistance": 0.5
+          "yDistance": 0
         },
         {
           "id": 9,
           "x": 17,
-          "y": 48,
+          "y": 47,
           "centerDistance": 0.5,
           "xDistance": 0.5,
-          "yDistance": 0.5
-        },
-        {
-          "id": 55,
-          "x": 59,
-          "y": 19,
-          "centerDistance": 0.5,
-          "xDistance": 0.5,
-          "yDistance": 0.5
-        },
-        {
-          "id": 56,
-          "x": 58,
-          "y": 18,
-          "centerDistance": 0.5,
-          "xDistance": 0.5,
-          "yDistance": 0.5
+          "yDistance": 0
         },
         {
           "id": 58,
@@ -10173,60 +10157,100 @@
           "yDistance": 0.5
         },
         {
-          "id": 73,
-          "x": 68,
-          "y": 68,
-          "centerDistance": 0.5,
-          "xDistance": 0.5,
-          "yDistance": 0.5
-        },
-        {
-          "id": 74,
-          "x": 67,
-          "y": 67,
-          "centerDistance": 0.5,
-          "xDistance": 0.5,
-          "yDistance": 0.5
-        },
-        {
           "id": 14,
           "x": 40,
           "y": 66,
           "centerDistance": 1,
           "xDistance": 1,
-          "yDistance": 0.5
+          "yDistance": 0
         },
         {
           "id": 17,
           "x": 38,
-          "y": 65,
+          "y": 66,
           "centerDistance": 1,
           "xDistance": 1,
-          "yDistance": 0.5
+          "yDistance": 0
         },
         {
           "id": 19,
           "x": 43,
-          "y": 76,
+          "y": 74,
           "centerDistance": 1,
           "xDistance": 1,
-          "yDistance": 0.5
+          "yDistance": 0
         },
         {
           "id": 91,
           "x": 45,
-          "y": 75,
+          "y": 74,
+          "centerDistance": 1,
+          "xDistance": 1,
+          "yDistance": 0
+        },
+        {
+          "id": 27,
+          "x": 61,
+          "y": 91,
+          "centerDistance": 1,
+          "xDistance": 0.5,
+          "yDistance": 1
+        },
+        {
+          "id": 29,
+          "x": 62,
+          "y": 93,
+          "centerDistance": 1,
+          "xDistance": 0.5,
+          "yDistance": 1
+        },
+        {
+          "id": 34,
+          "x": 90,
+          "y": 62,
           "centerDistance": 1,
           "xDistance": 1,
           "yDistance": 0.5
         },
         {
-          "id": 10,
-          "x": 15,
-          "y": 50,
+          "id": 39,
+          "x": 92,
+          "y": 61,
           "centerDistance": 1,
           "xDistance": 1,
+          "yDistance": 0.5
+        },
+        {
+          "id": 55,
+          "x": 59,
+          "y": 20,
+          "centerDistance": 1,
+          "xDistance": 0.5,
           "yDistance": 1
+        },
+        {
+          "id": 56,
+          "x": 58,
+          "y": 18,
+          "centerDistance": 1,
+          "xDistance": 0.5,
+          "yDistance": 1
+        },
+        {
+          "id": 70,
+          "x": 66,
+          "y": 71,
+          "centerDistance": 1,
+          "xDistance": 1,
+          "yDistance": 0.5
+        },
+        {
+          "id": 73,
+          "x": 68,
+          "y": 70,
+          "centerDistance": 1,
+          "xDistance": 1,
+          "yDistance": 0.5
         },
         {
           "id": 25,
@@ -10245,25 +10269,9 @@
           "yDistance": 1
         },
         {
-          "id": 39,
-          "x": 91,
-          "y": 58,
-          "centerDistance": 1,
-          "xDistance": 1,
-          "yDistance": 1
-        },
-        {
           "id": 57,
           "x": 56,
           "y": 20,
-          "centerDistance": 1,
-          "xDistance": 1,
-          "yDistance": 1
-        },
-        {
-          "id": 98,
-          "x": 89,
-          "y": 56,
           "centerDistance": 1,
           "xDistance": 1,
           "yDistance": 1
@@ -10273,16 +10281,80 @@
           "x": 25,
           "y": 14,
           "centerDistance": 1.5,
-          "xDistance": 0.5,
+          "xDistance": 0,
           "yDistance": 1.5
         },
         {
-          "id": 5,
-          "x": 13,
-          "y": 43,
+          "id": 10,
+          "x": 17,
+          "y": 50,
           "centerDistance": 1.5,
-          "xDistance": 0.5,
+          "xDistance": 0,
           "yDistance": 1.5
+        },
+        {
+          "id": 40,
+          "x": 102,
+          "y": 51,
+          "centerDistance": 1.5,
+          "xDistance": 1.5,
+          "yDistance": 0
+        },
+        {
+          "id": 41,
+          "x": 99,
+          "y": 51,
+          "centerDistance": 1.5,
+          "xDistance": 1.5,
+          "yDistance": 0
+        },
+        {
+          "id": 60,
+          "x": 25,
+          "y": 11,
+          "centerDistance": 1.5,
+          "xDistance": 0,
+          "yDistance": 1.5
+        },
+        {
+          "id": 76,
+          "x": 71,
+          "y": 70,
+          "centerDistance": 1.5,
+          "xDistance": 1.5,
+          "yDistance": 0
+        },
+        {
+          "id": 78,
+          "x": 77,
+          "y": 39,
+          "centerDistance": 1.5,
+          "xDistance": 1.5,
+          "yDistance": 0
+        },
+        {
+          "id": 80,
+          "x": 74,
+          "y": 39,
+          "centerDistance": 1.5,
+          "xDistance": 1.5,
+          "yDistance": 0
+        },
+        {
+          "id": 90,
+          "x": 48,
+          "y": 74,
+          "centerDistance": 1.5,
+          "xDistance": 1.5,
+          "yDistance": 0
+        },
+        {
+          "id": 109,
+          "x": 13,
+          "y": 47,
+          "centerDistance": 1.5,
+          "xDistance": 1.5,
+          "yDistance": 0
         },
         {
           "id": 49,
@@ -10293,60 +10365,76 @@
           "yDistance": 0.5
         },
         {
-          "id": 60,
-          "x": 24,
-          "y": 11,
-          "centerDistance": 1.5,
-          "xDistance": 0.5,
-          "yDistance": 1.5
-        },
-        {
-          "id": 78,
-          "x": 77,
-          "y": 39,
-          "centerDistance": 1.5,
-          "xDistance": 1.5,
-          "yDistance": 0.5
-        },
-        {
-          "id": 109,
-          "x": 12,
-          "y": 46,
-          "centerDistance": 1.5,
-          "xDistance": 0.5,
-          "yDistance": 1.5
-        },
-        {
-          "id": 70,
-          "x": 66,
-          "y": 71,
-          "centerDistance": 1.5,
-          "xDistance": 1,
-          "yDistance": 1.5
-        },
-        {
-          "id": 76,
-          "x": 71,
-          "y": 70,
-          "centerDistance": 1.5,
-          "xDistance": 1.5,
-          "yDistance": 1
-        },
-        {
-          "id": 90,
-          "x": 48,
-          "y": 73,
-          "centerDistance": 1.5,
-          "xDistance": 1.5,
-          "yDistance": 1
-        },
-        {
           "id": 8,
           "x": 20,
           "y": 45,
           "centerDistance": 1.5,
           "xDistance": 1.5,
-          "yDistance": 1.5
+          "yDistance": 1
+        },
+        {
+          "id": 88,
+          "x": 42,
+          "y": 64,
+          "centerDistance": 1.5,
+          "xDistance": 1.5,
+          "yDistance": 1
+        },
+        {
+          "id": 89,
+          "x": 45,
+          "y": 66,
+          "centerDistance": 1.5,
+          "xDistance": 1.5,
+          "yDistance": 1
+        },
+        {
+          "id": 0,
+          "x": 10,
+          "y": 14,
+          "centerDistance": 2,
+          "xDistance": 0,
+          "yDistance": 2
+        },
+        {
+          "id": 5,
+          "x": 13,
+          "y": 43,
+          "centerDistance": 2,
+          "xDistance": 0,
+          "yDistance": 2
+        },
+        {
+          "id": 52,
+          "x": 100,
+          "y": 7,
+          "centerDistance": 2,
+          "xDistance": 2,
+          "yDistance": 0
+        },
+        {
+          "id": 93,
+          "x": 75,
+          "y": 70,
+          "centerDistance": 2,
+          "xDistance": 2,
+          "yDistance": 0
+        },
+        {
+          "id": 101,
+          "x": 104,
+          "y": 7,
+          "centerDistance": 2,
+          "xDistance": 2,
+          "yDistance": 0
+        },
+        {
+          "id": 108,
+          "x": 10,
+          "y": 10,
+          "centerDistance": 2,
+          "xDistance": 0,
+          "yDistance": 2
         },
         {
           "id": 23,
@@ -10365,89 +10453,25 @@
           "yDistance": 2
         },
         {
-          "id": 44,
-          "x": 97,
-          "y": 17,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 0.5
-        },
-        {
-          "id": 80,
-          "x": 73,
-          "y": 40,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 0.5
-        },
-        {
-          "id": 88,
-          "x": 42,
-          "y": 64,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 0.5
-        },
-        {
-          "id": 104,
-          "x": 101,
-          "y": 16,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 0.5
-        },
-        {
-          "id": 27,
-          "x": 61,
-          "y": 91,
+          "id": 81,
+          "x": 85,
+          "y": 54,
           "centerDistance": 2,
           "xDistance": 2,
           "yDistance": 1
         },
         {
-          "id": 29,
-          "x": 65,
-          "y": 93,
+          "id": 98,
+          "x": 89,
+          "y": 56,
           "centerDistance": 2,
           "xDistance": 2,
           "yDistance": 1
         },
         {
-          "id": 40,
-          "x": 102,
-          "y": 49,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 1
-        },
-        {
-          "id": 41,
-          "x": 98,
-          "y": 51,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 1
-        },
-        {
-          "id": 93,
-          "x": 75,
-          "y": 72,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 1
-        },
-        {
-          "id": 52,
-          "x": 100,
-          "y": 7,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 1.5
-        },
-        {
-          "id": 89,
-          "x": 44,
-          "y": 69,
+          "id": 54,
+          "x": 59,
+          "y": 26,
           "centerDistance": 2,
           "xDistance": 2,
           "yDistance": 1.5
@@ -10461,14 +10485,6 @@
           "yDistance": 2
         },
         {
-          "id": 101,
-          "x": 104,
-          "y": 4,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 1.5
-        },
-        {
           "id": 22,
           "x": 41,
           "y": 98,
@@ -10477,51 +10493,19 @@
           "yDistance": 2
         },
         {
-          "id": 45,
-          "x": 86,
-          "y": 25,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 2
-        },
-        {
-          "id": 48,
-          "x": 82,
-          "y": 21,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 2
-        },
-        {
-          "id": 50,
-          "x": 78,
-          "y": 17,
-          "centerDistance": 2,
-          "xDistance": 2,
-          "yDistance": 2
-        },
-        {
-          "id": 34,
-          "x": 90,
-          "y": 63,
+          "id": 12,
+          "x": 19,
+          "y": 89,
           "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 0.5
-        },
-        {
-          "id": 79,
-          "x": 85,
-          "y": 62,
-          "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 0.5
+          "xDistance": 0,
+          "yDistance": 2.5
         },
         {
           "id": 18,
-          "x": 33,
+          "x": 35,
           "y": 92,
           "centerDistance": 2.5,
-          "xDistance": 1,
+          "xDistance": 0,
           "yDistance": 2.5
         },
         {
@@ -10529,15 +10513,79 @@
           "x": 35,
           "y": 97,
           "centerDistance": 2.5,
+          "xDistance": 0,
+          "yDistance": 2.5
+        },
+        {
+          "id": 44,
+          "x": 97,
+          "y": 17,
+          "centerDistance": 2.5,
+          "xDistance": 2.5,
+          "yDistance": 0
+        },
+        {
+          "id": 51,
+          "x": 74,
+          "y": 34,
+          "centerDistance": 2.5,
+          "xDistance": 0,
+          "yDistance": 2.5
+        },
+        {
+          "id": 79,
+          "x": 85,
+          "y": 62,
+          "centerDistance": 2.5,
+          "xDistance": 2.5,
+          "yDistance": 0
+        },
+        {
+          "id": 94,
+          "x": 5,
+          "y": 6,
+          "centerDistance": 2.5,
+          "xDistance": 2.5,
+          "yDistance": 0
+        },
+        {
+          "id": 95,
+          "x": 0,
+          "y": 6,
+          "centerDistance": 2.5,
+          "xDistance": 2.5,
+          "yDistance": 0
+        },
+        {
+          "id": 104,
+          "x": 102,
+          "y": 17,
+          "centerDistance": 2.5,
+          "xDistance": 2.5,
+          "yDistance": 0
+        },
+        {
+          "id": 105,
+          "x": 19,
+          "y": 94,
+          "centerDistance": 2.5,
+          "xDistance": 0,
+          "yDistance": 2.5
+        },
+        {
+          "id": 68,
+          "x": 64,
+          "y": 78,
+          "centerDistance": 2.5,
           "xDistance": 1,
           "yDistance": 2.5
         },
         {
-          "id": 0,
-          "x": 10,
-          "y": 15,
+          "id": 72,
+          "x": 66,
+          "y": 83,
           "centerDistance": 2.5,
-          "xDistance": 1.5,
+          "xDistance": 1,
           "yDistance": 2.5
         },
         {
@@ -10565,54 +10613,6 @@
           "yDistance": 2.5
         },
         {
-          "id": 42,
-          "x": 93,
-          "y": 44,
-          "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 1.5
-        },
-        {
-          "id": 46,
-          "x": 88,
-          "y": 41,
-          "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 1.5
-        },
-        {
-          "id": 51,
-          "x": 74,
-          "y": 34,
-          "centerDistance": 2.5,
-          "xDistance": 1.5,
-          "yDistance": 2.5
-        },
-        {
-          "id": 54,
-          "x": 60,
-          "y": 26,
-          "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 1.5
-        },
-        {
-          "id": 92,
-          "x": 76,
-          "y": 87,
-          "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 1.5
-        },
-        {
-          "id": 96,
-          "x": 78,
-          "y": 77,
-          "centerDistance": 2.5,
-          "xDistance": 1.5,
-          "yDistance": 2.5
-        },
-        {
           "id": 97,
           "x": 81,
           "y": 90,
@@ -10621,68 +10621,28 @@
           "yDistance": 2.5
         },
         {
-          "id": 108,
-          "x": 7,
-          "y": 10,
-          "centerDistance": 2.5,
-          "xDistance": 1.5,
-          "yDistance": 2.5
-        },
-        {
-          "id": 61,
-          "x": 49,
-          "y": 32,
-          "centerDistance": 2.5,
-          "xDistance": 2,
-          "yDistance": 2.5
-        },
-        {
-          "id": 63,
-          "x": 53,
-          "y": 37,
-          "centerDistance": 2.5,
-          "xDistance": 2,
-          "yDistance": 2.5
-        },
-        {
           "id": 69,
-          "x": 51,
+          "x": 57,
           "y": 86,
           "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 2
-        },
-        {
-          "id": 99,
-          "x": 46,
-          "y": 82,
-          "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 2
-        },
-        {
-          "id": 94,
-          "x": 5,
-          "y": 6,
-          "centerDistance": 2.5,
-          "xDistance": 2.5,
+          "xDistance": 2,
           "yDistance": 2.5
         },
         {
-          "id": 95,
-          "x": 0,
-          "y": 1,
-          "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 2.5
+          "id": 42,
+          "x": 92,
+          "y": 44,
+          "centerDistance": 3,
+          "xDistance": 3,
+          "yDistance": 0
         },
         {
-          "id": 107,
-          "x": 2,
-          "y": 5,
-          "centerDistance": 2.5,
-          "xDistance": 2.5,
-          "yDistance": 2.5
+          "id": 46,
+          "x": 86,
+          "y": 44,
+          "centerDistance": 3,
+          "xDistance": 3,
+          "yDistance": 0
         },
         {
           "id": 66,
@@ -10690,47 +10650,79 @@
           "y": 108,
           "centerDistance": 3,
           "xDistance": 3,
-          "yDistance": 0.5
+          "yDistance": 0
         },
         {
           "id": 67,
           "x": 22,
-          "y": 109,
+          "y": 108,
           "centerDistance": 3,
           "xDistance": 3,
-          "yDistance": 0.5
+          "yDistance": 0
         },
         {
-          "id": 81,
-          "x": 83,
-          "y": 53,
-          "centerDistance": 3,
-          "xDistance": 3,
-          "yDistance": 1.5
-        },
-        {
-          "id": 72,
-          "x": 70,
+          "id": 92,
+          "x": 78,
           "y": 83,
+          "centerDistance": 3,
+          "xDistance": 0,
+          "yDistance": 3
+        },
+        {
+          "id": 96,
+          "x": 78,
+          "y": 77,
+          "centerDistance": 3,
+          "xDistance": 0,
+          "yDistance": 3
+        },
+        {
+          "id": 107,
+          "x": 4,
+          "y": 10,
+          "centerDistance": 3,
+          "xDistance": 3,
+          "yDistance": 0
+        },
+        {
+          "id": 74,
+          "x": 67,
+          "y": 64,
+          "centerDistance": 3,
+          "xDistance": 0.5,
+          "yDistance": 3
+        },
+        {
+          "id": 45,
+          "x": 86,
+          "y": 25,
           "centerDistance": 3,
           "xDistance": 3,
           "yDistance": 2
         },
         {
-          "id": 53,
-          "x": 69,
-          "y": 28,
-          "centerDistance": 3,
-          "xDistance": 2.5,
-          "yDistance": 3
-        },
-        {
-          "id": 68,
-          "x": 64,
-          "y": 78,
+          "id": 47,
+          "x": 86,
+          "y": 17,
           "centerDistance": 3,
           "xDistance": 3,
-          "yDistance": 2.5
+          "yDistance": 2
+        },
+        {
+          "id": 48,
+          "x": 80,
+          "y": 21,
+          "centerDistance": 3,
+          "xDistance": 3,
+          "yDistance": 2
+        },
+        {
+          "id": 103,
+          "x": 106,
+          "y": 57,
+          "centerDistance": 3,
+          "xDistance": 2,
+          "yDistance": 3
         },
         {
           "id": 16,
@@ -10738,15 +10730,31 @@
           "y": 94,
           "centerDistance": 3.5,
           "xDistance": 3.5,
-          "yDistance": 1
+          "yDistance": 0
         },
         {
-          "id": 28,
-          "x": 62,
-          "y": 100,
+          "id": 38,
+          "x": 99,
+          "y": 61,
           "centerDistance": 3.5,
-          "xDistance": 1.5,
-          "yDistance": 3.5
+          "xDistance": 3.5,
+          "yDistance": 0
+        },
+        {
+          "id": 62,
+          "x": 42,
+          "y": 42,
+          "centerDistance": 3.5,
+          "xDistance": 3.5,
+          "yDistance": 0
+        },
+        {
+          "id": 63,
+          "x": 49,
+          "y": 42,
+          "centerDistance": 3.5,
+          "xDistance": 3.5,
+          "yDistance": 0
         },
         {
           "id": 71,
@@ -10757,20 +10765,28 @@
           "yDistance": 2
         },
         {
-          "id": 12,
-          "x": 19,
-          "y": 89,
-          "centerDistance": 3.5,
-          "xDistance": 3.5,
-          "yDistance": 2.5
-        },
-        {
-          "id": 38,
-          "x": 99,
-          "y": 61,
+          "id": 3,
+          "x": 9,
+          "y": 35,
           "centerDistance": 4,
           "xDistance": 4,
-          "yDistance": 1.5
+          "yDistance": 0
+        },
+        {
+          "id": 4,
+          "x": 1,
+          "y": 35,
+          "centerDistance": 4,
+          "xDistance": 4,
+          "yDistance": 0
+        },
+        {
+          "id": 28,
+          "x": 62,
+          "y": 101,
+          "centerDistance": 4,
+          "xDistance": 0,
+          "yDistance": 4
         },
         {
           "id": 83,
@@ -10778,71 +10794,31 @@
           "y": 3,
           "centerDistance": 4,
           "xDistance": 4,
-          "yDistance": 1.5
+          "yDistance": 0
         },
         {
           "id": 84,
           "x": 3,
-          "y": 0,
+          "y": 3,
           "centerDistance": 4,
           "xDistance": 4,
-          "yDistance": 1.5
-        },
-        {
-          "id": 3,
-          "x": 9,
-          "y": 35,
-          "centerDistance": 4,
-          "xDistance": 4,
-          "yDistance": 2
-        },
-        {
-          "id": 4,
-          "x": 1,
-          "y": 31,
-          "centerDistance": 4,
-          "xDistance": 4,
-          "yDistance": 2
-        },
-        {
-          "id": 103,
-          "x": 106,
-          "y": 57,
-          "centerDistance": 4,
-          "xDistance": 2,
-          "yDistance": 4
-        },
-        {
-          "id": 47,
-          "x": 87,
-          "y": 13,
-          "centerDistance": 4,
-          "xDistance": 2.5,
-          "yDistance": 4
-        },
-        {
-          "id": 105,
-          "x": 18,
-          "y": 99,
-          "centerDistance": 4,
-          "xDistance": 4,
-          "yDistance": 2.5
-        },
-        {
-          "id": 65,
-          "x": 27,
-          "y": 107,
-          "centerDistance": 4.5,
-          "xDistance": 4.5,
-          "yDistance": 0.5
+          "yDistance": 0
         },
         {
           "id": 43,
           "x": 95,
-          "y": 30,
-          "centerDistance": 4.5,
-          "xDistance": 4.5,
-          "yDistance": 2.5
+          "y": 25,
+          "centerDistance": 4,
+          "xDistance": 1,
+          "yDistance": 4
+        },
+        {
+          "id": 53,
+          "x": 69,
+          "y": 26,
+          "centerDistance": 4,
+          "xDistance": 2.5,
+          "yDistance": 4
         },
         {
           "id": 30,
@@ -10850,39 +10826,63 @@
           "y": 96,
           "centerDistance": 4.5,
           "xDistance": 4.5,
-          "yDistance": 4
+          "yDistance": 0
         },
         {
           "id": 32,
           "x": 103,
-          "y": 104,
+          "y": 96,
           "centerDistance": 4.5,
           "xDistance": 4.5,
-          "yDistance": 4
+          "yDistance": 0
+        },
+        {
+          "id": 65,
+          "x": 27,
+          "y": 106,
+          "centerDistance": 4.5,
+          "xDistance": 4.5,
+          "yDistance": 0
         },
         {
           "id": 87,
-          "x": 34,
+          "x": 38,
           "y": 55,
           "centerDistance": 4.5,
-          "xDistance": 4,
+          "xDistance": 2,
           "yDistance": 4.5
         },
         {
-          "id": 77,
-          "x": 63,
-          "y": 36,
-          "centerDistance": 5,
-          "xDistance": 5,
-          "yDistance": 0.5
+          "id": 61,
+          "x": 49,
+          "y": 32,
+          "centerDistance": 4.5,
+          "xDistance": 3,
+          "yDistance": 4.5
         },
         {
-          "id": 62,
-          "x": 39,
-          "y": 42,
+          "id": 21,
+          "x": 25,
+          "y": 97,
           "centerDistance": 5,
           "xDistance": 5,
+          "yDistance": 0
+        },
+        {
+          "id": 75,
+          "x": 72,
+          "y": 54,
+          "centerDistance": 5,
+          "xDistance": 2.5,
           "yDistance": 5
+        },
+        {
+          "id": 77,
+          "x": 59,
+          "y": 37,
+          "centerDistance": 5,
+          "xDistance": 5,
+          "yDistance": 2.5
         },
         {
           "id": 64,
@@ -10893,20 +10893,12 @@
           "yDistance": 5
         },
         {
-          "id": 75,
-          "x": 72,
-          "y": 54,
-          "centerDistance": 5.5,
-          "xDistance": 5.5,
-          "yDistance": 0.5
-        },
-        {
           "id": 106,
           "x": 8,
-          "y": 88,
+          "y": 89,
           "centerDistance": 5.5,
           "xDistance": 5.5,
-          "yDistance": 0.5
+          "yDistance": 0
         },
         {
           "id": 85,
@@ -10917,19 +10909,35 @@
           "yDistance": 4.5
         },
         {
-          "id": 11,
-          "x": 21,
-          "y": 60,
+          "id": 86,
+          "x": 35,
+          "y": 9,
           "centerDistance": 6,
-          "xDistance": 2,
-          "yDistance": 6
+          "xDistance": 6,
+          "yDistance": 0
         },
         {
-          "id": 1,
-          "x": 6,
-          "y": 29,
+          "id": 99,
+          "x": 45,
+          "y": 86,
+          "centerDistance": 6,
+          "xDistance": 6,
+          "yDistance": 0
+        },
+        {
+          "id": 11,
+          "x": 19,
+          "y": 60,
+          "centerDistance": 6.5,
+          "xDistance": 1,
+          "yDistance": 6.5
+        },
+        {
+          "id": 50,
+          "x": 74,
+          "y": 7,
           "centerDistance": 7,
-          "xDistance": 2,
+          "xDistance": 3,
           "yDistance": 7
         },
         {
@@ -10937,15 +10945,15 @@
           "x": 96,
           "y": 81,
           "centerDistance": 7,
-          "xDistance": 4.5,
+          "xDistance": 5.5,
           "yDistance": 7
         },
         {
           "id": 35,
-          "x": 105,
+          "x": 107,
           "y": 95,
           "centerDistance": 7,
-          "xDistance": 4.5,
+          "xDistance": 5.5,
           "yDistance": 7
         },
         {
@@ -10953,16 +10961,16 @@
           "x": 107,
           "y": 80,
           "centerDistance": 7.5,
-          "xDistance": 1,
+          "xDistance": 0,
           "yDistance": 7.5
         },
         {
-          "id": 86,
-          "x": 31,
-          "y": 2,
-          "centerDistance": 8,
-          "xDistance": 8,
-          "yDistance": 3.5
+          "id": 1,
+          "x": 6,
+          "y": 29,
+          "centerDistance": 7.5,
+          "xDistance": 2,
+          "yDistance": 7.5
         },
         {
           "id": 82,
@@ -10973,36 +10981,28 @@
           "yDistance": 2.5
         },
         {
-          "id": 21,
-          "x": 14,
-          "y": 105,
-          "centerDistance": 10.5,
-          "xDistance": 10.5,
-          "yDistance": 4
-        },
-        {
           "id": 6,
-          "x": 4,
+          "x": 9,
           "y": 59,
           "centerDistance": 12,
-          "xDistance": 2.5,
+          "xDistance": 0,
           "yDistance": 12
         },
         {
-          "id": 102,
-          "x": 108,
-          "y": 12,
+          "id": 37,
+          "x": 107,
+          "y": 35,
           "centerDistance": 22.5,
-          "xDistance": 1,
+          "xDistance": 0,
           "yDistance": 22.5
         },
         {
-          "id": 37,
-          "x": 109,
-          "y": 27,
-          "centerDistance": 26.5,
-          "xDistance": 1,
-          "yDistance": 26.5
+          "id": 102,
+          "x": 106,
+          "y": 12,
+          "centerDistance": 22.5,
+          "xDistance": 0,
+          "yDistance": 22.5
         }
       ],
       "rules": "【僅 LLM 推理】沿各路線紅/藍/粉紅的 x、y 座標序列（非 id 序）從中位往外；每步須拉直；同層選增益最大；禁止程式搜格。",
@@ -11022,7 +11022,7 @@
     "initialBeforeCoords": [
       {
         "x": 10,
-        "y": 15
+        "y": 14
       },
       {
         "x": 6,
@@ -11038,14 +11038,14 @@
       },
       {
         "x": 1,
-        "y": 31
+        "y": 35
       },
       {
         "x": 13,
         "y": 43
       },
       {
-        "x": 4,
+        "x": 9,
         "y": 59
       },
       {
@@ -11058,14 +11058,14 @@
       },
       {
         "x": 17,
-        "y": 48
+        "y": 47
       },
       {
-        "x": 15,
+        "x": 17,
         "y": 50
       },
       {
-        "x": 21,
+        "x": 19,
         "y": 60
       },
       {
@@ -11090,23 +11090,23 @@
       },
       {
         "x": 38,
-        "y": 65
+        "y": 66
       },
       {
-        "x": 33,
+        "x": 35,
         "y": 92
       },
       {
         "x": 43,
-        "y": 76
+        "y": 74
       },
       {
         "x": 35,
         "y": 97
       },
       {
-        "x": 14,
-        "y": 105
+        "x": 25,
+        "y": 97
       },
       {
         "x": 41,
@@ -11134,10 +11134,10 @@
       },
       {
         "x": 62,
-        "y": 100
+        "y": 101
       },
       {
-        "x": 65,
+        "x": 62,
         "y": 93
       },
       {
@@ -11150,7 +11150,7 @@
       },
       {
         "x": 103,
-        "y": 104
+        "y": 96
       },
       {
         "x": 96,
@@ -11158,10 +11158,10 @@
       },
       {
         "x": 90,
-        "y": 63
+        "y": 62
       },
       {
-        "x": 105,
+        "x": 107,
         "y": 95
       },
       {
@@ -11169,32 +11169,32 @@
         "y": 80
       },
       {
-        "x": 109,
-        "y": 27
+        "x": 107,
+        "y": 35
       },
       {
         "x": 99,
         "y": 61
       },
       {
-        "x": 91,
-        "y": 58
+        "x": 92,
+        "y": 61
       },
       {
         "x": 102,
-        "y": 49
-      },
-      {
-        "x": 98,
         "y": 51
       },
       {
-        "x": 93,
+        "x": 99,
+        "y": 51
+      },
+      {
+        "x": 92,
         "y": 44
       },
       {
         "x": 95,
-        "y": 30
+        "y": 25
       },
       {
         "x": 97,
@@ -11205,15 +11205,15 @@
         "y": 25
       },
       {
-        "x": 88,
-        "y": 41
+        "x": 86,
+        "y": 44
       },
       {
-        "x": 87,
-        "y": 13
+        "x": 86,
+        "y": 17
       },
       {
-        "x": 82,
+        "x": 80,
         "y": 21
       },
       {
@@ -11221,8 +11221,8 @@
         "y": 38
       },
       {
-        "x": 78,
-        "y": 17
+        "x": 74,
+        "y": 7
       },
       {
         "x": 74,
@@ -11234,15 +11234,15 @@
       },
       {
         "x": 69,
-        "y": 28
-      },
-      {
-        "x": 60,
         "y": 26
       },
       {
         "x": 59,
-        "y": 19
+        "y": 26
+      },
+      {
+        "x": 59,
+        "y": 20
       },
       {
         "x": 58,
@@ -11261,7 +11261,7 @@
         "y": 22
       },
       {
-        "x": 24,
+        "x": 25,
         "y": 11
       },
       {
@@ -11269,12 +11269,12 @@
         "y": 32
       },
       {
-        "x": 39,
+        "x": 42,
         "y": 42
       },
       {
-        "x": 53,
-        "y": 37
+        "x": 49,
+        "y": 42
       },
       {
         "x": 23,
@@ -11282,7 +11282,7 @@
       },
       {
         "x": 27,
-        "y": 107
+        "y": 106
       },
       {
         "x": 28,
@@ -11290,14 +11290,14 @@
       },
       {
         "x": 22,
-        "y": 109
+        "y": 108
       },
       {
         "x": 64,
         "y": 78
       },
       {
-        "x": 51,
+        "x": 57,
         "y": 86
       },
       {
@@ -11309,16 +11309,16 @@
         "y": 74
       },
       {
-        "x": 70,
+        "x": 66,
         "y": 83
       },
       {
         "x": 68,
-        "y": 68
+        "y": 70
       },
       {
         "x": 67,
-        "y": 67
+        "y": 64
       },
       {
         "x": 72,
@@ -11329,8 +11329,8 @@
         "y": 70
       },
       {
-        "x": 63,
-        "y": 36
+        "x": 59,
+        "y": 37
       },
       {
         "x": 77,
@@ -11341,12 +11341,12 @@
         "y": 62
       },
       {
-        "x": 73,
-        "y": 40
+        "x": 74,
+        "y": 39
       },
       {
-        "x": 83,
-        "y": 53
+        "x": 85,
+        "y": 54
       },
       {
         "x": 30,
@@ -11358,18 +11358,18 @@
       },
       {
         "x": 3,
-        "y": 0
+        "y": 3
       },
       {
         "x": 47,
         "y": 9
       },
       {
-        "x": 31,
-        "y": 2
+        "x": 35,
+        "y": 9
       },
       {
-        "x": 34,
+        "x": 38,
         "y": 55
       },
       {
@@ -11377,24 +11377,24 @@
         "y": 64
       },
       {
-        "x": 44,
-        "y": 69
+        "x": 45,
+        "y": 66
       },
       {
         "x": 48,
-        "y": 73
+        "y": 74
       },
       {
         "x": 45,
-        "y": 75
+        "y": 74
       },
       {
-        "x": 76,
-        "y": 87
+        "x": 78,
+        "y": 83
       },
       {
         "x": 75,
-        "y": 72
+        "y": 70
       },
       {
         "x": 5,
@@ -11402,7 +11402,7 @@
       },
       {
         "x": 0,
-        "y": 1
+        "y": 6
       },
       {
         "x": 78,
@@ -11417,8 +11417,8 @@
         "y": 56
       },
       {
-        "x": 46,
-        "y": 82
+        "x": 45,
+        "y": 86
       },
       {
         "x": 92,
@@ -11426,10 +11426,10 @@
       },
       {
         "x": 104,
-        "y": 4
+        "y": 7
       },
       {
-        "x": 108,
+        "x": 106,
         "y": 12
       },
       {
@@ -11437,34 +11437,34 @@
         "y": 57
       },
       {
-        "x": 101,
-        "y": 16
+        "x": 102,
+        "y": 17
       },
       {
-        "x": 18,
-        "y": 99
+        "x": 19,
+        "y": 94
       },
       {
         "x": 8,
-        "y": 88
+        "y": 89
       },
       {
-        "x": 2,
-        "y": 5
-      },
-      {
-        "x": 7,
+        "x": 4,
         "y": 10
       },
       {
-        "x": 12,
-        "y": 46
+        "x": 10,
+        "y": 10
+      },
+      {
+        "x": 13,
+        "y": 47
       }
     ],
     "initialHvStats": {
       "edgeCount": 192,
-      "hvEdges": 0,
-      "hvRatio": 0
+      "hvEdges": 71,
+      "hvRatio": 0.3697916666666667
     },
     "workingCoords": null
   }
