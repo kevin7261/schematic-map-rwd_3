@@ -74,8 +74,20 @@ export function useAiTestMetroOneClickCatalog(dataStore) {
   onMounted(loadCatalogs);
 
   const oneClickCityIds = computed(() => new Set(oneClickIndex.value.map((e) => e.cityId)));
+  const oneClickMetaById = computed(
+    () => new Map(oneClickIndex.value.map((e) => [e.cityId, e]))
+  );
   const loadableCities = computed(() =>
-    metroCatalog.value.filter((c) => c.file && oneClickCityIds.value.has(c.id))
+    metroCatalog.value
+      .filter((c) => c.file && oneClickCityIds.value.has(c.id))
+      .map((c) => {
+        const oc = oneClickMetaById.value.get(c.id);
+        return {
+          ...c,
+          stations: oc?.stations ?? c.stations,
+          routes: oc?.routes ?? c.routes,
+        };
+      })
   );
 
   const selContinent = ref('');
@@ -169,7 +181,7 @@ export function useAiTestMetroOneClickCatalog(dataStore) {
 
     setControlLoadFeedback(
       AI_TEST_METRO_LOAD_FB,
-      `已載入 ${cityLabel(city)} 至 AI測試（${meta.routeNameCount ?? meta.routeCount} 線・${meta.routeCount} 段・${meta.stationCount} 站，網格 ${gridSize}）。`,
+      `已載入 ${cityLabel(city)} 至 AI測試（${meta.routeNameCount ?? meta.routeCount} 線・${meta.stationCount} 站，網格 ${gridSize}）。`,
       'success'
     );
     return true;

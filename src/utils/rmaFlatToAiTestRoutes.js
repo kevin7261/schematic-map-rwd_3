@@ -86,6 +86,51 @@ function isBlackStationNode(node) {
   return cc === '#000000' || nt === 'line';
 }
 
+/**
+ * 與 oneClick `_index.json` 的 stations 欄位一致：唯一 station_name 數（含紅/藍轉乘與端點站）。
+ * @param {object[]} flat
+ */
+export function computeFlatMetroStats(flat) {
+  if (!Array.isArray(flat) || !flat.length) {
+    return {
+      stationCount: 0,
+      blackStationCount: 0,
+      routeNameCount: 0,
+      segmentCount: 0,
+    };
+  }
+
+  const names = new Set();
+  const blackKeys = new Set();
+  const routeNames = new Set();
+
+  for (const seg of flat) {
+    const rn = seg.route_name ?? seg.name;
+    if (rn) routeNames.add(rn);
+    const pts = seg.points || [];
+    const nodes = seg.nodes?.length === pts.length ? seg.nodes : [];
+    pts.forEach((p, i) => {
+      const n = nodes[i];
+      if (n) {
+        const t = n.tags || {};
+        const name = String(t.station_name ?? n.station_name ?? '').trim();
+        if (name) names.add(name);
+      }
+      if (isBlackStationNode(n)) {
+        const [x, y] = readPt(p);
+        blackKeys.add(`${x},${y}`);
+      }
+    });
+  }
+
+  return {
+    stationCount: names.size,
+    blackStationCount: blackKeys.size,
+    routeNameCount: routeNames.size,
+    segmentCount: flat.length,
+  };
+}
+
 /** @returns {'crossing'|'endpoint'|'bend'|null} */
 function markerKindFromFlatNode(node) {
   if (!node || typeof node !== 'object') return null;
@@ -195,7 +240,7 @@ export function convertRmaFlatToAiTestRoutes(flat) {
 
   applyMetroMarkerKinds(validRoutes, flatKindByKey);
 
-  const routeNameCount = new Set(orientedFlat.map((s) => s.route_name ?? s.name).filter(Boolean)).size;
+  const flatStats = computeFlatMetroStats(orientedFlat);
 
   return {
     ok: true,
@@ -208,9 +253,10 @@ export function convertRmaFlatToAiTestRoutes(flat) {
       maxX: gridBounds.maxX,
       maxY: gridBounds.maxY,
       routeCount: validRoutes.length,
-      routeNameCount,
-      segmentCount: orientedFlat.length,
-      stationCount: validRoutes.reduce((n, r) => n + (r.stations?.length || 0), 0),
+      routeNameCount: flatStats.routeNameCount,
+      segmentCount: flatStats.segmentCount,
+      stationCount: flatStats.stationCount,
+      blackStationCount: flatStats.blackStationCount,
     },
   };
 }

@@ -15,6 +15,7 @@ App 介面操作不變；Agent 在寫完 `hv_response.json` 後可選跑本 skil
 - coords 涵蓋全部可移動 id（紅/藍/粉紅）
 - **禁止新增跨路線邊內部交叉**（相對 baseline）
 - 同路自交、共線重疊、座標重疊、越界
+- **方向不可翻轉**（偏水平→水平 HV；偏垂直→垂直 HV；45° 除外）
 - HV 統計（proposed 全套用 vs incremental 逐點套用後）
 
 ## 執行

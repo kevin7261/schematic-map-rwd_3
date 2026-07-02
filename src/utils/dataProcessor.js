@@ -2028,6 +2028,23 @@ function findUniformGridStationSegmentIndex(points, station) {
   return bestSeg;
 }
 
+/** 黑站是否落在折線 segPoints 的任一段上（容許浮點誤差） */
+export function countUniformGridBlackStationsOnSegment(stations, segPoints) {
+  if (!Array.isArray(stations) || !stations.length || !Array.isArray(segPoints) || segPoints.length < 2) {
+    return 0;
+  }
+  let count = 0;
+  for (const st of stations) {
+    for (let i = 0; i < segPoints.length - 1; i++) {
+      if (pointToSegmentDistanceSq(st, segPoints[i], segPoints[i + 1]) < 1e-8) {
+        count++;
+        break;
+      }
+    }
+  }
+  return count;
+}
+
 /**
  * 🚉 路線頂點移動後，將黑點車站依原所在線段重新均分
  *

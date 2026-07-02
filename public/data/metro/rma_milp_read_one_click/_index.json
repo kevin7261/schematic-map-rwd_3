@@ -2487,7 +2487,11 @@
     "city": "Taipei",
     "cityZh": "臺北市",
     "country": "Taiwan",
+    "continent": "亞洲 Asia",
+    "stations": 170,
+    "routes": 12,
     "segmentCount": 71,
+    "prepSegmentCount": 71,
     "generatedAt": "2026-07-01T18:17:18.911Z"
   },
   {

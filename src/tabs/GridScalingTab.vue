@@ -20,6 +20,7 @@
     collectUniformGridMarkerKeys,
     isUniformGridRouteBreakPoint,
   } from '@/utils/uniformGridRouteMarkers.js';
+  import { countUniformGridBlackStationsOnSegment } from '@/utils/dataProcessor.js';
   import { fingerprintUniformGridRoutes } from '@/utils/uniformGridHvOptimize.js';
   import * as d3 from 'd3';
   const emit = defineEmits(['active-layer-change']);
@@ -820,13 +821,14 @@
           markerInfo.pointKey,
           markerInfo.routeCountByPoint
         );
-        segments.forEach((segPoints, segIdx) => {
+        segments.forEach((segPoints) => {
           const d = segPoints
             .map(toPixel)
             .map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`)
             .join(' ');
           const from = segPoints[0];
           const to = segPoints[segPoints.length - 1];
+          const blackOnSeg = countUniformGridBlackStationsOnSegment(route.stations, segPoints);
 
           routeGroup
             .append('path')
@@ -842,8 +844,7 @@
               tooltip
                 .html(
                   `<strong>路線 ${routeIdx + 1}</strong><br>` +
-                    `區段：第 ${segIdx + 1} / ${segments.length} 段（交叉點／轉折點斷開）<br>` +
-                    `站點數：${segPoints.length}<br>` +
+                    `黑站：${blackOnSeg}<br>` +
                     `起點：(${from.x.toFixed(2)}, ${from.y.toFixed(2)})<br>` +
                     `終點：(${to.x.toFixed(2)}, ${to.y.toFixed(2)})`
                 )
