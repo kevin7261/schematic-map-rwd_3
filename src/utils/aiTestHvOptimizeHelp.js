@@ -30,7 +30,7 @@ Agent 必做（僅 LLM 推理，禁止跑求解腳本）：
    - **拉直路線**：紅/藍/粉紅之間僅 HV 直線；**禁止**製造新轉折
    - **方向鎖定**：偏水平→水平 HV；偏垂直→垂直 HV；45°→兩者皆可；不可翻向
    - **套用順序（僅 LLM 推理）**：各路線依 x、y 座標序列（非 id 序）從中位往外；每步牽動邊 HV 須增加；同層選增益最大；禁止程式搜格
-   - **拓撲結構關係不可變**（只改座標）：edges 連接、route id 順序、轉乘匯流、端點歸屬
+   - **拓撲結構關係不可變**（只改座標）：edges 連接、route id 順序、轉乘匯流、端點歸屬、**各紅點 360° CCW 環序**
    - 拓撲不可變；整數格、不重疊
    - 禁止新增跨路線交叉（移動前沒有的邊內部交叉一律不可）
    - coords 須涵蓋全部 movable id（未動者回傳原座標）
@@ -46,7 +46,7 @@ export const AI_TEST_HV_PROMPT_TEMPLATE = `【Prompt 模板摘要】
 
 輸入：hv_payload.json 的 routesFingerprint、network.movablePoints、network.edges、network.topology.routeKeypointSequences
 
-拓撲結構關係不可變：edges 連接、route id 順序、轉乘 id 匯流、端點歸屬；只平移座標
+拓撲結構關係不可變：edges 連接、route id 順序、轉乘 id 匯流、端點歸屬、各紅點 360° CCW 環序；只平移座標
 
 路線語意：紅/藍/粉紅之間僅一條直線；移動目的是 HV 拉直，不是新增轉折；黑站不在 network
 
