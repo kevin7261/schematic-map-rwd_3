@@ -27,7 +27,6 @@ export {
   SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID,
   ROUTE_ADJUST_LAYOUT_LAYER_IDS,
   isRouteAdjustLayoutLayer,
-  isRouteAdjustLayoutOrAiLayer,
   SCHEMATIC_TOWARD_CENTER_LAYER_IDS,
   isLineOrthogonalTowardCenterLayerId,
   isVertFirstTowardCenterLayerId,

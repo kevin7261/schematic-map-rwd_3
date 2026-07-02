@@ -9,7 +9,7 @@ import { computeStationDataFromRoutes } from '@/utils/dataExecute/computeStation
 import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
 import { resolveSharedCorridorDrawing } from '../schematic/assemble.js';
 import { schematicStats } from '../schematic/objective.js';
-  import { isRouteAdjustLayoutOrAiLayer } from './layerIds.js';
+import { isRouteAdjustLayoutLayer } from './layerIds.js';
 
 /**
  * @returns {{ ok: boolean, message?: string, stats?: object, corridor?: object }}
@@ -22,7 +22,7 @@ export function writeRouteAdjustLayoutResultToLayer(layerId, fullFlat, meta = {}
     return { ok: false, message: '無結果路段可寫入' };
   }
 
-  const corridor = isRouteAdjustLayoutOrAiLayer(layerId)
+  const corridor = isRouteAdjustLayoutLayer(layerId)
     ? resolveSharedCorridorDrawing(fullFlat, meta._schematicGraph ?? null)
     : null;
 

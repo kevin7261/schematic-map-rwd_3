@@ -122,7 +122,7 @@
     isRmaLayoutNetworkGridFromVhDrawLayerId,
     isLayoutVhDrawSecondCopyLayerId,
     isSpaceGridVhDrawFamilyLayerId,
-    isRouteAdjustLayoutOrAiLayer,
+    isRouteAdjustLayoutLayer,
     LAYOUT_SEGMENT_TRAFFIC_WEIGHT_KEY,
     buildVhDrawStationRowsForLayoutMap,
     resolveLayoutNetworkGridDrawRoot,
@@ -2747,7 +2747,7 @@
       if (nodeProps.node_type === 'line') return false;
       return false;
     };
-    const routeAdjustSchematicTab = isRouteAdjustLayoutOrAiLayer(layerTab);
+    const routeAdjustSchematicTab = isRouteAdjustLayoutLayer(layerTab);
     /** 示意圖佈局：只繪製彩色端點／具站名黑點／粉灰棕輔助點；略過無色 connect 與純幾何折點。 */
     const isDrawableMidStation = (nodeProps) => {
       if (!nodeProps || typeof nodeProps !== 'object') return false;
@@ -4445,7 +4445,7 @@
       layerTab === 'schematic_milp_read' || // MILP結果正規化：整數座標系，每格一線
       layerTab === 'schematic_rma_milp_read' || // MILP結果正規化（RMA）：整數座標系，每格一線
       layerTab === 'schematic_rma_normalize' || // ⑨ 座標正規化：整數座標系，每格一線
-      isRouteAdjustLayoutOrAiLayer(layerTab) || // 站點與路線調整 #1–#8、AI調整
+      isRouteAdjustLayoutLayer(layerTab) || // 站點與路線調整 #1–#8
       layerTab === 'schematic_milp_straighten' || // connect 拉直：整數座標系，每格一線
       isLineOrthoRowColEditLayerId(layerTab) ||
       isSpaceGridVhDrawFamilyLayerId(layerTab) ||

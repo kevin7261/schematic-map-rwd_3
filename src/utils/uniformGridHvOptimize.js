@@ -9,8 +9,7 @@
  * 【鐵律】座標與 audit 判定都只能由 Cursor LLM 推理決定；App 不做幾何驗證。
  * 本檔的 audit／incremental 函式已不在 App 流程使用，僅保留備查。
  *
- * 與既有「AI調整」功能（src/utils/routeMapAdjust/routeAdjustLayout/llmLayoutCore.js）
- * 的多輪 LLM＋逐點驗證模式一致，但資料模型完全獨立、更簡單（無站名／地理座標／路線分歧環序）。
+ * 多輪 LLM＋逐點驗證模式，資料模型獨立、簡單（無站名／地理座標／路線分歧環序）。
  *
  * 幾何交叉判定重用 {@link segmentIntersectionInterior2D}（src/utils/routeSegmentIntersections.js），
  * 車站重新取樣重用 {@link assignRandomStationsToRoutes}（src/utils/dataProcessor.js）。

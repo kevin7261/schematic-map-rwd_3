@@ -120,7 +120,6 @@ export { ROUTE_ADJUST_STROKE_LAYER_ID as SCHEMATIC_RMA_ROUTE_ADJUST_LAYER_ID } f
 export {
   ROUTE_ADJUST_LAYOUT_LAYER_IDS,
   isRouteAdjustLayoutLayer,
-  isRouteAdjustLayoutOrAiLayer,
 } from '../../routeMapAdjust/routeAdjustLayout/layerIds.js';
 export const SCHEMATIC_TOWARD_CENTER_LAYER_IDS = Object.freeze([
   SCHEMATIC_TOWARD_CENTER_HV_LAYER_ID,

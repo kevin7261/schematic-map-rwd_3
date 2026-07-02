@@ -24,8 +24,6 @@ export const ROUTE_ADJUST_BAST_LAYER_ID = 'schematic_rma_route_adjust_bast';
 export const ROUTE_ADJUST_MERRICK_LAYER_ID = 'schematic_rma_route_adjust_merrick';
 /** #8 Fuchs (2022) SAT octilinear */
 export const ROUTE_ADJUST_SAT_LAYER_ID = 'schematic_rma_route_adjust_sat';
-/** AI LLM 座標調整（skill: llm-octilinear-layout） */
-export const ROUTE_ADJUST_AI_LAYER_ID = 'schematic_rma_route_adjust_ai';
 
 /** 站點與路線細部調整：自①～⑧或站點與路線調整前置匯入完整路網（含黑點），供往中心聚集上游。 */
 export const SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID = 'schematic_rma_detail_adjust';
@@ -42,19 +40,8 @@ export const ROUTE_ADJUST_LAYOUT_LAYER_IDS = Object.freeze([
   ROUTE_ADJUST_SAT_LAYER_ID,
 ]);
 
-/** 含 AI調整 的佈局圖層（可匯入往中心聚集等下游） */
-export const ROUTE_ADJUST_LAYOUT_PLUS_AI_LAYER_IDS = Object.freeze([
-  ...ROUTE_ADJUST_LAYOUT_LAYER_IDS,
-  ROUTE_ADJUST_AI_LAYER_ID,
-]);
-
 export const isRouteAdjustLayoutLayer = (layerId) =>
   layerId != null && ROUTE_ADJUST_LAYOUT_LAYER_IDS.includes(layerId);
-
-export const isRouteAdjustAiLayer = (layerId) => layerId === ROUTE_ADJUST_AI_LAYER_ID;
-
-export const isRouteAdjustLayoutOrAiLayer = (layerId) =>
-  isRouteAdjustLayoutLayer(layerId) || isRouteAdjustAiLayer(layerId);
 
 /** profileId → 圖層 layerId */
 export const ROUTE_ADJUST_PROFILE_TO_LAYER_ID = Object.freeze({

@@ -102,9 +102,6 @@
     resolveRouteAdjustLayoutInput,
     ROUTE_ADJUST_TOWARD_CENTER_IMPORT_SOURCES,
     SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID,
-    startRouteAdjustAiStepwise,
-    continueRouteAdjustAiStepwise,
-    stopRouteAdjustAiStepwise,
   } from '@/utils/routeMapAdjust/routeAdjustLayout/index.js';
   import { computeStationDataFromRoutes } from '@/utils/dataExecute/computeStationDataFromRoutes.js';
   import { flatSegmentsToGeojsonStyleExportRows } from '@/utils/taipeiTest4/flatSegmentsToGeojsonStyleExportRows.js';
@@ -10423,70 +10420,6 @@
     return r.message || '上游尚無路網。';
   };
 
-  const routeAdjustAiAwaitingConfirm = (layer) =>
-    layer?.isRouteAdjustAiLayer && layer?.llmLayoutSession?.phase === 'awaiting_confirm';
-
-  const onRouteAdjustAiStart = async () => {
-    if (!routeAdjustLayoutInputReady() || isExecuting.value) return;
-    isExecuting.value = true;
-    try {
-      await nextTick();
-      const res = await startRouteAdjustAiStepwise();
-      if (!res.ok) {
-        window.alert('[未產出]\n' + (res.message || 'AI 調整失敗'));
-        return;
-      }
-      if (res.phase === 'done' && res.finalMessage) {
-        window.alert(res.finalMessage);
-      }
-    } catch (e) {
-      console.error(e);
-      window.alert('[錯誤]\n' + (e?.message || e));
-    } finally {
-      setTimeout(() => {
-        isExecuting.value = false;
-      }, 300);
-    }
-  };
-
-  /** ①–⑧：executeFunction；AI調整：自動 LLM 逐輪 */
-  const onRouteAdjustLayoutStart = async (layer) => {
-    if (layer?.isRouteAdjustAiLayer) {
-      await onRouteAdjustAiStart();
-      return;
-    }
-    await executeLayerFunction();
-  };
-
-  const onRouteAdjustAiContinue = async (layer) => {
-    if (isExecuting.value || layer?.llmLayoutSession?.phase !== 'awaiting_confirm') return;
-    isExecuting.value = true;
-    try {
-      await nextTick();
-      const res = await continueRouteAdjustAiStepwise();
-      if (!res.ok) {
-        window.alert('[錯誤]\n' + (res.message || '下一輪失敗'));
-        return;
-      }
-      if (res.phase === 'done' && res.finalMessage) {
-        window.alert(res.finalMessage);
-      }
-    } catch (e) {
-      console.error(e);
-      window.alert('[錯誤]\n' + (e?.message || e));
-    } finally {
-      setTimeout(() => {
-        isExecuting.value = false;
-      }, 300);
-    }
-  };
-
-  const onRouteAdjustAiStop = (layer) => {
-    if (layer?.llmLayoutSession?.phase !== 'awaiting_confirm') return;
-    const res = stopRouteAdjustAiStepwise();
-    if (res.message) window.alert(res.message);
-  };
-
   const milpRoutePairAuditing = ref(false);
 
   /** ③ MILP（RMA）：按鈕觸發路線對 CCW 環序審計（不動佈局管線） */
@@ -13412,26 +13345,10 @@
           </div>
         </div>
 
-        <!-- 站點與路線調整（RMA）#1–#8 + AI調整：讀「站點與路線調整前置」→ 重佈局 -->
-        <div
-          v-if="layer.isRouteAdjustLayoutLayer || layer.isRouteAdjustAiLayer"
-          class="pb-3 mb-3 border-bottom"
-        >
+        <!-- 站點與路線調整（RMA）#1–#8：讀「站點與路線調整前置」→ 重佈局 -->
+        <div v-if="layer.isRouteAdjustLayoutLayer" class="pb-3 mb-3 border-bottom">
           <div class="my-title-xs-gray pb-2">{{ layer.layerName }}</div>
-          <div
-            v-if="layer.isRouteAdjustAiLayer"
-            class="my-font-size-xs text-muted pb-2"
-            style="line-height: 1.45"
-          >
-            自動讀上游「{{ ROUTE_ADJUST_UPSTREAM_LAYER_NAME }}」，以 skill
-            <code class="my-font-size-xs">llm-octilinear-layout</code>
-            逐輪自動調整座標（優先水平/垂直），每輪確認後繼續。不需 HiGHS / SAT。
-          </div>
-          <div
-            v-else
-            class="my-font-size-xs text-muted pb-2"
-            style="line-height: 1.45"
-          >
+          <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
             輸入固定為上游「{{ ROUTE_ADJUST_UPSTREAM_LAYER_NAME }}」（{{ ROUTE_ADJUST_UPSTREAM_LAYER_ID }}）：讀取已正規化之路網
             connect
             骨架，以與「示意圖佈局」相同的八演算法重新佈局，黑點沿新邊均分插回。不含⑨正規化。
@@ -13444,64 +13361,13 @@
             {{ routeAdjustLayoutInputHint() }}
           </div>
           <button
-            v-if="!routeAdjustAiAwaitingConfirm(layer)"
             type="button"
             class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"
             :disabled="!routeAdjustLayoutInputReady() || isExecuting"
-            @click="onRouteAdjustLayoutStart(layer)"
+            @click="executeLayerFunction()"
           >
             {{ isExecuting ? '計算中…' : '開始執行' }}
           </button>
-          <div v-if="routeAdjustAiAwaitingConfirm(layer)" class="mt-2">
-            <div
-              class="alert alert-info my-font-size-xs mb-2 py-2 px-2"
-              style="line-height: 1.45; white-space: pre-wrap"
-            >
-              {{ layer.llmLayoutSession.roundSummary }}
-              <div class="text-muted pt-1">請在圖上確認本輪結果，再按下方按鈕。</div>
-            </div>
-            <button
-              type="button"
-              class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-2"
-              :disabled="isExecuting"
-              @click="onRouteAdjustAiContinue(layer)"
-            >
-              {{ isExecuting ? '計算中…' : '確定，下一輪' }}
-            </button>
-            <button
-              type="button"
-              class="btn rounded-pill border-0 btn-outline-secondary my-font-size-xs text-nowrap w-100 my-cursor-pointer"
-              :disabled="isExecuting"
-              @click="onRouteAdjustAiStop(layer)"
-            >
-              停止（保留目前結果）
-            </button>
-          </div>
-          <div
-            v-if="layer.isRouteAdjustAiLayer && layer.llmLayoutLastValidation?.pass"
-            class="mt-2 my-font-size-xs"
-            style="line-height: 1.45"
-          >
-            <div v-if="layer.llmLayoutLastValidation.violations" class="text-muted pb-1">
-              上次 HV 邊比例：
-              {{ Math.round((layer.llmLayoutLastValidation.violations.hvRatio ?? 0) * 100) }}%
-            </div>
-            <div
-              v-if="layer.llmLayoutLastValidation.coordChanges?.changeCount"
-              class="text-success"
-            >
-              <div class="pb-1">
-                座標調整 {{ layer.llmLayoutLastValidation.coordChanges.changeCount }} 點：
-              </div>
-              <div
-                class="text-muted"
-                style="max-height: 160px; overflow-y: auto; white-space: pre-wrap"
-              >
-                {{ layer.llmLayoutLastValidation.changeSummary }}
-              </div>
-            </div>
-            <div v-else class="text-muted">座標調整：無（與讀入初值相同）</div>
-          </div>
           <div
             v-if="
               layer.layerId === 'schematic_rma_route_adjust_milp' &&
