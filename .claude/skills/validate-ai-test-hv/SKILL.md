@@ -18,6 +18,8 @@ App 介面操作不變；Agent 在寫完 `hv_response.json` 後可選跑本 skil
 - **方向不可翻轉**（偏水平→水平 HV；偏垂直→垂直 HV；45° 除外）
 - HV 統計（proposed 全套用 vs incremental 逐點套用後）
 
+**套用策略**（依 x/y 座標中位→向外、每步拉直、同層增益最大）由 **LLM 在對話中推理**；本 audit **不**程式檢查 HV 增益或套用順序。
+
 ## 執行
 
 ```bash
