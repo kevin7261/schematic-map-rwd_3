@@ -30,6 +30,7 @@
   import { useRouteMapAdjust2 } from '@/utils/routeMapAdjust/loadFromSelectRouteMap2.js';
   import { useRmaMilpReadPrepCatalog } from '@/utils/routeMapAdjust/loadRmaMilpReadPrep.js';
   import { useRmaMilpReadOneClickCatalog } from '@/utils/routeMapAdjust/loadRmaMilpReadOneClick.js';
+  import { useAiTestMetroOneClickCatalog } from '@/utils/loadAiTestMetroOneClick.js';
   import { useRouteMapAdjustStraight } from '@/utils/routeMapAdjust/loadFromSelectRouteMapStraight.js';
   import { routeMapAdjustSkeletonToGeoJson } from '@/utils/routeMapAdjust/routeStations.js';
   import { computeQuadtreePartitionFromGeojson } from '@/utils/routeMapAdjust/schematic/normalize/executeNormalize.js';
@@ -221,6 +222,27 @@
    * 用於訪問全域狀態和圖層數據
    */
   const dataStore = useDataStore();
+
+  // 🏷️ AI示意圖測試 — 載入全球一鍵執行預算（須在 regenerateAiTestLayer 之前初始化）
+  const {
+    selContinent: aiTestMetroContinent,
+    selCountry: aiTestMetroCountry,
+    selCity: aiTestMetroCity,
+    selQuick: aiTestMetroQuick,
+    selStationSort: aiTestMetroStationSort,
+    loadableCities: aiTestMetroLoadableCities,
+    quickCities: aiTestMetroQuickCities,
+    stationSortedCities: aiTestMetroStationSortedCities,
+    drawContinents: aiTestMetroContinents,
+    drawCountries: aiTestMetroCountries,
+    drawCities: aiTestMetroCities,
+    isLoading: aiTestMetroLoading,
+    loadedCityLabel: aiTestMetroLoadedLabel,
+    loadedOfficialUrl: aiTestMetroOfficialUrl,
+    loadSelectedCity: aiTestMetroLoadSelectedCity,
+    quickLoadCity: aiTestMetroQuickLoad,
+    clearLoadedCity: aiTestMetroClearLoadedCity,
+  } = useAiTestMetroOneClickCatalog(dataStore);
 
   const LINE_ORTHOGONAL_TOWARD_CENTER_LAYER_IDS_ALL = [
     ...ORTH_SPACE_LINE_IDS_MAIN,
@@ -1715,6 +1737,7 @@
       storeLayer.hvOptimizeLastResult = null;
       storeLayer.hvOptimizeSession = null;
     }
+    aiTestMetroClearLoadedCity();
     await resetAiTestHvBridgeFiles();
     await dataStore.reloadLayer(layer.layerId);
   };
@@ -1730,7 +1753,7 @@
     const storeLayer = dataStore.findLayerById('ai_test_layer') || layer;
     if (!storeLayer.isLoaded || !storeLayer.processedJsonData?.routes?.length) {
       if (typeof window !== 'undefined' && window.alert) {
-        window.alert('請先開啟圖層並按「隨機產生」。');
+        window.alert('請先開啟圖層並載入路線圖或按「隨機產生」。');
       }
       return;
     }
@@ -13569,8 +13592,97 @@
           </div>
         </div>
 
-        <!-- AI測試：均勻網格三角化捷運風格路線圖 — 隨機產生按鈕 -->
+        <!-- AI測試：全球一鍵執行預算 → ai_test 格式 + 隨機產生 -->
         <div v-if="layer.layerId === 'ai_test_layer'" class="pb-3 mb-3 border-bottom">
+          <div class="my-title-xs-gray pb-2">選擇路線圖（一鍵執行預算）</div>
+          <div class="my-font-size-xs text-muted pb-2" style="line-height: 1.45">
+            載入全球城市經「站點與路線調整前置」一鍵執行後之路網，轉成 AI測試格式（保留各城市原始整數格座標）後可接
+            HV 最佳化 + LLM。
+          </div>
+          <div
+            v-if="aiTestMetroLoadedLabel"
+            class="my-font-size-xs text-success pb-2"
+            style="line-height: 1.35"
+          >
+            目前已載入：{{ aiTestMetroLoadedLabel }}
+            <div v-if="aiTestMetroOfficialUrl">
+              <a :href="aiTestMetroOfficialUrl" target="_blank" rel="noopener noreferrer"
+                >官方路線圖 ↗</a
+              >
+            </div>
+          </div>
+          <select
+            v-model="aiTestMetroQuick"
+            :disabled="aiTestMetroLoading"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+            @change="aiTestMetroQuickLoad(aiTestMetroQuick)"
+          >
+            <option value="">快選城市…</option>
+            <option v-for="c in aiTestMetroQuickCities" :key="c.id" :value="c.id">
+              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+            </option>
+          </select>
+          <select
+            v-model="aiTestMetroStationSort"
+            :disabled="aiTestMetroLoading"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-3 my-cursor-pointer"
+            @change="aiTestMetroQuickLoad(aiTestMetroStationSort)"
+          >
+            <option value="">依站點數排序…</option>
+            <option v-for="c in aiTestMetroStationSortedCities" :key="c.id" :value="c.id">
+              {{
+                (c.cityZh ? c.cityZh + ' ' : '') +
+                c.city +
+                '（' +
+                c.stations +
+                ' 站・' +
+                c.routes +
+                ' 線）'
+              }}
+            </option>
+          </select>
+          <div class="my-title-xs-gray pb-2">
+            載入一鍵執行結果（全球・共 {{ aiTestMetroLoadableCities.length }} 城市）
+          </div>
+          <select
+            v-model="aiTestMetroContinent"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇洲別…</option>
+            <option v-for="c in aiTestMetroContinents" :key="c" :value="c">{{ c }}</option>
+          </select>
+          <select
+            v-model="aiTestMetroCountry"
+            :disabled="!aiTestMetroContinent"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇國家…</option>
+            <option v-for="c in aiTestMetroCountries" :key="c.country" :value="c.country">
+              {{ c.label }}
+            </option>
+          </select>
+          <select
+            v-model="aiTestMetroCity"
+            :disabled="!aiTestMetroCountry"
+            class="form-select form-select-sm rounded-pill my-font-size-xs mb-2 my-cursor-pointer"
+          >
+            <option value="">選擇城市…</option>
+            <option v-for="c in aiTestMetroCities" :key="c.id" :value="c.id">
+              {{ (c.cityZh ? c.cityZh + ' ' : '') + c.city }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="btn rounded-pill border-0 my-btn-blue my-font-size-xs text-nowrap w-100 my-cursor-pointer mb-3"
+            :disabled="!aiTestMetroCity || aiTestMetroLoading"
+            title="載入該城市一鍵執行預算結果至 AI測試圖層"
+            @click="aiTestMetroLoadSelectedCity"
+          >
+            {{ aiTestMetroLoading ? '讀取中…' : '載入路線圖' }}
+          </button>
+          <ControlLoadFeedback layer-id="ai_test_layer:metro" />
+
+          <div class="my-title-xs-gray pb-2 pt-2 border-top">隨機產生</div>
           <button
             type="button"
             class="btn rounded-pill border-0 my-btn-green my-font-size-xs text-nowrap w-100 my-cursor-pointer"

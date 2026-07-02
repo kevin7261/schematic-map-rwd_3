@@ -25,8 +25,10 @@ export const AI_TEST_HV_SKILL_TEXT = `【Skill：ai-test-hv-optimize】
 Agent 必做（僅 LLM 推理，禁止跑求解腳本）：
 1. 讀 public/data/ai_test/hv_payload.json（routesFingerprint、network）
 2. 依下方 System Prompt 在對話中推理新座標
-   - 只平移 crossing（紅）/ endpoint（藍）/ bend（粉紅）
-   - 拓撲不可變；最大化 HV 邊；整數格、不重疊
+   - 只平移 crossing（紅）/ endpoint（藍）/ bend（粉紅）；vertex 不可動
+   - 紅點移動後仍是紅，絕不可變藍；kind 不可改
+   - **拉直路線**：紅/藍/粉紅之間僅 HV 直線；**禁止**製造新轉折
+   - 拓撲不可變；整數格、不重疊
    - 禁止新增跨路線交叉（移動前沒有的邊內部交叉一律不可）
    - coords 須涵蓋全部 movable id（未動者回傳原座標）
 3. writeResponse.mjs 寫入（computedBy: "llm"）
@@ -41,7 +43,9 @@ export const AI_TEST_HV_PROMPT_TEMPLATE = `【Prompt 模板摘要】
 
 輸入：hv_payload.json 的 routesFingerprint、network.movablePoints、network.edges、network.topology.routeKeypointSequences
 
-拓撲不可變：只平移紅/藍/粉紅；id 序列與 edges 連接不可改；coords 須列出全部 id
+拓撲不可變：只平移紅/藍/粉紅；vertex 不可動；紅不可變藍；id 序列與 edges 連接不可改
+
+路線語意：紅/藍/粉紅之間僅一條直線；移動目的是 HV 拉直，不是新增轉折；黑站不在 network
 
 任務：最大化 HV 邊；整數格、不重疊
 

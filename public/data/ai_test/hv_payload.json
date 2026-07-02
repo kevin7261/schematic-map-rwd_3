@@ -1,93 +1,303 @@
 {
-  "updatedAt": 1782929458338,
-  "routesFingerprint": "0:8:7,7:0,0|1:14:1,0:16,12|2:10:5,3:11,9|3:14:1,0:9,15|4:7:0,6:1,0|5:9:3,4:10,0",
+  "updatedAt": 1782968761580,
+  "routesFingerprint": "0:2:16,6:15,4|1:2:15,4:11,4|2:2:23,8:23,7|3:2:33,14:30,14|4:2:33,14:42,18|5:2:42,18:41,21|6:2:34,21:41,21|7:2:34,21:28,25|8:2:31,26:26,25|9:2:31,26:40,28|10:2:31,26:28,25|11:2:32,34:26,25|12:2:32,34:36,36|13:2:38,28:40,28|14:2:38,28:36,36|15:2:56,12:56,30|16:2:56,30:47,28|17:2:47,23:48,23|18:2:47,23:41,21|19:2:47,28:40,28|20:2:10,50:10,44|21:2:10,44:10,39|22:2:10,50:6,56|23:2:6,56:6,55|24:2:6,55:6,49|25:2:10,39:26,25|26:2:10,39:25,42|27:2:10,39:18,19|28:2:26,25:28,25|29:2:40,28:41,21|30:2:28,25:21,19|31:2:21,19:17,16|32:2:21,19:18,19|33:2:21,19:30,14|34:2:17,16:5,19|35:2:5,19:2,19|36:2:2,19:1,19|37:2:1,19:0,19|38:2:17,16:18,19|39:2:18,31:18,19|40:2:30,14:20,14|41:2:36,36:25,42|42:2:36,36:44,46|43:2:25,42:27,42|44:2:25,42:37,45|45:2:44,46:44,47|46:2:44,46:37,45|47:2:44,47:43,52|48:2:44,47:44,48|49:2:37,45:29,54|50:2:29,54:22,54|51:2:11,4:8,2|52:2:8,2:8,3|53:2:11,4:11,0|54:2:16,5:16,6|55:2:23,8:23,9|56:2:23,9:33,14|57:2:33,14:34,21|58:2:34,21:31,26|59:2:31,26:32,34|60:2:32,34:38,28|61:2:38,28:46,29|62:2:46,29:54,35|63:2:46,29:47,28|64:2:56,12:56,11|65:2:56,11:55,11|66:2:55,11:47,23|67:2:47,23:47,28|68:2:16,6:23,8|69:2:46,29:50,38|70:2:50,38:50,41",
   "roundIndex": 0,
   "network": {
     "meta": {
-      "gridX": 16,
-      "gridY": 16,
-      "routeCount": 6,
-      "pointCount": 52,
-      "movableMarkerCount": 26,
-      "initialHvRatio": 0.35714285714285715,
-      "initialNonHvCount": 36
+      "gridX": 56,
+      "gridY": 56,
+      "routeCount": 71,
+      "pointCount": 57,
+      "movableMarkerCount": 57,
+      "initialHvRatio": 0.43661971830985913,
+      "initialNonHvCount": 40
     },
     "topology": {
       "preserveTopology": true,
       "routeKeypointSequences": [
         [
           0,
+          1
+        ],
+        [
           1,
-          2,
+          2
+        ],
+        [
           3,
-          4,
+          4
+        ],
+        [
           5,
-          6,
+          6
+        ],
+        [
+          5,
           7
         ],
         [
-          6,
-          8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14,
-          15,
-          16,
-          17,
-          18,
-          19,
-          20
+          7,
+          8
         ],
         [
-          2,
-          21,
+          9,
+          8
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          11,
+          13
+        ],
+        [
+          11,
+          10
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          14,
+          15
+        ],
+        [
+          16,
+          13
+        ],
+        [
+          16,
+          15
+        ],
+        [
+          17,
+          18
+        ],
+        [
+          18,
+          19
+        ],
+        [
+          20,
+          21
+        ],
+        [
+          20,
+          8
+        ],
+        [
+          19,
+          13
+        ],
+        [
           22,
+          23
+        ],
+        [
           23,
-          24,
+          24
+        ],
+        [
+          22,
+          25
+        ],
+        [
           25,
+          26
+        ],
+        [
           26,
-          27,
-          28,
+          27
+        ],
+        [
+          24,
+          12
+        ],
+        [
+          24,
+          28
+        ],
+        [
+          24,
+          29
+        ],
+        [
+          12,
+          10
+        ],
+        [
+          13,
+          8
+        ],
+        [
+          10,
+          30
+        ],
+        [
+          30,
+          31
+        ],
+        [
+          30,
+          29
+        ],
+        [
+          30,
+          6
+        ],
+        [
+          31,
+          32
+        ],
+        [
+          32,
+          33
+        ],
+        [
+          33,
+          34
+        ],
+        [
+          34,
+          35
+        ],
+        [
+          31,
+          29
+        ],
+        [
+          36,
           29
         ],
         [
           6,
-          30,
-          8,
-          31,
-          32,
-          33,
-          34,
-          35,
-          36,
-          37,
-          38,
-          39,
-          14,
+          37
+        ],
+        [
+          15,
+          28
+        ],
+        [
+          15,
+          38
+        ],
+        [
+          28,
+          39
+        ],
+        [
+          28,
           40
         ],
         [
-          32,
+          38,
+          41
+        ],
+        [
+          38,
+          40
+        ],
+        [
           41,
-          42,
-          43,
-          8,
+          42
+        ],
+        [
+          41,
+          43
+        ],
+        [
+          40,
+          44
+        ],
+        [
           44,
-          6
+          45
+        ],
+        [
+          2,
+          46
+        ],
+        [
+          46,
+          47
+        ],
+        [
+          2,
+          48
+        ],
+        [
+          49,
+          0
+        ],
+        [
+          3,
+          50
+        ],
+        [
+          50,
+          5
+        ],
+        [
+          5,
+          9
         ],
         [
           9,
-          45,
-          3,
-          46,
-          47,
-          48,
-          49,
-          50,
+          11
+        ],
+        [
+          11,
+          14
+        ],
+        [
+          14,
+          16
+        ],
+        [
+          16,
           51
+        ],
+        [
+          51,
+          52
+        ],
+        [
+          51,
+          19
+        ],
+        [
+          17,
+          53
+        ],
+        [
+          53,
+          54
+        ],
+        [
+          54,
+          20
+        ],
+        [
+          20,
+          19
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          51,
+          55
+        ],
+        [
+          55,
+          56
         ]
       ],
       "description": "每條路線依序經過的全部頂點 id 序列（含粉紅轉折）；edges 為相鄰 id 連線。此連接關係不可改變，只能平移 kind=crossing/endpoint/bend 的座標。"
@@ -95,314 +305,344 @@
     "movablePoints": [
       {
         "id": 0,
-        "x": 7,
+        "x": 16,
+        "y": 6,
+        "kind": "crossing"
+      },
+      {
+        "id": 1,
+        "x": 15,
+        "y": 4,
+        "kind": "crossing"
+      },
+      {
+        "id": 2,
+        "x": 11,
+        "y": 4,
+        "kind": "crossing"
+      },
+      {
+        "id": 3,
+        "x": 23,
+        "y": 8,
+        "kind": "crossing"
+      },
+      {
+        "id": 4,
+        "x": 23,
         "y": 7,
         "kind": "endpoint"
       },
       {
-        "id": 1,
-        "x": 6,
-        "y": 5,
-        "kind": "vertex"
-      },
-      {
-        "id": 2,
-        "x": 5,
-        "y": 3,
-        "kind": "endpoint"
-      },
-      {
-        "id": 3,
-        "x": 4,
-        "y": 1,
-        "kind": "bend"
-      },
-      {
-        "id": 4,
-        "x": 3,
-        "y": 0,
-        "kind": "bend"
-      },
-      {
         "id": 5,
-        "x": 2,
-        "y": 0,
-        "kind": "vertex"
+        "x": 33,
+        "y": 14,
+        "kind": "crossing"
       },
       {
         "id": 6,
-        "x": 1,
-        "y": 0,
-        "kind": "endpoint"
+        "x": 30,
+        "y": 14,
+        "kind": "crossing"
       },
       {
         "id": 7,
-        "x": 0,
-        "y": 0,
-        "kind": "endpoint"
+        "x": 42,
+        "y": 18,
+        "kind": "bend"
       },
       {
         "id": 8,
-        "x": 2,
-        "y": 2,
-        "kind": "bend"
+        "x": 41,
+        "y": 21,
+        "kind": "crossing"
       },
       {
         "id": 9,
-        "x": 3,
-        "y": 4,
-        "kind": "endpoint"
+        "x": 34,
+        "y": 21,
+        "kind": "crossing"
       },
       {
         "id": 10,
-        "x": 4,
-        "y": 6,
-        "kind": "vertex"
+        "x": 28,
+        "y": 25,
+        "kind": "crossing"
       },
       {
         "id": 11,
-        "x": 5,
-        "y": 8,
-        "kind": "vertex"
+        "x": 31,
+        "y": 26,
+        "kind": "crossing"
       },
       {
         "id": 12,
-        "x": 6,
-        "y": 10,
-        "kind": "vertex"
+        "x": 26,
+        "y": 25,
+        "kind": "crossing"
       },
       {
         "id": 13,
-        "x": 7,
-        "y": 12,
-        "kind": "vertex"
+        "x": 40,
+        "y": 28,
+        "kind": "crossing"
       },
       {
         "id": 14,
-        "x": 8,
-        "y": 14,
-        "kind": "bend"
+        "x": 32,
+        "y": 34,
+        "kind": "crossing"
       },
       {
         "id": 15,
-        "x": 10,
-        "y": 15,
-        "kind": "vertex"
+        "x": 36,
+        "y": 36,
+        "kind": "crossing"
       },
       {
         "id": 16,
-        "x": 12,
-        "y": 16,
-        "kind": "bend"
+        "x": 38,
+        "y": 28,
+        "kind": "crossing"
       },
       {
         "id": 17,
-        "x": 13,
-        "y": 15,
-        "kind": "vertex"
+        "x": 56,
+        "y": 12,
+        "kind": "crossing"
       },
       {
         "id": 18,
-        "x": 14,
-        "y": 14,
-        "kind": "bend"
+        "x": 56,
+        "y": 30,
+        "kind": "crossing"
       },
       {
         "id": 19,
-        "x": 15,
-        "y": 14,
-        "kind": "bend"
+        "x": 47,
+        "y": 28,
+        "kind": "crossing"
       },
       {
         "id": 20,
-        "x": 16,
-        "y": 12,
-        "kind": "endpoint"
+        "x": 47,
+        "y": 23,
+        "kind": "crossing"
       },
       {
         "id": 21,
-        "x": 7,
-        "y": 2,
-        "kind": "bend"
+        "x": 48,
+        "y": 23,
+        "kind": "endpoint"
       },
       {
         "id": 22,
-        "x": 8,
-        "y": 1,
-        "kind": "bend"
+        "x": 10,
+        "y": 50,
+        "kind": "crossing"
       },
       {
         "id": 23,
         "x": 10,
-        "y": 2,
-        "kind": "bend"
+        "y": 44,
+        "kind": "crossing"
       },
       {
         "id": 24,
         "x": 10,
-        "y": 3,
-        "kind": "vertex"
+        "y": 39,
+        "kind": "crossing"
       },
       {
         "id": 25,
-        "x": 10,
-        "y": 4,
-        "kind": "vertex"
+        "x": 6,
+        "y": 56,
+        "kind": "crossing"
       },
       {
         "id": 26,
-        "x": 10,
-        "y": 5,
-        "kind": "vertex"
+        "x": 6,
+        "y": 55,
+        "kind": "bend"
       },
       {
         "id": 27,
-        "x": 10,
-        "y": 6,
-        "kind": "vertex"
+        "x": 6,
+        "y": 49,
+        "kind": "endpoint"
       },
       {
         "id": 28,
-        "x": 10,
-        "y": 7,
-        "kind": "bend"
+        "x": 25,
+        "y": 42,
+        "kind": "crossing"
       },
       {
         "id": 29,
-        "x": 11,
-        "y": 9,
-        "kind": "endpoint"
+        "x": 18,
+        "y": 19,
+        "kind": "crossing"
       },
       {
         "id": 30,
-        "x": 2,
-        "y": 1,
-        "kind": "bend"
+        "x": 21,
+        "y": 19,
+        "kind": "crossing"
       },
       {
         "id": 31,
-        "x": 1,
-        "y": 4,
-        "kind": "vertex"
+        "x": 17,
+        "y": 16,
+        "kind": "crossing"
       },
       {
         "id": 32,
-        "x": 0,
-        "y": 6,
-        "kind": "bend"
+        "x": 5,
+        "y": 19,
+        "kind": "crossing"
       },
       {
         "id": 33,
-        "x": 1,
-        "y": 7,
-        "kind": "vertex"
+        "x": 2,
+        "y": 19,
+        "kind": "bend"
       },
       {
         "id": 34,
-        "x": 2,
-        "y": 8,
-        "kind": "vertex"
+        "x": 1,
+        "y": 19,
+        "kind": "crossing"
       },
       {
         "id": 35,
-        "x": 3,
-        "y": 9,
-        "kind": "vertex"
-      },
-      {
-        "id": 36,
-        "x": 4,
-        "y": 10,
-        "kind": "vertex"
-      },
-      {
-        "id": 37,
-        "x": 5,
-        "y": 11,
-        "kind": "vertex"
-      },
-      {
-        "id": 38,
-        "x": 6,
-        "y": 12,
-        "kind": "vertex"
-      },
-      {
-        "id": 39,
-        "x": 7,
-        "y": 13,
-        "kind": "vertex"
-      },
-      {
-        "id": 40,
-        "x": 9,
-        "y": 15,
+        "x": 0,
+        "y": 19,
         "kind": "endpoint"
       },
       {
+        "id": 36,
+        "x": 18,
+        "y": 31,
+        "kind": "endpoint"
+      },
+      {
+        "id": 37,
+        "x": 20,
+        "y": 14,
+        "kind": "endpoint"
+      },
+      {
+        "id": 38,
+        "x": 44,
+        "y": 46,
+        "kind": "crossing"
+      },
+      {
+        "id": 39,
+        "x": 27,
+        "y": 42,
+        "kind": "endpoint"
+      },
+      {
+        "id": 40,
+        "x": 37,
+        "y": 45,
+        "kind": "crossing"
+      },
+      {
         "id": 41,
-        "x": 2,
-        "y": 5,
-        "kind": "bend"
+        "x": 44,
+        "y": 47,
+        "kind": "crossing"
       },
       {
         "id": 42,
-        "x": 2,
-        "y": 4,
-        "kind": "vertex"
+        "x": 43,
+        "y": 52,
+        "kind": "endpoint"
       },
       {
         "id": 43,
-        "x": 2,
-        "y": 3,
-        "kind": "vertex"
+        "x": 44,
+        "y": 48,
+        "kind": "endpoint"
       },
       {
         "id": 44,
-        "x": 1,
-        "y": 1,
-        "kind": "bend"
+        "x": 29,
+        "y": 54,
+        "kind": "crossing"
       },
       {
         "id": 45,
-        "x": 4,
+        "x": 22,
+        "y": 54,
+        "kind": "endpoint"
+      },
+      {
+        "id": 46,
+        "x": 8,
         "y": 2,
         "kind": "bend"
       },
       {
-        "id": 46,
-        "x": 5,
-        "y": 0,
-        "kind": "bend"
-      },
-      {
         "id": 47,
-        "x": 6,
-        "y": 0,
-        "kind": "vertex"
+        "x": 8,
+        "y": 3,
+        "kind": "endpoint"
       },
       {
         "id": 48,
-        "x": 7,
+        "x": 11,
         "y": 0,
-        "kind": "vertex"
+        "kind": "endpoint"
       },
       {
         "id": 49,
-        "x": 8,
-        "y": 0,
-        "kind": "vertex"
+        "x": 16,
+        "y": 5,
+        "kind": "endpoint"
       },
       {
         "id": 50,
-        "x": 9,
-        "y": 0,
-        "kind": "vertex"
+        "x": 23,
+        "y": 9,
+        "kind": "crossing"
       },
       {
         "id": 51,
-        "x": 10,
-        "y": 0,
+        "x": 46,
+        "y": 29,
+        "kind": "crossing"
+      },
+      {
+        "id": 52,
+        "x": 54,
+        "y": 35,
+        "kind": "endpoint"
+      },
+      {
+        "id": 53,
+        "x": 56,
+        "y": 11,
+        "kind": "bend"
+      },
+      {
+        "id": 54,
+        "x": 55,
+        "y": 11,
+        "kind": "bend"
+      },
+      {
+        "id": 55,
+        "x": 50,
+        "y": 38,
+        "kind": "crossing"
+      },
+      {
+        "id": 56,
+        "x": 50,
+        "y": 41,
         "kind": "endpoint"
       }
     ],
@@ -416,451 +656,571 @@
         "isHv": false
       },
       {
-        "routeIndex": 0,
+        "routeIndex": 1,
         "fromId": 1,
         "toId": 2,
-        "dx": -1,
-        "dy": -2,
-        "isHv": false
+        "dx": -4,
+        "dy": 0,
+        "isHv": true
       },
       {
-        "routeIndex": 0,
-        "fromId": 2,
-        "toId": 3,
-        "dx": -1,
-        "dy": -2,
-        "isHv": false
-      },
-      {
-        "routeIndex": 0,
+        "routeIndex": 2,
         "fromId": 3,
         "toId": 4,
-        "dx": -1,
+        "dx": 0,
         "dy": -1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 0,
-        "fromId": 4,
-        "toId": 5,
-        "dx": -1,
-        "dy": 0,
         "isHv": true
       },
       {
-        "routeIndex": 0,
+        "routeIndex": 3,
         "fromId": 5,
         "toId": 6,
-        "dx": -1,
+        "dx": -3,
         "dy": 0,
         "isHv": true
       },
       {
-        "routeIndex": 0,
-        "fromId": 6,
+        "routeIndex": 4,
+        "fromId": 5,
         "toId": 7,
+        "dx": 9,
+        "dy": 4,
+        "isHv": false
+      },
+      {
+        "routeIndex": 5,
+        "fromId": 7,
+        "toId": 8,
         "dx": -1,
+        "dy": 3,
+        "isHv": false
+      },
+      {
+        "routeIndex": 6,
+        "fromId": 9,
+        "toId": 8,
+        "dx": 7,
         "dy": 0,
         "isHv": true
       },
       {
-        "routeIndex": 1,
-        "fromId": 6,
-        "toId": 8,
-        "dx": 1,
-        "dy": 2,
-        "isHv": false
-      },
-      {
-        "routeIndex": 1,
-        "fromId": 8,
-        "toId": 9,
-        "dx": 1,
-        "dy": 2,
-        "isHv": false
-      },
-      {
-        "routeIndex": 1,
+        "routeIndex": 7,
         "fromId": 9,
         "toId": 10,
-        "dx": 1,
-        "dy": 2,
+        "dx": -6,
+        "dy": 4,
         "isHv": false
       },
       {
-        "routeIndex": 1,
-        "fromId": 10,
-        "toId": 11,
-        "dx": 1,
-        "dy": 2,
-        "isHv": false
-      },
-      {
-        "routeIndex": 1,
+        "routeIndex": 8,
         "fromId": 11,
         "toId": 12,
-        "dx": 1,
-        "dy": 2,
+        "dx": -5,
+        "dy": -1,
         "isHv": false
       },
       {
-        "routeIndex": 1,
-        "fromId": 12,
+        "routeIndex": 9,
+        "fromId": 11,
         "toId": 13,
-        "dx": 1,
+        "dx": 9,
         "dy": 2,
         "isHv": false
       },
       {
-        "routeIndex": 1,
-        "fromId": 13,
-        "toId": 14,
-        "dx": 1,
-        "dy": 2,
+        "routeIndex": 10,
+        "fromId": 11,
+        "toId": 10,
+        "dx": -3,
+        "dy": -1,
         "isHv": false
       },
       {
-        "routeIndex": 1,
+        "routeIndex": 11,
+        "fromId": 14,
+        "toId": 12,
+        "dx": -6,
+        "dy": -9,
+        "isHv": false
+      },
+      {
+        "routeIndex": 12,
         "fromId": 14,
         "toId": 15,
-        "dx": 2,
-        "dy": 1,
+        "dx": 4,
+        "dy": 2,
         "isHv": false
       },
       {
-        "routeIndex": 1,
-        "fromId": 15,
-        "toId": 16,
-        "dx": 2,
-        "dy": 1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 1,
+        "routeIndex": 13,
         "fromId": 16,
-        "toId": 17,
-        "dx": 1,
-        "dy": -1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 1,
-        "fromId": 17,
-        "toId": 18,
-        "dx": 1,
-        "dy": -1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 1,
-        "fromId": 18,
-        "toId": 19,
-        "dx": 1,
+        "toId": 13,
+        "dx": 2,
         "dy": 0,
         "isHv": true
       },
       {
-        "routeIndex": 1,
-        "fromId": 19,
-        "toId": 20,
-        "dx": 1,
+        "routeIndex": 14,
+        "fromId": 16,
+        "toId": 15,
+        "dx": -2,
+        "dy": 8,
+        "isHv": false
+      },
+      {
+        "routeIndex": 15,
+        "fromId": 17,
+        "toId": 18,
+        "dx": 0,
+        "dy": 18,
+        "isHv": true
+      },
+      {
+        "routeIndex": 16,
+        "fromId": 18,
+        "toId": 19,
+        "dx": -9,
         "dy": -2,
         "isHv": false
       },
       {
-        "routeIndex": 2,
-        "fromId": 2,
+        "routeIndex": 17,
+        "fromId": 20,
         "toId": 21,
-        "dx": 2,
-        "dy": -1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 2,
-        "fromId": 21,
-        "toId": 22,
         "dx": 1,
-        "dy": -1,
+        "dy": 0,
+        "isHv": true
+      },
+      {
+        "routeIndex": 18,
+        "fromId": 20,
+        "toId": 8,
+        "dx": -6,
+        "dy": -2,
         "isHv": false
       },
       {
-        "routeIndex": 2,
+        "routeIndex": 19,
+        "fromId": 19,
+        "toId": 13,
+        "dx": -7,
+        "dy": 0,
+        "isHv": true
+      },
+      {
+        "routeIndex": 20,
         "fromId": 22,
         "toId": 23,
-        "dx": 2,
-        "dy": 1,
-        "isHv": false
+        "dx": 0,
+        "dy": -6,
+        "isHv": true
       },
       {
-        "routeIndex": 2,
+        "routeIndex": 21,
         "fromId": 23,
         "toId": 24,
         "dx": 0,
-        "dy": 1,
+        "dy": -5,
         "isHv": true
       },
       {
-        "routeIndex": 2,
-        "fromId": 24,
+        "routeIndex": 22,
+        "fromId": 22,
         "toId": 25,
-        "dx": 0,
-        "dy": 1,
-        "isHv": true
+        "dx": -4,
+        "dy": 6,
+        "isHv": false
       },
       {
-        "routeIndex": 2,
+        "routeIndex": 23,
         "fromId": 25,
         "toId": 26,
         "dx": 0,
-        "dy": 1,
+        "dy": -1,
         "isHv": true
       },
       {
-        "routeIndex": 2,
+        "routeIndex": 24,
         "fromId": 26,
         "toId": 27,
         "dx": 0,
-        "dy": 1,
+        "dy": -6,
         "isHv": true
       },
       {
-        "routeIndex": 2,
-        "fromId": 27,
+        "routeIndex": 25,
+        "fromId": 24,
+        "toId": 12,
+        "dx": 16,
+        "dy": -14,
+        "isHv": false
+      },
+      {
+        "routeIndex": 26,
+        "fromId": 24,
         "toId": 28,
-        "dx": 0,
-        "dy": 1,
-        "isHv": true
+        "dx": 15,
+        "dy": 3,
+        "isHv": false
       },
       {
-        "routeIndex": 2,
-        "fromId": 28,
+        "routeIndex": 27,
+        "fromId": 24,
         "toId": 29,
-        "dx": 1,
-        "dy": 2,
+        "dx": 8,
+        "dy": -20,
         "isHv": false
       },
       {
-        "routeIndex": 3,
-        "fromId": 6,
-        "toId": 30,
-        "dx": 1,
-        "dy": 1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 3,
-        "fromId": 30,
-        "toId": 8,
-        "dx": 0,
-        "dy": 1,
+        "routeIndex": 28,
+        "fromId": 12,
+        "toId": 10,
+        "dx": 2,
+        "dy": 0,
         "isHv": true
       },
       {
-        "routeIndex": 3,
-        "fromId": 8,
-        "toId": 31,
-        "dx": -1,
-        "dy": 2,
+        "routeIndex": 29,
+        "fromId": 13,
+        "toId": 8,
+        "dx": 1,
+        "dy": -7,
         "isHv": false
       },
       {
-        "routeIndex": 3,
+        "routeIndex": 30,
+        "fromId": 10,
+        "toId": 30,
+        "dx": -7,
+        "dy": -6,
+        "isHv": false
+      },
+      {
+        "routeIndex": 31,
+        "fromId": 30,
+        "toId": 31,
+        "dx": -4,
+        "dy": -3,
+        "isHv": false
+      },
+      {
+        "routeIndex": 32,
+        "fromId": 30,
+        "toId": 29,
+        "dx": -3,
+        "dy": 0,
+        "isHv": true
+      },
+      {
+        "routeIndex": 33,
+        "fromId": 30,
+        "toId": 6,
+        "dx": 9,
+        "dy": -5,
+        "isHv": false
+      },
+      {
+        "routeIndex": 34,
         "fromId": 31,
         "toId": 32,
-        "dx": -1,
-        "dy": 2,
+        "dx": -12,
+        "dy": 3,
         "isHv": false
       },
       {
-        "routeIndex": 3,
+        "routeIndex": 35,
         "fromId": 32,
         "toId": 33,
-        "dx": 1,
-        "dy": 1,
-        "isHv": false
+        "dx": -3,
+        "dy": 0,
+        "isHv": true
       },
       {
-        "routeIndex": 3,
+        "routeIndex": 36,
         "fromId": 33,
         "toId": 34,
-        "dx": 1,
-        "dy": 1,
-        "isHv": false
+        "dx": -1,
+        "dy": 0,
+        "isHv": true
       },
       {
-        "routeIndex": 3,
+        "routeIndex": 37,
         "fromId": 34,
         "toId": 35,
+        "dx": -1,
+        "dy": 0,
+        "isHv": true
+      },
+      {
+        "routeIndex": 38,
+        "fromId": 31,
+        "toId": 29,
         "dx": 1,
-        "dy": 1,
+        "dy": 3,
         "isHv": false
       },
       {
-        "routeIndex": 3,
-        "fromId": 35,
-        "toId": 36,
-        "dx": 1,
-        "dy": 1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 3,
+        "routeIndex": 39,
         "fromId": 36,
+        "toId": 29,
+        "dx": 0,
+        "dy": -12,
+        "isHv": true
+      },
+      {
+        "routeIndex": 40,
+        "fromId": 6,
         "toId": 37,
-        "dx": 1,
-        "dy": 1,
+        "dx": -10,
+        "dy": 0,
+        "isHv": true
+      },
+      {
+        "routeIndex": 41,
+        "fromId": 15,
+        "toId": 28,
+        "dx": -11,
+        "dy": 6,
         "isHv": false
       },
       {
-        "routeIndex": 3,
-        "fromId": 37,
+        "routeIndex": 42,
+        "fromId": 15,
         "toId": 38,
-        "dx": 1,
-        "dy": 1,
+        "dx": 8,
+        "dy": 10,
         "isHv": false
       },
       {
-        "routeIndex": 3,
-        "fromId": 38,
+        "routeIndex": 43,
+        "fromId": 28,
         "toId": 39,
-        "dx": 1,
-        "dy": 1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 3,
-        "fromId": 39,
-        "toId": 14,
-        "dx": 1,
-        "dy": 1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 3,
-        "fromId": 14,
-        "toId": 40,
-        "dx": 1,
-        "dy": 1,
-        "isHv": false
-      },
-      {
-        "routeIndex": 4,
-        "fromId": 32,
-        "toId": 41,
         "dx": 2,
+        "dy": 0,
+        "isHv": true
+      },
+      {
+        "routeIndex": 44,
+        "fromId": 28,
+        "toId": 40,
+        "dx": 12,
+        "dy": 3,
+        "isHv": false
+      },
+      {
+        "routeIndex": 45,
+        "fromId": 38,
+        "toId": 41,
+        "dx": 0,
+        "dy": 1,
+        "isHv": true
+      },
+      {
+        "routeIndex": 46,
+        "fromId": 38,
+        "toId": 40,
+        "dx": -7,
         "dy": -1,
         "isHv": false
       },
       {
-        "routeIndex": 4,
+        "routeIndex": 47,
         "fromId": 41,
         "toId": 42,
-        "dx": 0,
-        "dy": -1,
-        "isHv": true
-      },
-      {
-        "routeIndex": 4,
-        "fromId": 42,
-        "toId": 43,
-        "dx": 0,
-        "dy": -1,
-        "isHv": true
-      },
-      {
-        "routeIndex": 4,
-        "fromId": 43,
-        "toId": 8,
-        "dx": 0,
-        "dy": -1,
-        "isHv": true
-      },
-      {
-        "routeIndex": 4,
-        "fromId": 8,
-        "toId": 44,
         "dx": -1,
-        "dy": -1,
+        "dy": 5,
         "isHv": false
       },
       {
-        "routeIndex": 4,
-        "fromId": 44,
-        "toId": 6,
+        "routeIndex": 48,
+        "fromId": 41,
+        "toId": 43,
         "dx": 0,
-        "dy": -1,
+        "dy": 1,
         "isHv": true
       },
       {
-        "routeIndex": 5,
-        "fromId": 9,
+        "routeIndex": 49,
+        "fromId": 40,
+        "toId": 44,
+        "dx": -8,
+        "dy": 9,
+        "isHv": false
+      },
+      {
+        "routeIndex": 50,
+        "fromId": 44,
         "toId": 45,
-        "dx": 1,
+        "dx": -7,
+        "dy": 0,
+        "isHv": true
+      },
+      {
+        "routeIndex": 51,
+        "fromId": 2,
+        "toId": 46,
+        "dx": -3,
         "dy": -2,
         "isHv": false
       },
       {
-        "routeIndex": 5,
-        "fromId": 45,
-        "toId": 3,
+        "routeIndex": 52,
+        "fromId": 46,
+        "toId": 47,
         "dx": 0,
-        "dy": -1,
+        "dy": 1,
         "isHv": true
       },
       {
-        "routeIndex": 5,
+        "routeIndex": 53,
+        "fromId": 2,
+        "toId": 48,
+        "dx": 0,
+        "dy": -4,
+        "isHv": true
+      },
+      {
+        "routeIndex": 54,
+        "fromId": 49,
+        "toId": 0,
+        "dx": 0,
+        "dy": 1,
+        "isHv": true
+      },
+      {
+        "routeIndex": 55,
         "fromId": 3,
-        "toId": 46,
+        "toId": 50,
+        "dx": 0,
+        "dy": 1,
+        "isHv": true
+      },
+      {
+        "routeIndex": 56,
+        "fromId": 50,
+        "toId": 5,
+        "dx": 10,
+        "dy": 5,
+        "isHv": false
+      },
+      {
+        "routeIndex": 57,
+        "fromId": 5,
+        "toId": 9,
+        "dx": 1,
+        "dy": 7,
+        "isHv": false
+      },
+      {
+        "routeIndex": 58,
+        "fromId": 9,
+        "toId": 11,
+        "dx": -3,
+        "dy": 5,
+        "isHv": false
+      },
+      {
+        "routeIndex": 59,
+        "fromId": 11,
+        "toId": 14,
+        "dx": 1,
+        "dy": 8,
+        "isHv": false
+      },
+      {
+        "routeIndex": 60,
+        "fromId": 14,
+        "toId": 16,
+        "dx": 6,
+        "dy": -6,
+        "isHv": false
+      },
+      {
+        "routeIndex": 61,
+        "fromId": 16,
+        "toId": 51,
+        "dx": 8,
+        "dy": 1,
+        "isHv": false
+      },
+      {
+        "routeIndex": 62,
+        "fromId": 51,
+        "toId": 52,
+        "dx": 8,
+        "dy": 6,
+        "isHv": false
+      },
+      {
+        "routeIndex": 63,
+        "fromId": 51,
+        "toId": 19,
         "dx": 1,
         "dy": -1,
         "isHv": false
       },
       {
-        "routeIndex": 5,
-        "fromId": 46,
-        "toId": 47,
-        "dx": 1,
+        "routeIndex": 64,
+        "fromId": 17,
+        "toId": 53,
+        "dx": 0,
+        "dy": -1,
+        "isHv": true
+      },
+      {
+        "routeIndex": 65,
+        "fromId": 53,
+        "toId": 54,
+        "dx": -1,
         "dy": 0,
         "isHv": true
       },
       {
-        "routeIndex": 5,
-        "fromId": 47,
-        "toId": 48,
-        "dx": 1,
-        "dy": 0,
+        "routeIndex": 66,
+        "fromId": 54,
+        "toId": 20,
+        "dx": -8,
+        "dy": 12,
+        "isHv": false
+      },
+      {
+        "routeIndex": 67,
+        "fromId": 20,
+        "toId": 19,
+        "dx": 0,
+        "dy": 5,
         "isHv": true
       },
       {
-        "routeIndex": 5,
-        "fromId": 48,
-        "toId": 49,
-        "dx": 1,
-        "dy": 0,
-        "isHv": true
+        "routeIndex": 68,
+        "fromId": 0,
+        "toId": 3,
+        "dx": 7,
+        "dy": 2,
+        "isHv": false
       },
       {
-        "routeIndex": 5,
-        "fromId": 49,
-        "toId": 50,
-        "dx": 1,
-        "dy": 0,
-        "isHv": true
+        "routeIndex": 69,
+        "fromId": 51,
+        "toId": 55,
+        "dx": 4,
+        "dy": 9,
+        "isHv": false
       },
       {
-        "routeIndex": 5,
-        "fromId": 50,
-        "toId": 51,
-        "dx": 1,
-        "dy": 0,
+        "routeIndex": 70,
+        "fromId": 55,
+        "toId": 56,
+        "dx": 0,
+        "dy": 3,
         "isHv": true
       }
     ],
     "task": {
-      "goal": "平移 kind 為 crossing／endpoint／bend（紅／藍／粉紅）的點，讓 edges 中 dx=0 或 dy=0 的比例最大化",
+      "goal": "平移紅/藍/粉紅拓撲點，使相鄰拓撲點之間的 edge 變成水平或垂直直線（拉直，不是新增轉折）",
       "mustImproveHv": true,
       "preserveTopology": true,
-      "topologyRule": "只可平移紅／藍／粉紅點的 (x,y)；不可新增/刪除任何頂點、不可改 kind、不可改 id 序列與 edges；拉直後粉紅/紅/藍仍須保留為頂點；黑點車站不在 network 內，套用後依線段均分插回"
+      "topologyRule": "只可平移紅／藍／粉紅點的 (x,y)；不可新增/刪除頂點、不可改 kind；相鄰拓撲點之間僅一條直線；黑站不在 network 內；移動目的是 HV 拉直而非製造折角"
     },
     "output_schema": {
       "coords": [
@@ -875,218 +1235,238 @@
   "session": {
     "initialBeforeCoords": [
       {
-        "x": 7,
-        "y": 7
-      },
-      {
-        "x": 6,
-        "y": 5
-      },
-      {
-        "x": 5,
-        "y": 3
-      },
-      {
-        "x": 4,
-        "y": 1
-      },
-      {
-        "x": 3,
-        "y": 0
-      },
-      {
-        "x": 2,
-        "y": 0
-      },
-      {
-        "x": 1,
-        "y": 0
-      },
-      {
-        "x": 0,
-        "y": 0
-      },
-      {
-        "x": 2,
-        "y": 2
-      },
-      {
-        "x": 3,
-        "y": 4
-      },
-      {
-        "x": 4,
+        "x": 16,
         "y": 6
-      },
-      {
-        "x": 5,
-        "y": 8
-      },
-      {
-        "x": 6,
-        "y": 10
-      },
-      {
-        "x": 7,
-        "y": 12
-      },
-      {
-        "x": 8,
-        "y": 14
-      },
-      {
-        "x": 10,
-        "y": 15
-      },
-      {
-        "x": 12,
-        "y": 16
-      },
-      {
-        "x": 13,
-        "y": 15
-      },
-      {
-        "x": 14,
-        "y": 14
       },
       {
         "x": 15,
-        "y": 14
-      },
-      {
-        "x": 16,
-        "y": 12
-      },
-      {
-        "x": 7,
-        "y": 2
-      },
-      {
-        "x": 8,
-        "y": 1
-      },
-      {
-        "x": 10,
-        "y": 2
-      },
-      {
-        "x": 10,
-        "y": 3
-      },
-      {
-        "x": 10,
         "y": 4
-      },
-      {
-        "x": 10,
-        "y": 5
-      },
-      {
-        "x": 10,
-        "y": 6
-      },
-      {
-        "x": 10,
-        "y": 7
       },
       {
         "x": 11,
-        "y": 9
-      },
-      {
-        "x": 2,
-        "y": 1
-      },
-      {
-        "x": 1,
         "y": 4
       },
       {
-        "x": 0,
-        "y": 6
-      },
-      {
-        "x": 1,
-        "y": 7
-      },
-      {
-        "x": 2,
+        "x": 23,
         "y": 8
       },
       {
-        "x": 3,
-        "y": 9
+        "x": 23,
+        "y": 7
       },
       {
-        "x": 4,
-        "y": 10
+        "x": 33,
+        "y": 14
       },
       {
-        "x": 5,
-        "y": 11
+        "x": 30,
+        "y": 14
       },
       {
-        "x": 6,
+        "x": 42,
+        "y": 18
+      },
+      {
+        "x": 41,
+        "y": 21
+      },
+      {
+        "x": 34,
+        "y": 21
+      },
+      {
+        "x": 28,
+        "y": 25
+      },
+      {
+        "x": 31,
+        "y": 26
+      },
+      {
+        "x": 26,
+        "y": 25
+      },
+      {
+        "x": 40,
+        "y": 28
+      },
+      {
+        "x": 32,
+        "y": 34
+      },
+      {
+        "x": 36,
+        "y": 36
+      },
+      {
+        "x": 38,
+        "y": 28
+      },
+      {
+        "x": 56,
         "y": 12
       },
       {
-        "x": 7,
-        "y": 13
+        "x": 56,
+        "y": 30
       },
       {
-        "x": 9,
-        "y": 15
+        "x": 47,
+        "y": 28
       },
       {
-        "x": 2,
-        "y": 5
+        "x": 47,
+        "y": 23
       },
       {
-        "x": 2,
-        "y": 4
-      },
-      {
-        "x": 2,
-        "y": 3
-      },
-      {
-        "x": 1,
-        "y": 1
-      },
-      {
-        "x": 4,
-        "y": 2
-      },
-      {
-        "x": 5,
-        "y": 0
-      },
-      {
-        "x": 6,
-        "y": 0
-      },
-      {
-        "x": 7,
-        "y": 0
-      },
-      {
-        "x": 8,
-        "y": 0
-      },
-      {
-        "x": 9,
-        "y": 0
+        "x": 48,
+        "y": 23
       },
       {
         "x": 10,
+        "y": 50
+      },
+      {
+        "x": 10,
+        "y": 44
+      },
+      {
+        "x": 10,
+        "y": 39
+      },
+      {
+        "x": 6,
+        "y": 56
+      },
+      {
+        "x": 6,
+        "y": 55
+      },
+      {
+        "x": 6,
+        "y": 49
+      },
+      {
+        "x": 25,
+        "y": 42
+      },
+      {
+        "x": 18,
+        "y": 19
+      },
+      {
+        "x": 21,
+        "y": 19
+      },
+      {
+        "x": 17,
+        "y": 16
+      },
+      {
+        "x": 5,
+        "y": 19
+      },
+      {
+        "x": 2,
+        "y": 19
+      },
+      {
+        "x": 1,
+        "y": 19
+      },
+      {
+        "x": 0,
+        "y": 19
+      },
+      {
+        "x": 18,
+        "y": 31
+      },
+      {
+        "x": 20,
+        "y": 14
+      },
+      {
+        "x": 44,
+        "y": 46
+      },
+      {
+        "x": 27,
+        "y": 42
+      },
+      {
+        "x": 37,
+        "y": 45
+      },
+      {
+        "x": 44,
+        "y": 47
+      },
+      {
+        "x": 43,
+        "y": 52
+      },
+      {
+        "x": 44,
+        "y": 48
+      },
+      {
+        "x": 29,
+        "y": 54
+      },
+      {
+        "x": 22,
+        "y": 54
+      },
+      {
+        "x": 8,
+        "y": 2
+      },
+      {
+        "x": 8,
+        "y": 3
+      },
+      {
+        "x": 11,
         "y": 0
+      },
+      {
+        "x": 16,
+        "y": 5
+      },
+      {
+        "x": 23,
+        "y": 9
+      },
+      {
+        "x": 46,
+        "y": 29
+      },
+      {
+        "x": 54,
+        "y": 35
+      },
+      {
+        "x": 56,
+        "y": 11
+      },
+      {
+        "x": 55,
+        "y": 11
+      },
+      {
+        "x": 50,
+        "y": 38
+      },
+      {
+        "x": 50,
+        "y": 41
       }
     ],
     "initialHvStats": {
-      "edgeCount": 56,
-      "hvEdges": 20,
-      "hvRatio": 0.35714285714285715
+      "edgeCount": 71,
+      "hvEdges": 31,
+      "hvRatio": 0.43661971830985913
     },
     "workingCoords": null
   }

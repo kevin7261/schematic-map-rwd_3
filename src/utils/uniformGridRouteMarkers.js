@@ -26,6 +26,19 @@ export function mergeUniformGridMarkerKind(a, b) {
   return KIND_RANK[left] >= KIND_RANK[right] ? left : right;
 }
 
+/**
+ * HV network／payload 拓撲 kind（非繪製優先序）：交叉不可降級為端點。
+ * @param {UniformGridMarkerKind} a @param {UniformGridMarkerKind} b
+ */
+export function mergeHvNetworkKind(a, b) {
+  const left = a || 'vertex';
+  const right = b || 'vertex';
+  if (left === 'bend' || right === 'bend') return 'bend';
+  if (left === 'crossing' || right === 'crossing') return 'crossing';
+  if (left === 'endpoint' || right === 'endpoint') return 'endpoint';
+  return 'vertex';
+}
+
 /** @param {{ x: number, y: number }[]} routes */
 function computeRouteCountByPoint(routes) {
   const routeCountByPoint = new Map();

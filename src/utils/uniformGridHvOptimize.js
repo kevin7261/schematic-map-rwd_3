@@ -17,7 +17,7 @@
 
 import { segmentIntersectionInterior2D } from './routeSegmentIntersections.js';
 import { isUniformGridTurningPoint, redistributeUniformGridStationsAfterRouteMove } from './dataProcessor.js';
-import { mergeUniformGridMarkerKind } from './uniformGridRouteMarkers.js';
+import { mergeHvNetworkKind, routesUseStoredMarkerKinds } from './uniformGridRouteMarkers.js';
 import { parseLlmJsonResponse } from './routeMapAdjust/routeAdjustLayout/llmApiClient.js';
 
 /** @typedef {'crossing'|'endpoint'|'bend'|'vertex'} HvPointKind */
@@ -85,10 +85,8 @@ function computeRouteCountByPoint(routes) {
 export function computeHvPointKindByKey(routes, routeCountByPoint) {
   /** @type {Map<string, HvPointKind>} */
   const kindByKey = new Map();
-  const rank = { vertex: 0, crossing: 1, endpoint: 2, bend: 3 };
   const setKind = (k, kind) => {
-    const prev = kindByKey.get(k) || 'vertex';
-    if (rank[kind] > rank[prev]) kindByKey.set(k, kind);
+    kindByKey.set(k, mergeHvNetworkKind(kindByKey.get(k), kind));
   };
 
   routes.forEach((route) => {
@@ -137,8 +135,9 @@ export function computeHvStats(edges) {
  * }}
  */
 export function buildHvOptimizePayload(routes, gridX, gridY) {
+  const useStoredKinds = routesUseStoredMarkerKinds(routes);
   const routeCountByPoint = computeRouteCountByPoint(routes);
-  const kindByKey = computeHvPointKindByKey(routes, routeCountByPoint);
+  const kindByKey = useStoredKinds ? null : computeHvPointKindByKey(routes, routeCountByPoint);
 
   const idByKey = new Map();
   const movablePoints = [];
@@ -150,17 +149,21 @@ export function buildHvOptimizePayload(routes, gridX, gridY) {
       if (id === undefined) {
         id = movablePoints.length;
         idByKey.set(k, id);
-        const storedKind = p.markerKind || null;
-        const geoKind = kindByKey.get(k) || 'vertex';
+        let kind = 'vertex';
+        if (p.markerKind) {
+          kind = p.markerKind;
+        } else if (kindByKey) {
+          kind = kindByKey.get(k) || 'vertex';
+        }
         movablePoints.push({
           id,
           x: p.x,
           y: p.y,
-          kind: storedKind ? mergeUniformGridMarkerKind(storedKind, geoKind) : geoKind,
+          kind,
           routeRefs: [],
         });
       } else if (p.markerKind) {
-        movablePoints[id].kind = mergeUniformGridMarkerKind(movablePoints[id].kind, p.markerKind);
+        movablePoints[id].kind = mergeHvNetworkKind(movablePoints[id].kind, p.markerKind);
       }
       movablePoints[id].routeRefs.push({ routeIndex, pointIndex });
       return id;
@@ -195,11 +198,12 @@ export function buildHvOptimizePayload(routes, gridX, gridY) {
     routePointIds,
     routeKeypointIds: routePointIds,
     task: {
-      goal: '平移 kind 為 crossing／endpoint／bend（紅／藍／粉紅）的點，讓 edges 中 dx=0 或 dy=0 的比例最大化',
+      goal:
+        '平移紅/藍/粉紅拓撲點，使相鄰拓撲點之間的 edge 變成水平或垂直直線（拉直，不是新增轉折）',
       mustImproveHv: true,
       preserveTopology: true,
       topologyRule:
-        '只可平移紅／藍／粉紅點的 (x,y)；不可新增/刪除任何頂點、不可改 kind、不可改 id 序列與 edges；拉直後粉紅/紅/藍仍須保留為頂點；黑點車站不在 network 內，套用後依線段均分插回',
+        '只可平移紅／藍／粉紅點的 (x,y)；不可新增/刪除頂點、不可改 kind；相鄰拓撲點之間僅一條直線；黑站不在 network 內；移動目的是 HV 拉直而非製造折角',
     },
     output_schema: { coords: [{ id: 'integer', x: 'integer', y: 'integer' }] },
   };
@@ -236,15 +240,26 @@ export function stripHvOptimizePayloadForExport(payload) {
 export const HV_OPTIMIZE_SYSTEM_PROMPT = `你是示意圖佈局助手。你會收到一份地鐵風格路線圖的 JSON network payload：
 - topology.routeKeypointSequences：每條路線依序經過的 movablePoint id（拓撲骨架，不可改）
 - edges：化簡後的路線邊（routeIndex、fromId→toId 連接關係固定；dx/dy/isHv 為目前幾何）
-- movablePoints：network 頂點；kind="crossing"＝紅點、"endpoint"＝藍點、"bend"＝粉紅轉折點、"vertex"＝無標記頂點（不可平移）
+- movablePoints：network 頂點；kind="crossing"＝紅點、"endpoint"＝藍點、"bend"＝粉紅轉折點、"vertex"＝無標記頂點（黑站或直線段中間點，不可平移）
+
+【kind 不可變 — 違反即無效】
+- 紅點（crossing）移動後仍是 crossing，絕不可變成 endpoint（藍）或其他 kind
+- 藍點（endpoint）移動後仍是 endpoint；粉紅（bend）移動後仍是 bend
+- 僅 kind 為 crossing／endpoint／bend 的 id 可改 (x,y)；kind=vertex 的 id 座標必須與 payload 完全相同（不可移動）
+
+【路線幾何語意 — 拉直，不是轉彎】
+- network 中相鄰兩個拓撲點（紅/藍/粉紅）之間**只有一條直線**；黑站在線段上，不是路線轉折點
+- 平移紅/藍/粉紅的**目的**是讓這些直線段變成水平或垂直（HV），**不是**製造新的折角或 Z 形路徑
+- 禁止把原先可共線的段移成非共線；禁止出現「僅為繞過 grid 而新增轉折」的移動
+- 拉直時保留所有紅/藍/粉紅頂點，不可刪除或合併
 
 【拓撲結構不可改變 — 最高優先，違反即無效】
-1. 不可新增、刪除任何 network 頂點；不可改變任何點的 kind 或 id；僅 kind 為 crossing／endpoint／bend 者可平移。拉直線段時粉紅/紅/藍頂點仍須保留（不可因共線而省略）。
+1. 不可新增、刪除任何 network 頂點；不可改變任何點的 kind 或 id；僅 kind 為 crossing／endpoint／bend 者可平移。
 2. topology.routeKeypointSequences 中每條路線的 id 序列不可增刪、不可重排、不可合併或拆分。
 3. edges 的 fromId→toId 相鄰連接關係固定；你只能改變各 id 的 (x,y) 座標，不能改「誰連誰」。
 4. 回傳 coords 必須涵蓋所有 movablePoints 的 id；未移動的點請回傳原座標。
 
-任務：在完全保留上述拓撲的前提下，平移 movablePoints，讓 edges 中水平（dy=0）或垂直（dx=0）的邊盡量多。
+任務：平移紅/藍/粉紅，使每條 edge 成為水平（dy=0）或垂直（dx=0）的**直線**，最大化 HV 邊比例；不得產生路線中間的多餘轉折。
 
 幾何規則（務必遵守）：
 1. 新座標必須是 [0, meta.gridX] × [0, meta.gridY] 內的非負整數。
@@ -269,7 +284,7 @@ export function buildHvOptimizeUserPrompt(payload, roundIndex) {
   return [
     `第 ${roundIndex + 1} 輪。`,
     `目前 HV 邊 ${hvBefore}/${stripped.edges.length}（比例 ${(stripped.meta.initialHvRatio * 100).toFixed(1)}%）。`,
-    '【重要】topology.routeKeypointSequences 與 edges 的連接關係不可改變；只能平移 movablePoints 座標以提升 HV。',
+    '【重要】topology 固定；只能平移紅/藍/粉紅座標以拉直路線（HV 直線），不可製造新路線轉折。',
     '請針對下列 network payload 提出新座標：',
     '```json',
     JSON.stringify(stripped),
@@ -546,6 +561,15 @@ export function auditHvOptimizeCoords(payload, coords, options = {}) {
         x: c.x,
         y: c.y,
         message: formatHvAuditViolation({ code: 'OUT_OF_BOUNDS', id, x: c.x, y: c.y }),
+      });
+    }
+    const kind = movablePoints[id]?.kind;
+    const base = baselineCoords[id];
+    if (kind === 'vertex' && base && (c.x !== base.x || c.y !== base.y)) {
+      violations.push({
+        code: 'VERTEX_MOVED',
+        id,
+        message: `id=${id} kind=vertex（不可平移）座標被改動`,
       });
     }
   });
@@ -905,11 +929,15 @@ export function rebuildRoutesFromOptimizedKeypoints(routes, payload, coords) {
   const routeIds = payload.routePointIds || payload.routeKeypointIds;
   return routes.map((route, routeIndex) => {
     const ids = routeIds[routeIndex];
-    const points = ids.map((id) => ({
-      x: coords[id].x,
-      y: coords[id].y,
-      markerKind: payload.movablePoints[id].kind,
-    }));
+    const points = ids.map((id, pointIndex) => {
+      const orig = route.points?.[pointIndex];
+      const kind = orig?.markerKind ?? payload.movablePoints[id]?.kind ?? 'vertex';
+      return {
+        x: coords[id].x,
+        y: coords[id].y,
+        markerKind: kind,
+      };
+    });
     const oldPlain = (route.points || []).map((p) => ({ x: p.x, y: p.y }));
     const newPlain = points.map((p) => ({ x: p.x, y: p.y }));
     const stations = redistributeUniformGridStationsAfterRouteMove(
