@@ -15,6 +15,23 @@ export const PIPELINE_GROUP_NAMES = Object.freeze([
   '路網網格',
 ]);
 
+/** AI示意圖測試圖層（資料模型為 processedJsonData.routes + drawJsonData，與管線層不同）。 */
+export const AI_TEST_SNAPSHOT_LAYER_IDS = Object.freeze([
+  'ai_test_layer',
+  'route_adjust_ai_test_layer',
+]);
+
+const AI_TEST_LAYER_KEYS = Object.freeze([
+  'processedJsonData',
+  'drawJsonData',
+  'dashboardData',
+  'dataTableData',
+  'jsonData',
+  'jsonFileName',
+  'isLoaded',
+  'hvOptimizeLastResult',
+]);
+
 const ROUTE_MAP_SELECT_KEYS = Object.freeze([
   'selectRouteMapLines',
   'selectRouteMapBlackDots',
@@ -108,12 +125,17 @@ export function findPipelineGroupName(dataStore, layerId) {
     if (!PIPELINE_GROUP_NAMES.includes(g.groupName)) continue;
     if (g.groupLayers?.some((l) => l.layerId === layerId)) return g.groupName;
   }
+  // AI示意圖測試等非管線群組：回實際所屬群組名（僅供檔名）
+  for (const g of dataStore.layers) {
+    if (g.groupLayers?.some((l) => l.layerId === layerId)) return g.groupName;
+  }
   return null;
 }
 
 /** @param {{ layers: Array }} dataStore @param {object|null} layer */
 export function isPipelineSnapshotLayer(dataStore, layer) {
   if (!layer?.layerId) return false;
+  if (AI_TEST_SNAPSHOT_LAYER_IDS.includes(layer.layerId)) return true;
   return !!findPipelineGroupName(dataStore, layer.layerId);
 }
 
@@ -145,6 +167,7 @@ export function resolvePipelineCityName(dataStore) {
 }
 
 function pickSnapshotKeys(layer) {
+  if (AI_TEST_SNAPSHOT_LAYER_IDS.includes(layer.layerId)) return AI_TEST_LAYER_KEYS;
   if (layer.isSelectRouteMapLayer) return ROUTE_MAP_SELECT_KEYS;
   if (
     layer.isRouteMapAdjustLayer ||
@@ -175,6 +198,12 @@ function copyKeysFromLayer(layer, keys) {
 /** @param {object|null} layer */
 export function pipelineLayerHasExportableData(layer) {
   if (!layer) return false;
+  if (AI_TEST_SNAPSHOT_LAYER_IDS.includes(layer.layerId)) {
+    return (
+      Array.isArray(layer.processedJsonData?.routes) &&
+      layer.processedJsonData.routes.length > 0
+    );
+  }
   if (layer.isSelectRouteMapLayer) {
     return Array.isArray(layer.selectRouteMapLines) && layer.selectRouteMapLines.length > 0;
   }
