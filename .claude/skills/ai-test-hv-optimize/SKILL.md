@@ -11,7 +11,7 @@ description: HV optimize for AI測試 layer — 鐵律：座標只能由 Cursor 
 
 - 禁止任何自動求解腳本、greedy 演算法、程式迴圈產生 coords
 - 禁止 Agent 執行 node 腳本來「算」座標（`writeResponse.mjs` 僅負責寫檔，不含求解）
-- App 只做 payload 同步、幾何驗證、預覽、套用
+- App 只做 payload 同步、預覽、套用；**不做幾何驗證**（反驗證由 LLM audit：validate-ai-test-hv → hv_audit.json，App 只認 pass:true）
 
 **此功能不在正式部署使用。** 僅在 `npm run serve` + Cursor IDE 本地開發時運作。
 
@@ -53,7 +53,7 @@ HV 最佳化**只准改 (x,y)**，以下關係移動前後必須完全一致：
 - **移動後**此環序須與 baseline **完全相同**（允許整圈旋轉視為相同，但不可對調任兩支線的相對順序）
 - 與 app 內 `validate-junction-rotation` / `rotationStructure.js` 同概念
 - 若平移紅點或鄰點會改變環序 → **不可移動**，維持原座標
-- App 反驗證會拒絕 `JUNCTION_ROTATION_FLIP` 違規
+- LLM audit（validate-ai-test-hv）會判 `JUNCTION_ROTATION_FLIP` 違規
 
 **範例**：紅點 J 連接三支線 → 北（id=3）、東（id=7）、南（id=12）。baseline CCW 環序為 `[3,7,12]`。移動後不可變成 `[3,12,7]`（東、南對調）。
 
@@ -75,7 +75,7 @@ HV 最佳化**只准改 (x,y)**，以下關係移動前後必須完全一致：
 
 - 已是水平 HV 的段 → 移動後仍須水平；已是垂直 HV → 仍須垂直
 - 若某次平移會讓段「翻向」（如偏水平段變垂直 HV）→ **該點不可移動**，維持原座標
-- App 反驗證會拒絕 `DIRECTION_FLIP` 違規
+- LLM audit（validate-ai-test-hv）會判 `DIRECTION_FLIP` 違規
 
 ## 套用順序（中位→向外 — **依 x/y 座標序列，非 id 序；僅 LLM 推理**）
 
@@ -84,13 +84,14 @@ HV 最佳化**只准改 (x,y)**，以下關係移動前後必須完全一致：
 3. **同距中位層**有多個可移點時，先處理**拉直增益最大**（新增 HV 邊最多）者。
 4. 若某點有多個合法目標格，選**拉直最多**的那一格。
 
-**禁止**用 node 腳本、greedy、迴圈搜格自動選點。App 只做幾何反驗證，**不**程式求解或排序增益。
+**禁止**用 node 腳本、greedy、迴圈搜格自動選點。App 不做幾何驗證也不程式求解；反驗證由 LLM audit（validate-ai-test-hv）完成。
 
 ## 流程
 
 1. App **隨機產生**或**載入路線圖** → 按 **HV 最佳化** → 寫 `hv_payload.json`
 2. Cursor 對話請 Agent「HV 最佳化」（本 skill）→ **LLM 推理** → 寫 `hv_response.json`
-3. 再按 **HV 最佳化** → 虛線預覽 → **執行（套用移動）**
+3. Cursor：**LLM 反驗證**（validate-ai-test-hv skill）→ 寫 `hv_audit.json`（須 `pass: true`）
+4. 再按 **HV 最佳化** → App 檢查 audit pass → 虛線預覽 → **執行（套用移動）**
 
 ## Agent 必做（僅 LLM 推理）
 
@@ -124,15 +125,17 @@ node .claude/skills/ai-test-hv-optimize/writeResponse.mjs '{"routesFingerprint":
 
 `computedBy` 非 `"llm"` 的回覆會被 App 拒絕。
 
-## 反驗證（Agent 可選，不改 App 介面）
+## 反驗證（**必做** — audit 也由 LLM 推理，App 只認 hv_audit.json）
 
-寫完 response 後可跑 **validate-ai-test-hv** skill：
+寫完 response 後**必須**用 **validate-ai-test-hv** skill：**LLM 在對話中**逐條檢查（越界、重疊、新交叉、方向翻轉、紅點 360° 環序等），再用 `writeAudit.mjs`（只寫檔）寫 `hv_audit.json`：
 
 ```bash
-node --loader ./loader.mjs .claude/skills/validate-ai-test-hv/checkHvResponse.mjs
+node .claude/skills/validate-ai-test-hv/writeAudit.mjs '{"auditedBy":"llm","model":"…","pass":true,"violations":[]}'
 ```
 
-FAIL 時依 `hv_audit.json` 修正 LLM coords 再 writeResponse。使用者仍只按 App 原有「HV 最佳化」按鈕。
+禁止跑程式 audit 腳本產生判定。FAIL 時回本 skill 用 LLM 修正 coords 再 writeResponse + 重新 LLM audit。
+
+**App 不做幾何驗證**：按「HV 最佳化」時 App 只檢查 `hv_audit.json` 存在、`auditedBy: "llm"`、fingerprint 一致、`pass: true`，通過即直接載入 LLM 座標進虛線預覽。沒有 audit 或 FAIL 都不會進預覽。
 
 ## 核心檔案
 

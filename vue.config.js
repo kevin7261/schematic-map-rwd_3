@@ -239,6 +239,31 @@ module.exports = defineConfig({
         }
       });
 
+      const aiTestHvAuditPath = path.join(aiTestHvDir, 'hv_audit.json');
+
+      devServer.app.get('/api/ai-test-hv/audit', (req, res) => {
+        try {
+          if (!fs.existsSync(aiTestHvAuditPath)) {
+            res.json({ ok: true, missing: true });
+            return;
+          }
+          res.json(JSON.parse(fs.readFileSync(aiTestHvAuditPath, 'utf8')));
+        } catch (err) {
+          console.error('[ai-test-hv/audit GET]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
+      devServer.app.delete('/api/ai-test-hv/audit', (req, res) => {
+        try {
+          if (fs.existsSync(aiTestHvAuditPath)) fs.unlinkSync(aiTestHvAuditPath);
+          res.json({ ok: true });
+        } catch (err) {
+          console.error('[ai-test-hv/audit DELETE]', err);
+          res.status(500).json({ ok: false, error: err.message });
+        }
+      });
+
       /** 以下 API 仍保留於 devServer，前端已不再呼叫（路網成品改存圖層 dataOSM／dataGeojson／dataJson）。 */
       devServer.app.post('/api/save-osm2-geojson-2-json-artifacts', (req, res) => {
         try {

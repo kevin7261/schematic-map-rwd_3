@@ -5,19 +5,20 @@
 import { HV_OPTIMIZE_SYSTEM_PROMPT } from './uniformGridHvOptimize.js';
 
 /** 鐵律（置頂顯示） */
-export const AI_TEST_HV_IRON_RULE = `【鐵律】座標只能由 Cursor LLM 推理決定。
-禁止任何腳本、greedy 演算法、程式迴圈產生 coords。
-App 只做幾何驗證與預覽；writeResponse.mjs 只寫檔，不算座標。
-hv_response.json 須 computedBy: "llm"，否則 App 拒絕。`;
+export const AI_TEST_HV_IRON_RULE = `【鐵律】座標與 audit 都只能由 Cursor LLM 推理決定。
+禁止任何腳本、greedy 演算法、程式迴圈產生 coords 或 audit 判定。
+App 不做幾何驗證，只做 payload 同步、預覽、套用；writeResponse.mjs / writeAudit.mjs 只寫檔。
+hv_response.json 須 computedBy: "llm"；hv_audit.json 須 auditedBy: "llm" 且 pass: true，否則 App 拒絕。`;
 
 /** 操作流程（App + Cursor） */
 export const AI_TEST_HV_PROCEDURE = `【操作流程】（僅本地 npm run serve + Cursor）
 
 1. App：按「隨機產生」→ 按「HV 最佳化（水平/垂直）」→ 寫入 hv_payload.json
 2. Cursor：對 Agent 說「HV 最佳化」→ LLM 推理新座標 → writeResponse.mjs 寫 hv_response.json
-3. App：再按「HV 最佳化」→ 虛線預覽 → 按「執行（套用移動）」
+3. Cursor：LLM 反驗證（validate-ai-test-hv skill）→ writeAudit.mjs 寫 hv_audit.json（須 pass: true）
+4. App：再按「HV 最佳化」→ App 檢查 audit pass → 虛線預覽 → 按「執行（套用移動）」
 
-若按「隨機產生」後 fingerprint 改變，須在 Cursor 重新用 LLM 計算。`;
+若按「隨機產生」後 fingerprint 改變，須在 Cursor 重新用 LLM 計算 + 重新 LLM audit。`;
 
 /** Skill 硬性規定與 Agent 步驟 */
 export const AI_TEST_HV_SKILL_TEXT = `【Skill：ai-test-hv-optimize】
@@ -35,11 +36,15 @@ Agent 必做（僅 LLM 推理，禁止跑求解腳本）：
    - 禁止新增跨路線交叉（移動前沒有的邊內部交叉一律不可）
    - coords 須涵蓋全部 movable id（未動者回傳原座標）
 3. writeResponse.mjs 寫入（computedBy: "llm"）
+4. LLM 反驗證（validate-ai-test-hv skill）逐條檢查 → writeAudit.mjs 寫 hv_audit.json
+   （App 不做幾何驗證，只認 auditedBy: "llm" 且 pass: true）
 
 核心檔案：
 • public/data/ai_test/hv_payload.json — App 寫入
 • public/data/ai_test/hv_response.json — Agent（LLM）寫入
-• .claude/skills/ai-test-hv-optimize/writeResponse.mjs — 寫 response（不求解）`;
+• public/data/ai_test/hv_audit.json — Agent（LLM audit）寫入
+• .claude/skills/ai-test-hv-optimize/writeResponse.mjs — 寫 response（不求解）
+• .claude/skills/validate-ai-test-hv/writeAudit.mjs — 寫 audit（不檢查）`;
 
 /** Prompt 模板摘要 + 完整 System Prompt */
 export const AI_TEST_HV_PROMPT_TEMPLATE = `【Prompt 模板摘要】

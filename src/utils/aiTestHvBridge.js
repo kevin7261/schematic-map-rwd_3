@@ -58,3 +58,24 @@ export async function deleteAiTestHvResponse() {
   if (!r.ok) throw new Error(data.error || `清除 response 失敗 (${r.status})`);
   return data;
 }
+
+const AUDIT_URL = '/api/ai-test-hv/audit';
+
+/** LLM 反驗證結果（validate-ai-test-hv skill 寫入） @returns {Promise<object|null>} */
+export async function fetchAiTestHvAudit() {
+  assertAiTestHvLocalDev();
+  const r = await fetch(AUDIT_URL);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `讀取 audit 失敗 (${r.status})`);
+  if (data.missing) return null;
+  return data;
+}
+
+export async function deleteAiTestHvAudit() {
+  if (!isAiTestHvLocalDevMode()) return { ok: true };
+  const r = await fetch(AUDIT_URL, { method: 'DELETE' });
+  if (r.status === 404) return { ok: true };
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `清除 audit 失敗 (${r.status})`);
+  return data;
+}

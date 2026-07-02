@@ -45,7 +45,7 @@
 3. 同距中位層多點可移 → 先處理**拉直增益最大**者。
 4. 一點有多個合法目標格 → 選**拉直最多**的那格。
 
-App／validate 只做幾何反驗證，**不**替 LLM 搜格、選最佳點或依 HV 增益排序。
+App 不做幾何驗證也不替 LLM 搜格；反驗證由 **validate-ai-test-hv** skill 的 LLM audit 完成（App 只認 hv_audit.json pass:true）。
 
 ## 拓撲結構關係（移動後不可改）
 
