@@ -36,6 +36,7 @@ export const ROUTE_NORMALIZATION_IMPORT_SOURCES = Object.freeze([
   { layerId: SCHEMATIC_RMA_DETAIL_ADJUST_LAYER_ID, label: '站點與路線細部調整' },
   { layerId: SCHEMATIC_RMA_TOWARD_CENTER_HV_LAYER_ID, label: '站點與路線往中心聚集（先橫後直）' },
   { layerId: SCHEMATIC_RMA_TOWARD_CENTER_VH_LAYER_ID, label: '站點與路線往中心聚集（先直後橫）' },
+  { layerId: 'route_adjust_ai_test_layer', label: 'AI示意圖測試（路線調整）' },
 ]);
 
 /** 往中心聚集兩層：自站點與路線調整①～⑧匯入之來源清單。 */

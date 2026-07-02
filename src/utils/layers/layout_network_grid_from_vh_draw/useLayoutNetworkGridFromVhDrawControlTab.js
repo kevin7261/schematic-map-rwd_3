@@ -32,6 +32,25 @@ import {
   stopLayoutVhDrawAutoRandomWeight,
   toggleLayoutVhDrawAutoRandomWeight,
 } from './layoutVhDrawAutoRandomWeightTimer.js';
+import { convertAiTestRoutesToRmaFlat } from '@/utils/aiTestRoutesToRmaFlat.js';
+import { computeStationDataFromRoutes } from '@/utils/dataExecute/computeStationDataFromRoutes.js';
+
+/** AI示意圖測試（路線調整）圖層 id：資料為 processedJsonData.routes，需先轉 flat 才能匯入路網網格。 */
+const AI_TEST_ROUTE_ADJUST_LAYER_ID = 'route_adjust_ai_test_layer';
+
+/** AI測試來源：由 processedJsonData.routes 產生 flat 並寫回來源層 spaceNetworkGridJsonData（供匯入沿用）。 */
+function ensureAiTestSourceFlat(src) {
+  const routes = src?.processedJsonData?.routes;
+  if (!Array.isArray(routes) || !routes.length) return false;
+  const flat = convertAiTestRoutesToRmaFlat(routes);
+  if (!flat.length) return false;
+  src.spaceNetworkGridJsonData = flat;
+  const computed = computeStationDataFromRoutes(flat);
+  src.spaceNetworkGridJsonData_SectionData = computed.sectionData;
+  src.spaceNetworkGridJsonData_ConnectData = computed.connectData;
+  src.spaceNetworkGridJsonData_StationData = computed.stationData;
+  return true;
+}
 
 /**
  * @param {{
@@ -112,6 +131,8 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
       ROUTE_NORMALIZATION_IMPORT_SOURCES.find((s) => s.layerId === sourceLayerId)?.label ||
       src?.layerName ||
       sourceLayerId;
+    // AI示意圖測試（路線調整）：資料在 processedJsonData.routes，先轉成 flat 寫回來源層。
+    if (sourceLayerId === AI_TEST_ROUTE_ADJUST_LAYER_ID) ensureAiTestSourceFlat(src);
     if (!src || !Array.isArray(src.spaceNetworkGridJsonData) || !src.spaceNetworkGridJsonData.length) {
       setControlLoadFeedback(
         lyr.layerId,
@@ -133,6 +154,11 @@ export function useLayoutNetworkGridFromVhDrawControlTab({
 
   const routeNormSourceHasData = (sourceLayerId) => {
     const src = dataStore.findLayerById(sourceLayerId);
+    if (sourceLayerId === AI_TEST_ROUTE_ADJUST_LAYER_ID) {
+      return !!(
+        Array.isArray(src?.processedJsonData?.routes) && src.processedJsonData.routes.length
+      );
+    }
     return !!(src && Array.isArray(src.spaceNetworkGridJsonData) && src.spaceNetworkGridJsonData.length);
   };
 
